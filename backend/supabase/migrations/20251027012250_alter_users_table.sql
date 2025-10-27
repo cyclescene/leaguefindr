@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN organization_name VARCHAR(255) NOT NULL UNIQUE;
