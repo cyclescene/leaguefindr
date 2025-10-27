@@ -1,61 +1,119 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
-	"net/http"
-	"os"
-	"strings"
+	"time"
+
+	"github.com/clerk/clerk-sdk-go/v2"
+	"github.com/clerk/clerk-sdk-go/v2/emailaddress"
+	"github.com/clerk/clerk-sdk-go/v2/user"
 )
 
 // SyncUserMetadataToClerk syncs the user's role and organization to Clerk's public metadata
+// using the Clerk SDK instead of HTTP calls
 func SyncUserMetadataToClerk(userID string, role Role, organizationName string) error {
-	clerkAPIKey := os.Getenv("CLERK_SECRET_KEY")
-	if clerkAPIKey == "" {
-		return fmt.Errorf("CLERK_SECRET_KEY not set")
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Prepare metadata
+	publicMetadata := map[string]any{
+		"role":             role.String(),
+		"organizationName": organizationName,
 	}
 
-	// Prepare the request to update user metadata
-	updateData := map[string]any{
-		"public_metadata": map[string]any{
-			"role":             role.String(),
-			"organizationName": organizationName,
-		},
-	}
-
-	body, err := json.Marshal(updateData)
+	// Marshal to JSON RawMessage for SDK
+	metadataJSON, err := json.Marshal(publicMetadata)
 	if err != nil {
 		slog.Error("SyncUserMetadataToClerk marshal error", "err", err)
-		return fmt.Errorf("failed to marshal request: %w", err)
+		return fmt.Errorf("failed to marshal metadata: %w", err)
 	}
 
-	// Call Clerk's update user endpoint
-	// https://clerk.com/docs/reference/backend-api/tag/Users#operation/updateUser
-	url := fmt.Sprintf("https://api.clerk.com/v1/users/%s", userID)
-	req, err := http.NewRequest("PATCH", url, strings.NewReader(string(body)))
-	if err != nil {
-		slog.Error("SyncUserMetadataToClerk request error", "err", err)
-		return fmt.Errorf("failed to create request: %w", err)
-	}
+	rawMessage := json.RawMessage(metadataJSON)
 
-	req.Header.Set("Authorization", "Bearer "+clerkAPIKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
+	// Update user with SDK
+	updatedUser, err := user.UpdateMetadata(ctx, userID, &user.UpdateMetadataParams{
+		PublicMetadata: &rawMessage,
+	})
 	if err != nil {
-		slog.Error("SyncUserMetadataToClerk request failed", "err", err)
+		// Check if it's an API error for better error handling
+		if apiErr, ok := err.(*clerk.APIErrorResponse); ok {
+			slog.Error("SyncUserMetadataToClerk API error",
+				"userID", userID,
+				"statusCode", apiErr.HTTPStatusCode,
+				"traceID", apiErr.TraceID,
+				"err", err)
+			return fmt.Errorf("clerk API error (trace: %s): %w", apiErr.TraceID, err)
+		}
+
+		slog.Error("SyncUserMetadataToClerk error", "userID", userID, "err", err)
 		return fmt.Errorf("failed to sync user metadata to Clerk: %w", err)
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		slog.Error("SyncUserMetadataToClerk failed", "status", resp.StatusCode, "body", string(respBody))
-		return fmt.Errorf("sync failed (status %d): %s", resp.StatusCode, string(respBody))
+	slog.Debug("SyncUserMetadataToClerk success",
+		"userID", userID,
+		"role", role,
+		"organizationName", organizationName,
+		"updatedUser", updatedUser.ID)
+
+	return nil
+}
+
+// VerifyUserEmailInClerk marks a user's primary email as verified in Clerk
+// This is used to auto-verify the first admin user so they don't need to verify their email
+func VerifyUserEmailInClerk(userID string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Get the user to find their primary email address ID
+	usr, err := user.Get(ctx, userID)
+	if err != nil {
+		if apiErr, ok := err.(*clerk.APIErrorResponse); ok {
+			slog.Error("VerifyUserEmailInClerk: failed to get user",
+				"userID", userID,
+				"statusCode", apiErr.HTTPStatusCode,
+				"traceID", apiErr.TraceID,
+				"err", err)
+			return fmt.Errorf("failed to get user (trace: %s): %w", apiErr.TraceID, err)
+		}
+
+		slog.Error("VerifyUserEmailInClerk: failed to get user", "userID", userID, "err", err)
+		return fmt.Errorf("failed to get user: %w", err)
 	}
 
-	slog.Debug("SyncUserMetadataToClerk success", "userID", userID, "role", role, "organizationName", organizationName)
+	// Find primary email address ID
+	if usr.PrimaryEmailAddressID == nil || *usr.PrimaryEmailAddressID == "" {
+		slog.Error("VerifyUserEmailInClerk: no primary email found", "userID", userID)
+		return fmt.Errorf("no primary email found for user")
+	}
+
+	primaryEmailID := *usr.PrimaryEmailAddressID
+
+	// Verify the email address using the SDK
+	verifiedEmail, err := emailaddress.Update(ctx, primaryEmailID, &emailaddress.UpdateParams{
+		Verified: clerk.Bool(true),
+	})
+	if err != nil {
+		if apiErr, ok := err.(*clerk.APIErrorResponse); ok {
+			slog.Error("VerifyUserEmailInClerk: failed to verify email",
+				"userID", userID,
+				"emailID", primaryEmailID,
+				"statusCode", apiErr.HTTPStatusCode,
+				"traceID", apiErr.TraceID,
+				"err", err)
+			return fmt.Errorf("failed to verify email (trace: %s): %w", apiErr.TraceID, err)
+		}
+
+		slog.Error("VerifyUserEmailInClerk: failed to verify email", "userID", userID, "err", err)
+		return fmt.Errorf("failed to verify email: %w", err)
+	}
+
+	slog.Info("VerifyUserEmailInClerk: auto-verified admin email",
+		"userID", userID,
+		"email", verifiedEmail.EmailAddress)
+
 	return nil
 }

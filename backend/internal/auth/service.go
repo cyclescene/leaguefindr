@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"log/slog"
 )
 
 type Service struct {
@@ -39,6 +40,15 @@ func (s *Service) RegisterUser(clerkID, email, organizationName string) error {
 	err = s.repo.CreateUser(clerkID, email, organizationName, role)
 	if err != nil {
 		return err
+	}
+
+	// If this is the first admin user, auto-verify their email so they don't need to verify
+	if role == RoleAdmin {
+		verifyErr := VerifyUserEmailInClerk(clerkID)
+		if verifyErr != nil {
+			// Log but don't fail - user can verify manually if needed
+			slog.Error("failed to auto-verify admin email", "clerkID", clerkID, "err", verifyErr)
+		}
 	}
 
 	// Sync user metadata to Clerk (best effort - don't fail registration if sync fails)

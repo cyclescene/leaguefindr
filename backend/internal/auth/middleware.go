@@ -1,20 +1,25 @@
 package auth
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
-	"os"
 	"strings"
+	"time"
+
+	clerk "github.com/clerk/clerk-sdk-go/v2"
+	"github.com/clerk/clerk-sdk-go/v2/jwt"
+	"github.com/clerk/clerk-sdk-go/v2/session"
 )
 
 // JWTMiddleware validates Clerk JWT tokens from the Authorization header
+// It extracts the user ID and stores it in the X-Clerk-User-ID header for downstream handlers
 func JWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
+			slog.Debug("JWTMiddleware: missing authorization header")
 			http.Error(w, "Missing authorization header", http.StatusUnauthorized)
 			return
 		}
@@ -22,148 +27,116 @@ func JWTMiddleware(next http.Handler) http.Handler {
 		// Extract token from "Bearer <token>"
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
+			slog.Debug("JWTMiddleware: invalid authorization header format")
 			http.Error(w, "Invalid authorization header format", http.StatusUnauthorized)
 			return
 		}
 
 		token := parts[1]
 
-		// Verify token with Clerk API
-		claims, err := verifyClerkToken(token)
+		// Verify token with Clerk SDK
+		claims, err := verifyClerkToken(r.Context(), token)
 		if err != nil {
-			errorMsg := "Invalid token: " + err.Error()
-			slog.Error("JWT verification failed", "error", err.Error())
-			http.Error(w, errorMsg, http.StatusUnauthorized)
+			slog.Error("JWTMiddleware: token verification failed", "error", err.Error())
+			http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
 			return
 		}
 
-		// Store claims in request context for downstream handlers
+		// Store user ID in request header for downstream handlers
 		r.Header.Set("X-Clerk-User-ID", claims.Sub)
 
 		next.ServeHTTP(w, r)
 	})
 }
 
-// ClerkClaims represents the JWT claims from Clerk
-type ClerkClaims struct {
-	Sub string `json:"sub"`
-	// Add other fields as needed (email, etc.)
+// verifyClerkToken verifies the JWT token using the Clerk SDK
+// It extracts and returns the user ID from the token claims
+func verifyClerkToken(ctx context.Context, token string) (*TokenClaims, error) {
+	// Create a context with timeout for the verification
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	// Decode the token to extract claims without verification first
+	claims, err := jwt.Decode(ctx, &jwt.DecodeParams{
+		Token: token,
+	})
+	if err != nil {
+		slog.Error("verifyClerkToken: decode error", "err", err)
+		return nil, fmt.Errorf("failed to decode token: %w", err)
+	}
+
+	// Get the JSON Web Key for verification
+	jwk, err := jwt.GetJSONWebKey(ctx, &jwt.GetJSONWebKeyParams{
+		KeyID: claims.KeyID,
+	})
+	if err != nil {
+		if apiErr, ok := err.(*clerk.APIErrorResponse); ok {
+			slog.Error("verifyClerkToken: JWK fetch error",
+				"statusCode", apiErr.HTTPStatusCode,
+				"traceID", apiErr.TraceID,
+				"err", err)
+			return nil, fmt.Errorf("jwk fetch failed (trace: %s): %w", apiErr.TraceID, err)
+		}
+
+		slog.Error("verifyClerkToken: JWK fetch error", "err", err)
+		return nil, fmt.Errorf("failed to fetch JWK: %w", err)
+	}
+
+	// Verify the token signature
+	verifiedClaims, err := jwt.Verify(ctx, &jwt.VerifyParams{
+		Token: token,
+		JWK:   jwk,
+	})
+	if err != nil {
+		slog.Error("verifyClerkToken: verification error", "err", err)
+		return nil, fmt.Errorf("token verification failed: %w", err)
+	}
+
+	// Extract user ID from claims
+	// The Subject field contains the Clerk user ID
+	userID := verifiedClaims.Subject
+	if userID == "" {
+		slog.Error("verifyClerkToken: missing or invalid sub claim")
+		return nil, fmt.Errorf("invalid token: missing user ID claim")
+	}
+
+	slog.Debug("verifyClerkToken: success", "userID", userID)
+	return &TokenClaims{Sub: userID}, nil
 }
 
-// verifyClerkToken verifies the JWT token by calling Clerk's API
-func verifyClerkToken(token string) (*ClerkClaims, error) {
-	// Get Clerk API key from environment
-	clerkAPIKey := os.Getenv("CLERK_SECRET_KEY")
-	if clerkAPIKey == "" {
-		return nil, fmt.Errorf("CLERK_SECRET_KEY not set")
-	}
-
-	// Call Clerk's verify token endpoint
-	// https://clerk.com/docs/reference/backend-api/tag/JWT-Templates#operation/verifyToken
-	req, err := http.NewRequest(
-		"POST",
-		"https://api.clerk.com/v1/verify",
-		strings.NewReader(fmt.Sprintf(`{"token":"%s"}`, token)),
-	)
-	if err != nil {
-		slog.Error("verifyClerkToken", "err", err)
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	// Add Clerk API key authentication
-	req.Header.Set("Authorization", "Bearer "+clerkAPIKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		slog.Error("verifyClerkToken", "err", err)
-		return nil, fmt.Errorf("failed to verify token: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		slog.Error("verifyClerkToken", "status", resp.StatusCode, "body", string(body))
-		return nil, fmt.Errorf("verification failed (status %d): %s", resp.StatusCode, string(body))
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		slog.Error("verifyClerkToken", "err", err)
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var claims ClerkClaims
-	err = json.Unmarshal(body, &claims)
-	if err != nil {
-		slog.Error("verifyClerkToken", "err", err)
-		return nil, fmt.Errorf("failed to parse claims: %w", err)
-	}
-
-	return &claims, nil
+// TokenClaims represents the essential claims from a Clerk JWT token
+type TokenClaims struct {
+	Sub string // User ID (subject)
 }
 
-// GetUserIDFromSessionID retrieves the Clerk user ID from a session ID
+// GetUserIDFromSessionID retrieves the Clerk user ID from a session ID using the Clerk SDK
 func GetUserIDFromSessionID(sessionID string) (string, error) {
-	clerkAPIKey := os.Getenv("CLERK_SECRET_KEY")
-	if clerkAPIKey == "" {
-		return "", fmt.Errorf("CLERK_SECRET_KEY not set")
-	}
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	clerkPublishableKey := os.Getenv("CLERK_PUBLISHABLE_KEY")
-	if clerkPublishableKey == "" {
-		return "", fmt.Errorf("CLERK_PUBLISHABLE_KEY not set")
-	}
-
-	slog.Debug("GetUserIDFromSessionID", "sessionID", sessionID, "clerkPublishableKey", clerkPublishableKey)
-
-	// Call Clerk's get session endpoint to retrieve session details
-	// https://clerk.com/docs/reference/backend-api/tag/Sessions#operation/getSession
-	url := fmt.Sprintf("https://api.clerk.com/v1/sessions/%s?client_id=%s", sessionID, clerkPublishableKey)
-	req, err := http.NewRequest("GET", url, nil)
+	// Get session using Clerk SDK
+	sess, err := session.Get(ctx, sessionID)
 	if err != nil {
-		slog.Error("GetUserIDFromSessionID", "err", err)
-		return "", fmt.Errorf("failed to create request: %w", err)
-	}
+		// Check if it's an API error for better error handling
+		if apiErr, ok := err.(*clerk.APIErrorResponse); ok {
+			slog.Error("GetUserIDFromSessionID: Clerk API error",
+				"sessionID", sessionID,
+				"statusCode", apiErr.HTTPStatusCode,
+				"traceID", apiErr.TraceID,
+				"err", err)
+			return "", fmt.Errorf("session lookup failed (trace: %s): %w", apiErr.TraceID, err)
+		}
 
-	req.Header.Set("Authorization", "Bearer "+clerkAPIKey)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		slog.Error("GetUserIDFromSessionID", "err", err)
+		slog.Error("GetUserIDFromSessionID: session not found", "sessionID", sessionID, "err", err)
 		return "", fmt.Errorf("failed to get session: %w", err)
 	}
-	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		slog.Error("GetUserIDFromSessionID", "err", err)
-		return "", fmt.Errorf("failed to read response: %w", err)
-	}
-
-	slog.Debug("GetUserIDFromSessionID response", "status", resp.StatusCode, "body", string(body))
-
-	if resp.StatusCode != http.StatusOK {
-		slog.Error("GetUserIDFromSessionID", "status", resp.StatusCode, "body", string(body))
-		return "", fmt.Errorf("session not found (status %d)", resp.StatusCode)
-	}
-
-	// Parse the session response to extract user_id
-	// Clerk returns the session object directly
-	var sessionData struct {
-		UserID string `json:"user_id"`
-	}
-	err = json.Unmarshal(body, &sessionData)
-	if err != nil {
-		slog.Error("GetUserIDFromSessionID parse error", "body", string(body), "err", err)
-		return "", fmt.Errorf("failed to parse session data: %w", err)
-	}
-
-	if sessionData.UserID == "" {
-		slog.Error("GetUserIDFromSessionID", "err", "user_id is empty", "body", string(body))
+	if sess == nil || sess.UserID == "" {
+		slog.Error("GetUserIDFromSessionID: empty user ID", "sessionID", sessionID)
 		return "", fmt.Errorf("user_id not found in session")
 	}
 
-	slog.Debug("GetUserIDFromSessionID success", "userID", sessionData.UserID)
-	return sessionData.UserID, nil
+	slog.Debug("GetUserIDFromSessionID: success", "userID", sess.UserID)
+	return sess.UserID, nil
 }

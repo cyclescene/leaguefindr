@@ -24,10 +24,16 @@ func NewHandler(service *Service) *Handler {
 // RegisterRoutes registers all auth routes
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Route("/auth", func(r chi.Router) {
+		// Public routes (no auth required)
 		r.Post("/register", h.Register)
-		r.Get("/user/{userID}", h.GetUser)
 		r.Post("/login", h.RecordLogin)
-		r.Patch("/user/{userID}/role", h.RequireAdmin(h.UpdateUserRole))
+
+		// Protected routes (JWT required)
+		r.Group(func(r chi.Router) {
+			r.Use(JWTMiddleware)
+			r.Get("/user/{userID}", h.GetUser)
+			r.Patch("/user/{userID}/role", h.RequireAdmin(h.UpdateUserRole))
+		})
 	})
 }
 
@@ -69,17 +75,32 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetUser retrieves user information
+// Requires JWT authentication - users can only fetch their own data
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userID")
+	authenticatedUserID := r.Header.Get("X-Clerk-User-ID")
 
 	if userID == "" {
 		http.Error(w, "userID is required", http.StatusBadRequest)
 		return
 	}
 
+	// Verify that authenticated user can only access their own data (unless admin)
+	isAdmin, err := h.service.ValidateUserRole(authenticatedUserID, RoleAdmin)
+	if err != nil || !isAdmin {
+		// Non-admin users can only access their own data
+		if userID != authenticatedUserID {
+			slog.Warn("unauthorized user data access attempt",
+				"authenticatedUserID", authenticatedUserID,
+				"requestedUserID", userID)
+			http.Error(w, "Forbidden: cannot access other users' data", http.StatusForbidden)
+			return
+		}
+	}
+
 	user, err := h.service.GetUser(userID)
 	if err != nil {
-		slog.Error("get user error", "err", err)
+		slog.Error("get user error", "userID", userID, "err", err)
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}

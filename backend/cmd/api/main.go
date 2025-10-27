@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/caarlos0/env/v10"
+	clerk "github.com/clerk/clerk-sdk-go/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
@@ -37,7 +38,13 @@ func init() {
 		// Continue anyway - env vars might be set in the shell
 	}
 
-	slog.Info("Environment variables loaded", "DATABASE_URL", os.Getenv("DATABASE_URL"), "CLERK_SECRET_KEY", os.Getenv("CLERK_SECRET_KEY"))
+	// Initialize Clerk SDK
+	clerkSecretKey := os.Getenv("CLERK_SECRET_KEY")
+	if clerkSecretKey == "" {
+		slog.Error("CLERK_SECRET_KEY not set")
+		panic("CLERK_SECRET_KEY environment variable is required")
+	}
+	clerk.SetKey(clerkSecretKey)
 
 	// Parse environment variables
 	err = env.Parse(&cfg)
