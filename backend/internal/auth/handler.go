@@ -32,7 +32,12 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(JWTMiddleware)
 			r.Get("/user/{userID}", h.GetUser)
-			r.Patch("/user/{userID}/role", h.RequireAdmin(h.UpdateUserRole))
+
+			// Admin routes
+			r.Group(func(r chi.Router) {
+				r.Use(RequireAdmin(h.service))
+				r.Patch("/user/{userID}/role", h.UpdateUserRole)
+			})
 		})
 	})
 }
@@ -177,27 +182,4 @@ func (h *Handler) UpdateUserRole(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-}
-
-// RequireAdmin is middleware that checks if the user is an admin
-func (h *Handler) RequireAdmin(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Get user ID from the header set by JWT middleware
-		userID := r.Header.Get("X-Clerk-User-ID")
-		if userID == "" {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		// Check if user is admin
-		isAdmin, err := h.service.ValidateUserRole(userID, RoleAdmin)
-		if err != nil || !isAdmin {
-			slog.Error("admin check failed", "userID", userID, "err", err)
-			http.Error(w, "Forbidden: admin access required", http.StatusForbidden)
-			return
-		}
-
-		// User is admin, call next handler
-		next(w, r)
-	}
 }

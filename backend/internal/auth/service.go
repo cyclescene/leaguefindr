@@ -117,3 +117,12 @@ func (s *Service) UpdateUserRole(userID string, role Role) error {
 
 	return nil
 }
+
+// IsUserAdmin checks if a user has admin role
+func (s *Service) IsUserAdmin(userID string) (bool, error) {
+	user, err := s.repo.GetUserByID(userID)
+	if err != nil {
+		return false, err
+	}
+	return user.Role == RoleAdmin, nil
+}

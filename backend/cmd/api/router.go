@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leaguefindr/backend/internal/auth"
+	"github.com/leaguefindr/backend/internal/sports"
 )
 
 var allowedDomains = []string{
@@ -55,8 +56,13 @@ func newRouter(dbPool *pgxpool.Pool) *chi.Mux {
 	authService := auth.NewService(authRepo)
 	authHandler := auth.NewHandler(authService)
 
+	sportsRepo := sports.NewRepository(dbPool)
+	sportsService := sports.NewService(sportsRepo, authRepo)
+	sportsHandler := sports.NewHandler(sportsService, authService)
+
 	r.Route("/v1", func(r chi.Router) {
 		authHandler.RegisterRoutes(r)
+		sportsHandler.RegisterRoutes(r)
 	})
 
 	return r

@@ -109,6 +109,33 @@ type TokenClaims struct {
 	Sub string // User ID (subject)
 }
 
+// RequireAdmin is a middleware that checks if the user has admin role
+// It expects the X-Clerk-User-ID header to be set by JWTMiddleware
+func RequireAdmin(authService *Service) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Get user ID from the header set by JWT middleware
+			userID := r.Header.Get("X-Clerk-User-ID")
+			if userID == "" {
+				slog.Warn("RequireAdmin: missing X-Clerk-User-ID header")
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			// Check if user is admin
+			isAdmin, err := authService.IsUserAdmin(userID)
+			if err != nil || !isAdmin {
+				slog.Warn("RequireAdmin: admin check failed", "userID", userID, "err", err)
+				http.Error(w, "Forbidden: admin access required", http.StatusForbidden)
+				return
+			}
+
+			// User is admin, proceed to next handler
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // GetUserIDFromSessionID retrieves the Clerk user ID from a session ID using the Clerk SDK
 func GetUserIDFromSessionID(sessionID string) (string, error) {
 	// Create context with timeout
