@@ -281,8 +281,7 @@ describe('SignUpForm', () => {
 
       await waitFor(() => {
         expect(mockPrepareEmail).toHaveBeenCalledWith({
-          strategy: 'email_link',
-          redirectUrl: expect.stringContaining('/verify-email'),
+          strategy: 'email_code',
         });
       });
     });

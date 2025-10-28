@@ -1,9 +1,10 @@
 "use client";
 
-import { useSignUp, useAuth } from "@clerk/nextjs";
+import { useSignUp } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -15,12 +16,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { signUpSchema, type SignUpFormData } from "@/lib/schemas";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 export function SignUpForm() {
-  const { signUp, isLoaded } = useSignUp();
-  const { userId, isLoaded: isUserLoaded } = useAuth();
+  const { signUp, isLoaded: signUpIsLoaded } = useSignUp();
   const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -35,16 +34,10 @@ export function SignUpForm() {
     },
   });
 
-  // Redirect to dashboard if user is already authenticated
-  useEffect(() => {
-    if (isUserLoaded && userId) {
-      router.push('/');
-    }
-  }, [isUserLoaded, userId, router]);
 
   const onSubmit = async (data: SignUpFormData) => {
     try {
-      if (!isLoaded || !signUp) return;
+      if (!signUpIsLoaded || !signUp) return;
 
       setSubmitted(true);
 
@@ -54,12 +47,11 @@ export function SignUpForm() {
         password: data.password,
       });
 
-      // Prepare email verification for the new account
+      // Prepare email verification with code strategy (user stays on page)
       if (result.status === "missing_requirements") {
         try {
           await signUp.prepareEmailAddressVerification({
-            strategy: "email_link",
-            redirectUrl: `${window.location.origin}/verify-email`,
+            strategy: "email_code",
           });
         } catch (err) {
           console.error('Failed to prepare email verification:', err);
@@ -89,11 +81,21 @@ export function SignUpForm() {
         return;
       }
 
-      // Show loading state and redirect to email verification page
+      // Check if email is already verified (happens for first admin user)
+      // If unverifiedFields is empty, all fields (including email) are verified
+      const isEmailVerified = signUp.unverifiedFields.length === 0;
+
+      // Show loading state and redirect after session syncs with Clerk
       setIsRedirecting(true);
       setTimeout(() => {
-        router.push('/verify-email');
-      }, 500);
+        // If email is already verified, go straight to dashboard
+        if (isEmailVerified) {
+          router.push('/');
+        } else {
+          // Otherwise, go to email verification page
+          router.push('/verify-email');
+        }
+      }, 1500);
     } catch (error) {
       console.error('Sign up failed:', error);
       setSubmitted(false);
@@ -107,7 +109,7 @@ export function SignUpForm() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
             <Loader2 className="animate-spin text-brand-dark" size={40} />
-            <p className="text-brand-dark font-medium">Sending verification email...</p>
+            <p className="text-brand-dark font-medium">Setting up your account...</p>
           </div>
         </div>
       )}

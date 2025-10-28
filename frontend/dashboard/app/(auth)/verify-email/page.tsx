@@ -1,28 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSignUp, useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useSignUp } from "@clerk/nextjs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export default function VerifyEmailPage() {
-  const { signUp, isLoaded } = useSignUp();
-  const { isSignedIn } = useAuth();
-  const router = useRouter();
+  const { signUp, isLoaded: signUpIsLoaded } = useSignUp();
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
 
-  // If user is already signed in, redirect to dashboard
-  useEffect(() => {
-    if (isSignedIn && isLoaded) {
-      router.push("/");
-    }
-  }, [isSignedIn, isLoaded, router]);
-
   const handleResendEmail = async () => {
-    if (!isLoaded || !signUp) return;
+    if (!signUpIsLoaded || !signUp) return;
 
     try {
       setResending(true);
@@ -30,8 +20,7 @@ export default function VerifyEmailPage() {
 
       if (signUp.emailAddress) {
         await signUp.prepareEmailAddressVerification({
-          strategy: "email_link",
-          redirectUrl: window.location.href,
+          strategy: "email_code",
         });
         setResendSuccess(true);
         // Reset success message after 5 seconds
@@ -49,14 +38,14 @@ export default function VerifyEmailPage() {
       <CardHeader>
         <CardTitle>Verify Your Email</CardTitle>
         <CardDescription>
-          We've sent you a verification link. Check your email to continue.
+          We've sent you a verification code. Check your email to continue.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
           <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-950">
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              Check your email inbox for a verification link. Click the link to verify your email address and complete your registration.
+              Check your email inbox for a 6-digit verification code. Enter the code below to verify your email address and complete your registration.
             </p>
           </div>
 
@@ -75,7 +64,7 @@ export default function VerifyEmailPage() {
               variant="outline"
               className="w-full"
             >
-              {resending ? "Sending..." : "Resend Verification Email"}
+              {resending ? "Sending..." : "Resend Verification Code"}
             </Button>
 
             <div className="relative">

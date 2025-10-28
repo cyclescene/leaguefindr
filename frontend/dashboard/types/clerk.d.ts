@@ -4,6 +4,7 @@ declare global {
   namespace Clerk {
     interface UserPublicMetadata {
       role?: "admin" | "user";
+      organizationName?: string;
     }
   }
 }

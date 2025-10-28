@@ -6,7 +6,7 @@ import type { ClerkUser } from "@/types/clerk";
 
 function DashboardContent() {
   const { user, isLoaded } = useUser() as { user: ClerkUser | null; isLoaded: boolean };
-  const role = user?.publicMetadata?.role;
+  const { role, organizationName } = user?.publicMetadata || {};
 
   if (!isLoaded) {
     return (
@@ -24,7 +24,7 @@ function DashboardContent() {
       <header className="bg-brand-dark text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <h1 className="text-4xl font-bold">Dashboard</h1>
-          <p className="text-brand-light mt-2">Welcome, {user?.firstName || 'User'}</p>
+          <p className="text-brand-light mt-2">Welcome, {organizationName}</p>
         </div>
       </header>
 
