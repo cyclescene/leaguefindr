@@ -49,8 +49,6 @@ export function SignUpForm() {
         password: data.password,
       });
 
-      console.log('Signup result status:', result.status);
-
       // Prepare email verification with code strategy (user stays on page)
       if (result.status === "missing_requirements") {
         try {
@@ -66,7 +64,6 @@ export function SignUpForm() {
 
       // If signup is complete, Clerk has already created the session
       if (result.status === "complete") {
-        console.log('Signup complete - Clerk session created');
         // The user is already signed in from the signup process
         // No need to explicitly sign in again
       }
@@ -96,11 +93,6 @@ export function SignUpForm() {
       // If unverifiedFields is empty, all fields (including email) are verified
       const isEmailVerified = signUp.unverifiedFields.length === 0;
 
-      // Log unverified fields for debugging
-      console.log('Unverified fields:', signUp.unverifiedFields);
-      console.log('Is email verified:', isEmailVerified);
-      console.log('User ID from auth:', userId);
-
       // Show loading state and redirect after session syncs with Clerk
       setIsRedirecting(true);
 
@@ -111,11 +103,8 @@ export function SignUpForm() {
         const maxAttempts = 5;
 
         while (attempts < maxAttempts) {
-          console.log(`Attempt ${attempts + 1}: authIsLoaded=${authIsLoaded}, userId=${userId}, isEmailVerified=${isEmailVerified}`);
-
           // If email is already verified and user is authenticated, go to dashboard
           if (isEmailVerified && authIsLoaded && userId) {
-            console.log('Email verified and authenticated, redirecting to dashboard');
             router.push('/');
             return;
           }
@@ -127,12 +116,10 @@ export function SignUpForm() {
 
         // If we get here, check one more time
         if (isEmailVerified) {
-          console.log('Verified user, proceeding to dashboard');
           // Session was already created during signup
           // Do a hard page refresh to let ClerkProvider reinitialize with the new session
           window.location.href = '/';
         } else {
-          console.log('Email not verified, redirecting to verify-email');
           router.push('/verify-email');
         }
       };

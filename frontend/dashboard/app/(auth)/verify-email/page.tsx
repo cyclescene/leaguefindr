@@ -35,7 +35,6 @@ export default function VerifyEmailPage() {
       });
 
       if (result.verifications?.emailAddress?.status === "verified") {
-        console.log("Email verified successfully");
         // Wait a moment then redirect to dashboard
         setTimeout(() => {
           window.location.href = "/";

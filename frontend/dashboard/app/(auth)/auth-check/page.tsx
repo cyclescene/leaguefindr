@@ -17,12 +17,10 @@ export default function AuthCheckPage() {
         // This gives the server-side Clerk session time to establish
         setRedirecting(true);
         setTimeout(() => {
-          console.log('Auth verified, doing hard refresh to dashboard');
           window.location.href = '/';
         }, 2000);
       } else {
         // User is not authenticated, go back to signin
-        console.log('No user found, redirecting to signin');
         router.push('/signin');
       }
     }
