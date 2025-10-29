@@ -1,6 +1,6 @@
 "use client";
 
-import { useSignUp } from "@clerk/nextjs";
+import { useSignUp, useAuth, useSignIn } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -20,6 +20,8 @@ import { Loader2 } from "lucide-react";
 
 export function SignUpForm() {
   const { signUp, isLoaded: signUpIsLoaded } = useSignUp();
+  const { signIn, isLoaded: signInIsLoaded } = useSignIn();
+  const { userId, isLoaded: authIsLoaded } = useAuth();
   const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -47,6 +49,8 @@ export function SignUpForm() {
         password: data.password,
       });
 
+      console.log('Signup result status:', result.status);
+
       // Prepare email verification with code strategy (user stays on page)
       if (result.status === "missing_requirements") {
         try {
@@ -58,6 +62,13 @@ export function SignUpForm() {
           setSubmitted(false);
           return;
         }
+      }
+
+      // If signup is complete, Clerk has already created the session
+      if (result.status === "complete") {
+        console.log('Signup complete - Clerk session created');
+        // The user is already signed in from the signup process
+        // No need to explicitly sign in again
       }
 
       // Sync user to backend after Clerk signup
@@ -85,17 +96,48 @@ export function SignUpForm() {
       // If unverifiedFields is empty, all fields (including email) are verified
       const isEmailVerified = signUp.unverifiedFields.length === 0;
 
+      // Log unverified fields for debugging
+      console.log('Unverified fields:', signUp.unverifiedFields);
+      console.log('Is email verified:', isEmailVerified);
+      console.log('User ID from auth:', userId);
+
       // Show loading state and redirect after session syncs with Clerk
       setIsRedirecting(true);
-      setTimeout(() => {
-        // If email is already verified, go straight to dashboard
+
+      // Wait for auth to load and user to be established in session
+      const checkAuthAndRedirect = async () => {
+        // Give Clerk time to establish the session and auth to load
+        let attempts = 0;
+        const maxAttempts = 5;
+
+        while (attempts < maxAttempts) {
+          console.log(`Attempt ${attempts + 1}: authIsLoaded=${authIsLoaded}, userId=${userId}, isEmailVerified=${isEmailVerified}`);
+
+          // If email is already verified and user is authenticated, go to dashboard
+          if (isEmailVerified && authIsLoaded && userId) {
+            console.log('Email verified and authenticated, redirecting to dashboard');
+            router.push('/');
+            return;
+          }
+
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          attempts++;
+        }
+
+        // If we get here, check one more time
         if (isEmailVerified) {
-          router.push('/');
+          console.log('Verified user, proceeding to dashboard');
+          // Session was already created during signup
+          // Do a hard page refresh to let ClerkProvider reinitialize with the new session
+          window.location.href = '/';
         } else {
-          // Otherwise, go to email verification page
+          console.log('Email not verified, redirecting to verify-email');
           router.push('/verify-email');
         }
-      }, 1500);
+      };
+
+      checkAuthAndRedirect();
     } catch (error) {
       console.error('Sign up failed:', error);
       setSubmitted(false);

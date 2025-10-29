@@ -1,15 +1,56 @@
 "use client";
 
 import { useState } from "react";
-import { useSignUp } from "@clerk/nextjs";
+import { useSignUp, useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function VerifyEmailPage() {
   const { signUp, isLoaded: signUpIsLoaded } = useSignUp();
+  const { userId } = useAuth();
+  const router = useRouter();
+  const [code, setCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState("");
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+
+  const handleVerifyCode = async () => {
+    if (!signUpIsLoaded || !signUp || code.length !== 6) {
+      setError("Please enter a valid 6-digit code");
+      return;
+    }
+
+    try {
+      setVerifying(true);
+      setError("");
+
+      // Attempt to verify the email with the code
+      const result = await signUp.attemptEmailAddressVerification({
+        code,
+      });
+
+      if (result.verifications?.emailAddress?.status === "verified") {
+        console.log("Email verified successfully");
+        // Wait a moment then redirect to dashboard
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 1000);
+      } else {
+        setError("Verification failed. Please try again.");
+      }
+    } catch (err) {
+      console.error("Verification error:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to verify code. Please try again."
+      );
+      setVerifying(false);
+    }
+  };
 
   const handleResendEmail = async () => {
     if (!signUpIsLoaded || !signUp) return;
@@ -17,6 +58,7 @@ export default function VerifyEmailPage() {
     try {
       setResending(true);
       setResendSuccess(false);
+      setError("");
 
       if (signUp.emailAddress) {
         await signUp.prepareEmailAddressVerification({
@@ -28,6 +70,7 @@ export default function VerifyEmailPage() {
       }
     } catch (error) {
       console.error("Failed to resend verification email:", error);
+      setError("Failed to resend verification email");
     } finally {
       setResending(false);
     }
@@ -45,9 +88,15 @@ export default function VerifyEmailPage() {
         <div className="space-y-6">
           <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-950">
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              Check your email inbox for a 6-digit verification code. Enter the code below to verify your email address and complete your registration.
+              Check your email inbox for a 6-digit verification code. Enter it below to complete your registration.
             </p>
           </div>
+
+          {error && (
+            <div className="rounded-lg bg-red-50 p-4 dark:bg-red-950">
+              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            </div>
+          )}
 
           {resendSuccess && (
             <div className="rounded-lg bg-green-50 p-4 dark:bg-green-950">
@@ -57,14 +106,43 @@ export default function VerifyEmailPage() {
             </div>
           )}
 
-          <div className="space-y-3">
+          <div className="space-y-4">
+            <div className="flex flex-col gap-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Enter your 6-digit code:
+              </p>
+              <div className="flex justify-center">
+                <InputOTP
+                  maxLength={6}
+                  value={code}
+                  onChange={setCode}
+                  disabled={verifying}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+            </div>
+
             <Button
-              onClick={handleResendEmail}
-              disabled={resending}
-              variant="outline"
-              className="w-full"
+              onClick={handleVerifyCode}
+              disabled={verifying || code.length !== 6}
+              className="w-full bg-brand-dark hover:bg-brand-dark/90"
             >
-              {resending ? "Sending..." : "Resend Verification Code"}
+              {verifying ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                "Verify Code"
+              )}
             </Button>
 
             <div className="relative">
@@ -78,12 +156,14 @@ export default function VerifyEmailPage() {
               </div>
             </div>
 
-            <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-              Already verified your email?{" "}
-              <Link href="/" className="text-primary hover:underline">
-                Go to dashboard
-              </Link>
-            </p>
+            <Button
+              onClick={handleResendEmail}
+              disabled={resending || verifying}
+              variant="outline"
+              className="w-full"
+            >
+              {resending ? "Sending..." : "Resend Verification Code"}
+            </Button>
           </div>
 
           <p className="text-center text-xs text-gray-500 dark:text-gray-400">
