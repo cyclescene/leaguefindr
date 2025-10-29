@@ -1,12 +1,85 @@
 "use client"
-import { SignOutButton, useUser } from "@clerk/nextjs";
-import { Suspense } from "react";
+import { useUser } from "@clerk/nextjs";
+import { Suspense, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { ClerkUser } from "@/types/clerk";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Header } from "@/components/common/Header";
+import { Footer } from "@/components/common/Footer";
+import { ActionButtons } from "@/components/dashboard/ActionButtons";
+import { LeagueTable } from "@/components/dashboard/LeagueTable";
+import { DraftLeagueTable } from "@/components/dashboard/DraftLeagueTable";
+
+interface League {
+  id: number;
+  name: string;
+  organizationName: string;
+  sport: string;
+  ageGroup: string;
+  gender: string;
+  startDate: string;
+  venue: string;
+  dateSubmitted: string;
+  status: string;
+}
+
+interface Draft {
+  id: number;
+  name: string;
+  sport: string;
+  ageGroup: string;
+  gender: string;
+  startDate: string;
+  venue: string;
+  dateSubmitted: string;
+  status: string;
+}
 
 function DashboardContent() {
   const { user, isLoaded } = useUser() as { user: ClerkUser | null; isLoaded: boolean };
-  const { role, organizationName } = user?.publicMetadata || {};
+  const { organizationName } = user?.publicMetadata || {};
+
+  const [leagues, setLeagues] = useState<League[]>([
+    { id: 1, name: 'Test League', organizationName: 'Test Org', sport: 'Football', ageGroup: '12-16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'pending_review' },
+    { id: 2, name: 'Test League', organizationName: 'Test Org', sport: 'Football', ageGroup: '12-16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'approved' },
+    { id: 3, name: 'Test League', organizationName: 'Test Org', sport: 'Football', ageGroup: '12-16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'rejected' },
+    { id: 4, name: 'Test League', organizationName: 'Test Org', sport: 'Football', ageGroup: '12-16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'pending_review' },
+  ])
+
+
+  const [drafts, setDrafts] = useState<Draft[]>([
+    { id: 1, name: 'Test League', sport: 'Football', ageGroup: '12-16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'draft' },
+    { id: 2, name: 'Test League', sport: 'Football', ageGroup: '12 - 16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'draft' },
+    { id: 3, name: 'Test League', sport: 'Football', ageGroup: '12-16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'draft' },
+    { id: 4, name: 'Test League', sport: 'Football', ageGroup: '12-16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'draft' },
+  ])
+
+  const handleStatusChange = (leagueId: number, status: string) => {
+    setLeagues(leagues.map(l => l.id === leagueId ? { ...l, status } : l))
+    console.log('handleStatusChange', leagueId, status)
+  }
+
+  const handleViewLeague = (leagueId: number) => {
+    console.log('View league:', leagueId)
+  }
+
+
+  const handleEditDraft = (leagueId: number) => {
+    console.log('Edit draft:', leagueId)
+  }
+
+  const handleDeleteDraft = (leagueId: number) => {
+    setDrafts(drafts.filter(l => l.id !== leagueId))
+    console.log('Delete draft:', leagueId)
+  }
+
+  const handleSubmitDraft = (leagueId: number) => {
+    const draftLeague = drafts.find(l => l.id === leagueId)
+    if (draftLeague) {
+      setDrafts(drafts.filter(l => l.id !== leagueId))
+    }
+    console.log('Submit draft:', leagueId)
+  }
 
   if (!isLoaded) {
     return (
@@ -16,35 +89,43 @@ function DashboardContent() {
           <p className="text-brand-dark font-medium">Loading dashboard...</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="min-h-screen bg-neutral-light">
-      <header className="bg-brand-dark text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <h1 className="text-4xl font-bold">Dashboard</h1>
-          <p className="text-brand-light mt-2">Welcome, {organizationName}</p>
-        </div>
-      </header>
+    <div className="flex flex-col min-h-screen bg-neutral-light">
+      <Header organizationName={organizationName} />
 
-      <main className="max-w-7xl mx-auto px-6 py-12">
-        <div className="bg-white rounded-lg shadow-md p-8 border-l-4 border-brand-light">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm uppercase tracking-wide">Role</p>
-              <p className="text-2xl font-semibold text-brand-dark mt-2">
-                {role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User'}
-              </p>
-            </div>
-            <SignOutButton>
-              <button className="bg-brand-dark hover:bg-opacity-90 text-white font-medium py-2 px-6 rounded-lg transition-all duration-200">
-                Sign Out
-              </button>
-            </SignOutButton>
+      <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12">
+        <Tabs defaultValue="submitted">
+          <div className="flex flex-row w-full justify-between items-center mb-4">
+            <TabsList>
+              <TabsTrigger value="submitted">Submitted Leagues</TabsTrigger>
+              <TabsTrigger value="drafts">Drafts</TabsTrigger>
+            </TabsList>
+            <ActionButtons />
           </div>
-        </div>
+          <TabsContent value="submitted">
+            <LeagueTable
+              leagues={leagues}
+              onView={handleViewLeague}
+              onApprove={(id) => handleStatusChange(id, 'approved')}
+              onReject={(id) => handleStatusChange(id, 'rejected')}
+            />
+          </TabsContent>
+          <TabsContent value="drafts">
+            <DraftLeagueTable
+              drafts={drafts}
+              onView={handleViewLeague}
+              onEdit={handleEditDraft}
+              onDelete={handleDeleteDraft}
+              onSubmit={handleSubmitDraft}
+            />
+          </TabsContent>
+        </Tabs>
       </main>
+
+      <Footer />
     </div>
   );
 }

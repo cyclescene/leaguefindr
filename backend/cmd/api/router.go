@@ -53,14 +53,17 @@ func newRouter(dbPool *pgxpool.Pool) *chi.Mux {
 
 	r.Get("/", health)
 
+	// Auth
 	authRepo := auth.NewRepository(dbPool)
 	authService := auth.NewService(authRepo)
 	authHandler := auth.NewHandler(authService)
 
+	// Sports
 	sportsRepo := sports.NewRepository(dbPool)
 	sportsService := sports.NewService(sportsRepo, authRepo)
 	sportsHandler := sports.NewHandler(sportsService, authService)
 
+	// Venues
 	venuesRepo := venues.NewRepository(dbPool)
 	venuesService := venues.NewService(venuesRepo, authRepo)
 	venuesHandler := venues.NewHandler(venuesService, authService)
