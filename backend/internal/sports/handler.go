@@ -30,6 +30,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Route("/sports", func(r chi.Router) {
 		// Public routes (no auth required)
 		r.Get("/", h.GetAllApprovedSports)
+		r.Get("/exists", h.CheckSportExists) // Must come before /{id} to avoid being matched as an ID
 		r.Get("/{id}", h.GetSportByID)
 
 		// Protected routes (JWT required)
@@ -223,4 +224,34 @@ func (h *Handler) RejectSport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "rejected"})
+}
+
+// CheckSportExists checks if a sport exists by name and returns its status (public)
+func (h *Handler) CheckSportExists(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		http.Error(w, "sport name is required", http.StatusBadRequest)
+		return
+	}
+
+	sport, err := h.service.CheckSportExists(name)
+	if err != nil {
+		slog.Error("check sport exists error", "name", name, "err", err)
+		http.Error(w, "Failed to check sport", http.StatusInternalServerError)
+		return
+	}
+
+	response := CheckSportExistsResponse{
+		Exists: sport != nil,
+	}
+
+	if sport != nil {
+		response.Status = sport.Status
+		response.RejectionReason = sport.RejectionReason
+		response.RequestCount = sport.RequestCount
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }

@@ -3,6 +3,8 @@ package auth
 import (
 	"fmt"
 	"log/slog"
+	"os"
+	"strings"
 )
 
 type Service struct {
@@ -42,12 +44,15 @@ func (s *Service) RegisterUser(clerkID, email, organizationName string) error {
 		return err
 	}
 
-	// If this is the first admin user, auto-verify their email so they don't need to verify
-	if role == RoleAdmin {
+	// Check if we should skip email verification for all users
+	skipEmailVerification := strings.ToLower(os.Getenv("SKIP_EMAIL_VERIFICATION")) == "true"
+
+	// Auto-verify email if this is the first admin user or if SKIP_EMAIL_VERIFICATION is enabled
+	if role == RoleAdmin || skipEmailVerification {
 		verifyErr := VerifyUserEmailInClerk(clerkID)
 		if verifyErr != nil {
 			// Log but don't fail - user can verify manually if needed
-			slog.Error("failed to auto-verify admin email", "clerkID", clerkID, "err", verifyErr)
+			slog.Error("failed to auto-verify email", "clerkID", clerkID, "err", verifyErr)
 		}
 	}
 

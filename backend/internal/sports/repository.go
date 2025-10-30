@@ -16,6 +16,8 @@ type RepositoryInterface interface {
 	Create(sport *Sport) error
 	GetPending() ([]Sport, error)
 	UpdateStatus(id int, status SportStatus, rejectionReason *string) error
+	CheckSportExists(name string) (*Sport, error)
+	IncrementRequestCount(sportID int) error
 }
 
 type Repository struct {
@@ -32,7 +34,7 @@ func (r *Repository) GetAll() ([]Sport, error) {
 	defer cancel()
 
 	query := `
-		SELECT id, name, status, created_at, updated_at, created_by, rejection_reason
+		SELECT id, name, status, created_at, updated_at, created_by, rejection_reason, request_count
 		FROM sports
 		ORDER BY
 		  CASE
@@ -60,6 +62,7 @@ func (r *Repository) GetAll() ([]Sport, error) {
 			&sport.UpdatedAt,
 			&sport.CreatedBy,
 			&sport.RejectionReason,
+			&sport.RequestCount,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan sport: %w", err)
@@ -80,7 +83,7 @@ func (r *Repository) GetAllApproved() ([]Sport, error) {
 	defer cancel()
 
 	query := `
-		SELECT id, name, status, created_at, updated_at, created_by, rejection_reason
+		SELECT id, name, status, created_at, updated_at, created_by, rejection_reason, request_count
 		FROM sports
 		WHERE status = $1
 		ORDER BY name ASC
@@ -103,6 +106,7 @@ func (r *Repository) GetAllApproved() ([]Sport, error) {
 			&sport.UpdatedAt,
 			&sport.CreatedBy,
 			&sport.RejectionReason,
+			&sport.RequestCount,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan sport: %w", err)
@@ -125,7 +129,7 @@ func (r *Repository) GetByID(id int) (*Sport, error) {
 	sport := &Sport{}
 
 	query := `
-		SELECT id, name, status, created_at, updated_at, created_by, rejection_reason
+		SELECT id, name, status, created_at, updated_at, created_by, rejection_reason, request_count
 		FROM sports
 		WHERE id = $1 AND status = $2
 	`
@@ -138,6 +142,7 @@ func (r *Repository) GetByID(id int) (*Sport, error) {
 		&sport.UpdatedAt,
 		&sport.CreatedBy,
 		&sport.RejectionReason,
+		&sport.RequestCount,
 	)
 
 	if err != nil {
@@ -184,10 +189,10 @@ func (r *Repository) GetPending() ([]Sport, error) {
 	defer cancel()
 
 	query := `
-		SELECT id, name, status, created_at, updated_at, created_by, rejection_reason
+		SELECT id, name, status, created_at, updated_at, created_by, rejection_reason, request_count
 		FROM sports
 		WHERE status = $1
-		ORDER BY created_at ASC
+		ORDER BY request_count DESC, created_at ASC
 	`
 
 	rows, err := r.db.Query(ctx, query, SportStatusPending.String())
@@ -207,6 +212,7 @@ func (r *Repository) GetPending() ([]Sport, error) {
 			&sport.UpdatedAt,
 			&sport.CreatedBy,
 			&sport.RejectionReason,
+			&sport.RequestCount,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan sport: %w", err)
@@ -235,6 +241,61 @@ func (r *Repository) UpdateStatus(id int, status SportStatus, rejectionReason *s
 	result, err := r.db.Exec(ctx, query, status.String(), rejectionReason, id)
 	if err != nil {
 		return fmt.Errorf("failed to update sport status: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("sport not found")
+	}
+
+	return nil
+}
+
+// CheckSportExists checks if a sport exists by name (case-insensitive)
+// Returns the sport if found, otherwise returns nil
+func (r *Repository) CheckSportExists(name string) (*Sport, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	sport := &Sport{}
+
+	query := `
+		SELECT id, name, status, created_at, updated_at, created_by, rejection_reason, request_count
+		FROM sports
+		WHERE LOWER(name) = LOWER($1)
+	`
+
+	err := r.db.QueryRow(ctx, query, name).Scan(
+		&sport.ID,
+		&sport.Name,
+		&sport.Status,
+		&sport.CreatedAt,
+		&sport.UpdatedAt,
+		&sport.CreatedBy,
+		&sport.RejectionReason,
+		&sport.RequestCount,
+	)
+
+	if err != nil {
+		return nil, nil
+	}
+
+	return sport, nil
+}
+
+// IncrementRequestCount increments the request count for a sport
+func (r *Repository) IncrementRequestCount(sportID int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `
+		UPDATE sports
+		SET request_count = request_count + 1, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query, sportID)
+	if err != nil {
+		return fmt.Errorf("failed to increment request count: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {

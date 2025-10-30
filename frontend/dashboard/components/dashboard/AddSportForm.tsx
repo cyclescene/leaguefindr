@@ -1,13 +1,25 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useAuth } from "@clerk/nextjs";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
 import { addSportSchema, type AddSportFormData } from "@/lib/schemas";
+import { useSportSearch } from "@/hooks/useSportSearch";
+import { useSportExistenceCheck } from "@/hooks/useSportExistenceCheck";
+import { useAutocompleteLogic } from "@/hooks/useAutocompleteLogic";
+import { SportAutocompleteDropdown } from "./SportAutocompleteDropdown";
+import { SportStatusFeedback } from "./SportStatusFeedback";
+import { SportFormInput } from "./SportFormInput";
+import { SportFormActions } from "./SportFormActions";
+
+interface Sport {
+  id: number;
+  name: string;
+  status: "approved" | "pending" | "rejected";
+  request_count: number;
+}
 
 interface AddSportFormProps {
   onSuccess?: () => void;
@@ -15,55 +27,74 @@ interface AddSportFormProps {
 }
 
 export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
+  const { getToken, userId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [debouncedSportName, setDebouncedSportName] = useState("");
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [selectedSport, setSelectedSport] = useState<Sport | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
+    clearErrors,
   } = useForm<AddSportFormData>({
     resolver: zodResolver(addSportSchema),
-    defaultValues: {
-      name: "",
-    },
+    defaultValues: { name: "" },
   });
 
   const sportName = watch("name");
 
-  const checkSportExists = async (name: string): Promise<boolean> => {
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/sports/`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+  // Debounce the sport name input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSportName(sportName);
+      setShowAutocomplete(sportName.length >= 2);
+    }, 300);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch sports");
-      }
+    return () => clearTimeout(timer);
+  }, [sportName]);
 
-      const data = await response.json();
-      const sports = data.sports || [];
-      return sports.some(
-        (sport: any) => sport.name.toLowerCase() === name.toLowerCase()
-      );
-    } catch (err) {
-      console.error("Error checking sport exists:", err);
-      throw err;
-    }
+  // Custom hooks
+  const { approvedSports } = useSportSearch();
+  const { sportCheckData, isCheckingExistence } = useSportExistenceCheck(
+    debouncedSportName,
+    !!selectedSport
+  );
+  const { autocompleteRef } = useAutocompleteLogic(
+    showAutocomplete,
+    setShowAutocomplete
+  );
+
+  // Filter approved sports for autocomplete
+  const filteredSuggestions = showAutocomplete && debouncedSportName
+    ? approvedSports.filter((sport) =>
+        sport.name.toLowerCase().includes(debouncedSportName.toLowerCase())
+      )
+    : [];
+
+  const handleSelectSuggestion = (sport: Sport) => {
+    setValue("name", sport.name);
+    setSelectedSport(sport);
+    setShowAutocomplete(false);
+    clearErrors("name");
+  };
+
+  const handleClearSelection = () => {
+    setValue("name", "");
+    setSelectedSport(null);
+    setDebouncedSportName("");
+    setShowAutocomplete(false);
   };
 
   const submitSport = async (name: string): Promise<void> => {
     try {
       const token = await getToken();
 
-      if (!token) {
+      if (!token || !userId) {
         console.error("Authentication required. Please sign in.");
         setLoading(false);
         return;
@@ -76,6 +107,7 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            "X-Clerk-User-ID": userId,
           },
           body: JSON.stringify({ name }),
         }
@@ -83,6 +115,7 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("Sport submission error:", errorData);
         throw new Error(errorData.error || "Failed to create sport");
       }
 
@@ -98,35 +131,9 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
     }
   };
 
-  const getToken = async (): Promise<string | null> => {
-    try {
-      const response = await fetch("/api/auth/token");
-      if (!response.ok) return null;
-      const data = await response.json();
-      return data.token;
-    } catch (err) {
-      console.error("Error getting token:", err);
-      return null;
-    }
-  };
-
   const onSubmit = async (data: AddSportFormData) => {
     setLoading(true);
-
-    try {
-      // Check if sport already exists
-      const exists = await checkSportExists(data.name);
-      if (exists) {
-        // Error handling would normally be done with react-hook-form's setError
-        // For now, we'll submit which will let the API handle it
-      }
-
-      // Submit new sport
-      await submitSport(data.name);
-    } catch (err) {
-      console.error("Error in form submission:", err);
-      setLoading(false);
-    }
+    await submitSport(data.name);
   };
 
   if (success) {
@@ -137,49 +144,48 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
     );
   }
 
+  const isApprovedSportSelected = selectedSport && selectedSport.status === "approved";
+  const isRejectedSport = sportCheckData?.exists && sportCheckData.status === "rejected";
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="sport-name">Sport Name</Label>
-        <Input
-          id="sport-name"
-          placeholder="e.g., Basketball, Football, Tennis"
-          {...register("name")}
-          disabled={loading}
-          maxLength={255}
+        <div className="relative" ref={autocompleteRef}>
+          <SportFormInput
+            value={sportName}
+            onChange={(value) => setValue("name", value)}
+            onFocus={() => sportName.length >= 2 && setShowAutocomplete(true)}
+            onClear={handleClearSelection}
+            isSelected={!!selectedSport}
+            loading={loading}
+            error={errors.name}
+            showAutocomplete={showAutocomplete}
+            filteredSuggestions={filteredSuggestions}
+          >
+            <SportAutocompleteDropdown
+              show={showAutocomplete && filteredSuggestions.length > 0}
+              suggestions={filteredSuggestions}
+              onSelect={handleSelectSuggestion}
+            />
+          </SportFormInput>
+        </div>
+
+        <SportStatusFeedback
+          debouncedSportName={debouncedSportName}
+          isSelected={!!selectedSport}
+          isCheckingExistence={isCheckingExistence}
+          sportCheckData={sportCheckData}
+          selectedSportStatus={selectedSport?.status}
         />
-        {errors.name && (
-          <p className="text-red-700 text-sm">{errors.name.message}</p>
-        )}
-        <p className="text-xs text-gray-500">
-          {sportName.length}/255 characters
-        </p>
       </div>
 
-      <div className="flex gap-2 justify-end pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onClose}
-          disabled={loading}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          variant="brandDark"
-          disabled={loading || !sportName.trim()}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Adding Sport...
-            </>
-          ) : (
-            "Add Sport"
-          )}
-        </Button>
-      </div>
+      <SportFormActions
+        loading={loading}
+        sportName={sportName}
+        isRejectedSport={isRejectedSport}
+        onClose={onClose || (() => {})}
+      />
     </form>
   );
 }

@@ -35,6 +35,7 @@ type Sport struct {
 	UpdatedAt       time.Time  `json:"updated_at"`
 	CreatedBy       *string    `json:"created_by"` // UUID of the user who submitted it
 	RejectionReason *string    `json:"rejection_reason"` // Reason for rejection if applicable
+	RequestCount    int        `json:"request_count"` // Number of users who have requested this sport
 }
 
 // CreateSportRequest represents the request to create/submit a new sport
@@ -65,4 +66,12 @@ type GetSportsResponse struct {
 // ErrorResponse represents an error response
 type ErrorResponse struct {
 	Error string `json:"error"`
+}
+
+// CheckSportExistsResponse represents the response when checking if a sport exists
+type CheckSportExistsResponse struct {
+	Exists          bool       `json:"exists"`
+	Status          SportStatus `json:"status,omitempty"`
+	RejectionReason *string    `json:"rejection_reason,omitempty"`
+	RequestCount    int        `json:"request_count,omitempty"` // Number of users requesting this sport
 }
