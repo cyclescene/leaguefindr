@@ -35,7 +35,6 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
   const [selectedSport, setSelectedSport] = useState<Sport | null>(null);
 
   const {
-    register,
     handleSubmit,
     formState: { errors },
     watch,
@@ -72,8 +71,8 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
   // Filter approved sports for autocomplete
   const filteredSuggestions = showAutocomplete && debouncedSportName
     ? approvedSports.filter((sport) =>
-        sport.name.toLowerCase().includes(debouncedSportName.toLowerCase())
-      )
+      sport.name.toLowerCase().includes(debouncedSportName.toLowerCase())
+    )
     : [];
 
   const handleSelectSuggestion = (sport: Sport) => {
@@ -144,7 +143,6 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
     );
   }
 
-  const isApprovedSportSelected = selectedSport && selectedSport.status === "approved";
   const isRejectedSport = sportCheckData?.exists && sportCheckData.status === "rejected";
 
   return (
@@ -184,7 +182,7 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
         loading={loading}
         sportName={sportName}
         isRejectedSport={isRejectedSport}
-        onClose={onClose || (() => {})}
+        onClose={onClose || (() => { })}
       />
     </form>
   );

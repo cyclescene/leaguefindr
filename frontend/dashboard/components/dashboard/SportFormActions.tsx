@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 interface SportFormActionsProps {
   loading: boolean;
   sportName: string;
-  isRejectedSport: boolean;
+  isRejectedSport: boolean | undefined;
   onClose: () => void;
 }
 
