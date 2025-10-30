@@ -5,7 +5,7 @@ const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 const secretKey = process.env.CLERK_SECRET_KEY
 
 // defining the routes that need to be protected
-const isProtectedRoute = createRouteMatcher(['/'])
+const isProtectedRoute = createRouteMatcher(['/', '/admin(.*?)'])
 
 // Will need to configure this later to protect routes that need auth
 // See: https://clerk.com/docs/reference/nextjs/clerk-middleware
@@ -17,32 +17,53 @@ export default clerkMiddleware(async (auth, req) => {
   })
 
   let isVerified = false
+  let userRole: string | null = null
 
   if (userId) {
     const user = await clerk.users.getUser(userId)
     isVerified = user.emailAddresses[0].verification?.status === 'verified'
+    userRole = (user.publicMetadata?.role as string) || null
   }
 
   const pathname = req.nextUrl.pathname
   const isAuthPage = pathname === '/signin' || pathname === '/signup'
   const isVerifyPage = pathname === '/verify-email'
-  const isDashboard = pathname === '/'
+  const isUserDashboard = pathname === '/'
+  const isAdminDashboard = pathname === '/admin'
+  const isAdminRoute = pathname.startsWith('/admin')
 
   // Handle routing based on auth state
   if (!userId) {
     // Not authenticated: allow auth pages, redirect from protected routes
-    if (isDashboard || isVerifyPage) {
+    if (isUserDashboard || isAdminRoute || isVerifyPage) {
       return NextResponse.redirect(new URL('/signin', req.url))
     }
   } else if (!isVerified) {
     // Authenticated but unverified: allow verify page, redirect from others
-    if (isAuthPage || isDashboard) {
+    if (isAuthPage || isUserDashboard || isAdminRoute) {
       return NextResponse.redirect(new URL('/verify-email', req.url))
     }
   } else {
-    // Authenticated and verified: allow dashboard, redirect from auth pages
+    // Authenticated and verified: handle role-based routing
+    const isAdmin = userRole === 'admin'
+
+    // Redirect auth pages to appropriate dashboard
     if (isAuthPage || isVerifyPage) {
-      return NextResponse.redirect(new URL('/', req.url))
+      const dashboardUrl = isAdmin ? '/admin' : '/'
+      return NextResponse.redirect(new URL(dashboardUrl, req.url))
+    }
+
+    // Route based on role
+    if (isAdmin) {
+      // Admin trying to access user dashboard: redirect to admin
+      if (isUserDashboard) {
+        return NextResponse.redirect(new URL('/admin', req.url))
+      }
+    } else {
+      // Regular user trying to access admin routes: redirect to user dashboard
+      if (isAdminRoute) {
+        return NextResponse.redirect(new URL('/', req.url))
+      }
     }
   }
 
