@@ -33,6 +33,7 @@ type User struct {
 	Email            string     `json:"email"`
 	Role             Role       `json:"role"`
 	OrganizationName string     `json:"organization_name"`
+	EmailVerified    bool       `json:"email_verified"`
 	LastLogin        *time.Time `json:"last_login"`
 	LoginCount       int        `json:"login_count"`
 	IsActive         bool       `json:"is_active"`

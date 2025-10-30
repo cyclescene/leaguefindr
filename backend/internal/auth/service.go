@@ -48,7 +48,8 @@ func (s *Service) RegisterUser(clerkID, email, organizationName string) error {
 	skipEmailVerification := strings.ToLower(os.Getenv("SKIP_EMAIL_VERIFICATION")) == "true"
 
 	// Auto-verify email if this is the first admin user or if SKIP_EMAIL_VERIFICATION is enabled
-	if role == RoleAdmin || skipEmailVerification {
+	shouldVerifyEmail := role == RoleAdmin || skipEmailVerification
+	if shouldVerifyEmail {
 		verifyErr := VerifyUserEmailInClerk(clerkID)
 		if verifyErr != nil {
 			// Log but don't fail - user can verify manually if needed

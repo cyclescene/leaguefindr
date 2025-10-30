@@ -1,8 +1,5 @@
-import { createClerkClient, clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-
-const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-const secretKey = process.env.CLERK_SECRET_KEY
 
 // defining the routes that need to be protected
 const isProtectedRoute = createRouteMatcher(['/', '/admin(.*?)'])
@@ -10,26 +7,15 @@ const isProtectedRoute = createRouteMatcher(['/', '/admin(.*?)'])
 // Will need to configure this later to protect routes that need auth
 // See: https://clerk.com/docs/reference/nextjs/clerk-middleware
 export default clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth()
-  const clerk = createClerkClient({
-    publishableKey,
-    secretKey
-  })
+  const { userId, sessionClaims } = await auth()
 
-  let isVerified = false
-  let userRole: string | null = null
-
-  if (userId) {
-    const user = await clerk.users.getUser(userId)
-    isVerified = user.emailAddresses[0].verification?.status === 'verified'
-    userRole = (user.publicMetadata?.role as string) || null
-  }
+  const isVerified = (sessionClaims?.emailVerified as boolean) || false
+  const userRole = (sessionClaims?.role as string) || null
 
   const pathname = req.nextUrl.pathname
   const isAuthPage = pathname === '/signin' || pathname === '/signup'
   const isVerifyPage = pathname === '/verify-email'
   const isUserDashboard = pathname === '/'
-  const isAdminDashboard = pathname === '/admin'
   const isAdminRoute = pathname.startsWith('/admin')
 
   // Handle routing based on auth state
