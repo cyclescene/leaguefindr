@@ -3,7 +3,13 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { addVenueSchema, type AddVenueFormData } from '@/lib/schemas'
+import { useAuth } from '@clerk/nextjs'
 import { useState, useRef, useEffect } from 'react'
+
+interface AddVenueFormProps {
+  onSuccess?: () => void
+  onClose?: () => void
+}
 
 interface MapboxResult {
   id: string
@@ -31,7 +37,8 @@ interface MapboxRetrieveResult {
   }
 }
 
-export function AddVenueForm() {
+export function AddVenueForm({ onSuccess, onClose }: AddVenueFormProps) {
+  const { getToken, userId } = useAuth()
   const { register, handleSubmit, formState: { errors, isSubmitting }, setValue, watch } = useForm<AddVenueFormData>({
     resolver: zodResolver(addVenueSchema),
     defaultValues: {
@@ -46,6 +53,7 @@ export function AddVenueForm() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedAddress, setSelectedAddress] = useState<MapboxRetrieveResult | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
   const addressInputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
 
@@ -118,26 +126,35 @@ export function AddVenueForm() {
     setSubmitError(null)
 
     try {
-      const response = await fetch('/api/venues', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      })
+      const token = await getToken()
+
+      if (!token || !userId) {
+        throw new Error('Authentication required. Please sign in.')
+      }
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/v1/venues`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            'X-Clerk-User-ID': userId,
+          },
+          body: JSON.stringify(data)
+        }
+      )
 
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to create venue')
       }
 
-      const result = await response.json()
-      alert('Venue submitted successfully! It will be reviewed by an admin.')
-
-      // Reset form
-      setValue('name', '')
-      setValue('address', '')
-      setValue('latitude', 0)
-      setValue('longitude', 0)
-      setSelectedAddress(null)
+      setSuccess(true)
+      setTimeout(() => {
+        onSuccess?.()
+        onClose?.()
+      }, 1500)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to submit venue'
       setSubmitError(message)
@@ -158,6 +175,14 @@ export function AddVenueForm() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  if (success) {
+    return (
+      <div className="py-4 text-center">
+        <p className="text-green-600 font-medium">Venue submitted successfully! It will be reviewed by an admin.</p>
+      </div>
+    )
+  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">

@@ -3,6 +3,7 @@ import { ButtonGroup } from "@/components/ui/button-group";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
 import { AddSportForm } from "./AddSportForm";
+import { AddVenueForm } from "./AddVenueForm";
 
 interface ActionButtonsProps {
   onSportAdded?: () => void;
@@ -78,9 +79,10 @@ export function ActionButtons({
               Submit a new venue location. Include the address for precise location mapping.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">Coming soon...</p>
-          </div>
+          <AddVenueForm
+            onSuccess={onVenueAdded}
+            onClose={handleCloseDialog}
+          />
         </DialogContent>
       </Dialog>
 
