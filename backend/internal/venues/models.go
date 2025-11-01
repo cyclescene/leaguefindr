@@ -31,8 +31,8 @@ type Venue struct {
 	ID              int       `json:"id"`
 	Name            string    `json:"name"`
 	Address         string    `json:"address"`
-	Latitude        float64   `json:"latitude"`
-	Longitude       float64   `json:"longitude"`
+	Lat             float64   `json:"lat"`
+	Lng             float64   `json:"lng"`
 	Status          VenueStatus `json:"status"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
@@ -42,10 +42,10 @@ type Venue struct {
 
 // CreateVenueRequest represents the request to create/submit a new venue
 type CreateVenueRequest struct {
-	Name      string  `json:"name" validate:"required,min=1,max=255"`
-	Address   string  `json:"address" validate:"required,min=1,max=500"`
-	Latitude  float64 `json:"latitude" validate:"required"`
-	Longitude float64 `json:"longitude" validate:"required"`
+	Name    string  `json:"name" validate:"required,min=1,max=255"`
+	Address string  `json:"address" validate:"required,min=1,max=500"`
+	Lat     float64 `json:"lat" validate:"required"`
+	Lng     float64 `json:"lng" validate:"required"`
 }
 
 // ApproveVenueRequest represents the request to approve a venue submission

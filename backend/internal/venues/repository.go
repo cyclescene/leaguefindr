@@ -32,7 +32,7 @@ func (r *Repository) GetAll() ([]Venue, error) {
 	defer cancel()
 
 	query := `
-		SELECT id, name, address, latitude, longitude, status, created_at, updated_at, created_by, rejection_reason
+		SELECT id, name, address, lat, lng, status, created_at, updated_at, created_by, rejection_reason
 		FROM venues
 		ORDER BY
 		  CASE
@@ -56,8 +56,8 @@ func (r *Repository) GetAll() ([]Venue, error) {
 			&venue.ID,
 			&venue.Name,
 			&venue.Address,
-			&venue.Latitude,
-			&venue.Longitude,
+			&venue.Lat,
+			&venue.Lng,
 			&venue.Status,
 			&venue.CreatedAt,
 			&venue.UpdatedAt,
@@ -83,7 +83,7 @@ func (r *Repository) GetAllApproved() ([]Venue, error) {
 	defer cancel()
 
 	query := `
-		SELECT id, name, address, latitude, longitude, status, created_at, updated_at, created_by, rejection_reason
+		SELECT id, name, address, lat, lng, status, created_at, updated_at, created_by, rejection_reason
 		FROM venues
 		WHERE status = $1
 		ORDER BY name ASC
@@ -102,8 +102,8 @@ func (r *Repository) GetAllApproved() ([]Venue, error) {
 			&venue.ID,
 			&venue.Name,
 			&venue.Address,
-			&venue.Latitude,
-			&venue.Longitude,
+			&venue.Lat,
+			&venue.Lng,
 			&venue.Status,
 			&venue.CreatedAt,
 			&venue.UpdatedAt,
@@ -131,7 +131,7 @@ func (r *Repository) GetByID(id int) (*Venue, error) {
 	venue := &Venue{}
 
 	query := `
-		SELECT id, name, address, latitude, longitude, status, created_at, updated_at, created_by, rejection_reason
+		SELECT id, name, address, lat, lng, status, created_at, updated_at, created_by, rejection_reason
 		FROM venues
 		WHERE id = $1 AND status = $2
 	`
@@ -140,8 +140,8 @@ func (r *Repository) GetByID(id int) (*Venue, error) {
 		&venue.ID,
 		&venue.Name,
 		&venue.Address,
-		&venue.Latitude,
-		&venue.Longitude,
+		&venue.Lat,
+		&venue.Lng,
 		&venue.Status,
 		&venue.CreatedAt,
 		&venue.UpdatedAt,
@@ -162,7 +162,7 @@ func (r *Repository) Create(venue *Venue) error {
 	defer cancel()
 
 	query := `
-		INSERT INTO venues (name, address, latitude, longitude, status, created_at, updated_at, created_by)
+		INSERT INTO venues (name, address, lat, lng, status, created_at, updated_at, created_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id
 	`
@@ -172,8 +172,8 @@ func (r *Repository) Create(venue *Venue) error {
 		query,
 		venue.Name,
 		venue.Address,
-		venue.Latitude,
-		venue.Longitude,
+		venue.Lat,
+		venue.Lng,
 		venue.Status.String(),
 		time.Now(),
 		time.Now(),
@@ -196,7 +196,7 @@ func (r *Repository) GetPending() ([]Venue, error) {
 	defer cancel()
 
 	query := `
-		SELECT id, name, address, latitude, longitude, status, created_at, updated_at, created_by, rejection_reason
+		SELECT id, name, address, lat, lng, status, created_at, updated_at, created_by, rejection_reason
 		FROM venues
 		WHERE status = $1
 		ORDER BY created_at ASC
@@ -215,8 +215,8 @@ func (r *Repository) GetPending() ([]Venue, error) {
 			&venue.ID,
 			&venue.Name,
 			&venue.Address,
-			&venue.Latitude,
-			&venue.Longitude,
+			&venue.Lat,
+			&venue.Lng,
 			&venue.Status,
 			&venue.CreatedAt,
 			&venue.UpdatedAt,

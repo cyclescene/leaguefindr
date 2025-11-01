@@ -50,11 +50,11 @@ func (s *Service) CreateVenue(userID string, req *CreateVenueRequest) (*Venue, e
 
 	// Create venue
 	venue := &Venue{
-		Name:      req.Name,
-		Address:   req.Address,
-		Latitude:  req.Latitude,
-		Longitude: req.Longitude,
-		Status:    status,
+		Name:    req.Name,
+		Address: req.Address,
+		Lat:     req.Lat,
+		Lng:     req.Lng,
+		Status:  status,
 		CreatedBy: &userID,
 	}
 

@@ -39,7 +39,7 @@ func TestGetAllApprovedVenues_Public(t *testing.T) {
 	handler := createTestVenueHandler()
 
 	// Add some test data
-	venue := &Venue{Name: "Madison Square Garden", Address: "33 E 33rd St, NYC", Latitude: 40.7505, Longitude: -73.9934, Status: VenueStatusApproved}
+	venue := &Venue{Name: "Madison Square Garden", Address: "33 E 33rd St, NYC", Lat: 40.7505, Lng: -73.9934, Status: VenueStatusApproved}
 	handler.service.repo.(*MockVenueRepository).Create(venue)
 
 	req, err := http.NewRequest("GET", "/venues/", nil)
@@ -98,7 +98,7 @@ func TestGetAllApprovedVenues_Empty(t *testing.T) {
 func TestGetVenueByID_Handler_Success(t *testing.T) {
 	handler := createTestVenueHandler()
 
-	venue := &Venue{Name: "Test Arena", Address: "123 Test St", Latitude: 40.5, Longitude: -73.5, Status: VenueStatusApproved}
+	venue := &Venue{Name: "Test Arena", Address: "123 Test St", Lat: 40.5, Lng: -73.5, Status: VenueStatusApproved}
 	handler.service.repo.(*MockVenueRepository).Create(venue)
 
 	req, err := http.NewRequest("GET", "/venues/1", nil)
@@ -171,8 +171,8 @@ func TestCreateVenue_Success(t *testing.T) {
 	req := CreateVenueRequest{
 		Name:      "New Arena",
 		Address:   "456 New St",
-		Latitude:  40.7128,
-		Longitude: -74.0060,
+		Lat:  40.7128,
+		Lng: -74.0060,
 	}
 	body := createVenueRequestBody(req)
 
@@ -213,8 +213,8 @@ func TestCreateVenue_Handler_AdminAutoApproves(t *testing.T) {
 	req := CreateVenueRequest{
 		Name:      "Admin Arena",
 		Address:   "789 Admin St",
-		Latitude:  40.7580,
-		Longitude: -73.9855,
+		Lat:  40.7580,
+		Lng: -73.9855,
 	}
 	body := createVenueRequestBody(req)
 
@@ -247,8 +247,8 @@ func TestCreateVenue_NoUserID(t *testing.T) {
 	req := CreateVenueRequest{
 		Name:      "Unauthorized Venue",
 		Address:   "999 No Auth St",
-		Latitude:  40.0,
-		Longitude: -73.0,
+		Lat:  40.0,
+		Lng: -73.0,
 	}
 	body := createVenueRequestBody(req)
 
@@ -297,8 +297,8 @@ func TestCreateVenue_MissingName(t *testing.T) {
 	req := CreateVenueRequest{
 		Name:      "",
 		Address:   "123 Test St",
-		Latitude:  40.0,
-		Longitude: -73.0,
+		Lat:  40.0,
+		Lng: -73.0,
 	}
 	body := createVenueRequestBody(req)
 
@@ -326,8 +326,8 @@ func TestCreateVenue_Handler_StoresCoordinates(t *testing.T) {
 	req := CreateVenueRequest{
 		Name:      "Coordinate Test Venue",
 		Address:   "555 Coord Ave",
-		Latitude:  37.7749,
-		Longitude: -122.4194,
+		Lat:  37.7749,
+		Lng: -122.4194,
 	}
 	body := createVenueRequestBody(req)
 
@@ -348,12 +348,12 @@ func TestCreateVenue_Handler_StoresCoordinates(t *testing.T) {
 	var resp CreateVenueResponse
 	json.NewDecoder(rr.Body).Decode(&resp)
 
-	if resp.Venue.Latitude != 37.7749 {
-		t.Errorf("expected latitude 37.7749, got %f", resp.Venue.Latitude)
+	if resp.Venue.Lat != 37.7749 {
+		t.Errorf("expected lat 37.7749, got %f", resp.Venue.Lat)
 	}
 
-	if resp.Venue.Longitude != -122.4194 {
-		t.Errorf("expected longitude -122.4194, got %f", resp.Venue.Longitude)
+	if resp.Venue.Lng != -122.4194 {
+		t.Errorf("expected lng -122.4194, got %f", resp.Venue.Lng)
 	}
 }
 
@@ -362,7 +362,7 @@ func TestApproveVenue_Handler_Success(t *testing.T) {
 	handler := createTestVenueHandler()
 
 	// Create a pending venue
-	venue := &Venue{Name: "Pending Venue", Address: "123 Pending St", Latitude: 40.0, Longitude: -73.0, Status: VenueStatusPending}
+	venue := &Venue{Name: "Pending Venue", Address: "123 Pending St", Lat: 40.0, Lng: -73.0, Status: VenueStatusPending}
 	handler.service.repo.(*MockVenueRepository).Create(venue)
 
 	httpReq, err := http.NewRequest("PUT", "/venues/1/approve", nil)
@@ -411,7 +411,7 @@ func TestRejectVenue_Handler_Success(t *testing.T) {
 	handler := createTestVenueHandler()
 
 	// Create a pending venue
-	venue := &Venue{Name: "Pending Venue", Address: "123 Pending St", Latitude: 40.0, Longitude: -73.0, Status: VenueStatusPending}
+	venue := &Venue{Name: "Pending Venue", Address: "123 Pending St", Lat: 40.0, Lng: -73.0, Status: VenueStatusPending}
 	handler.service.repo.(*MockVenueRepository).Create(venue)
 
 	req := RejectVenueRequest{RejectionReason: "Duplicate venue"}
@@ -443,7 +443,7 @@ func TestRejectVenue_Handler_Success(t *testing.T) {
 func TestRejectVenue_Handler_InvalidBody(t *testing.T) {
 	handler := createTestVenueHandler()
 
-	venue := &Venue{Name: "Pending Venue", Address: "123 Pending St", Latitude: 40.0, Longitude: -73.0, Status: VenueStatusPending}
+	venue := &Venue{Name: "Pending Venue", Address: "123 Pending St", Lat: 40.0, Lng: -73.0, Status: VenueStatusPending}
 	handler.service.repo.(*MockVenueRepository).Create(venue)
 
 	httpReq, err := http.NewRequest("PUT", "/venues/1/reject", bytes.NewBufferString("invalid json"))
@@ -465,7 +465,7 @@ func TestRejectVenue_Handler_InvalidBody(t *testing.T) {
 func TestRejectVenue_Handler_EmptyReason(t *testing.T) {
 	handler := createTestVenueHandler()
 
-	venue := &Venue{Name: "Pending Venue", Address: "123 Pending St", Latitude: 40.0, Longitude: -73.0, Status: VenueStatusPending}
+	venue := &Venue{Name: "Pending Venue", Address: "123 Pending St", Lat: 40.0, Lng: -73.0, Status: VenueStatusPending}
 	handler.service.repo.(*MockVenueRepository).Create(venue)
 
 	req := RejectVenueRequest{RejectionReason: ""}
@@ -491,8 +491,8 @@ func TestGetAllVenues_Admin(t *testing.T) {
 	handler := createTestVenueHandler()
 
 	// Create venues with different statuses
-	venue1 := &Venue{Name: "Approved Venue", Address: "123 Main St", Latitude: 40.0, Longitude: -73.0, Status: VenueStatusApproved}
-	venue2 := &Venue{Name: "Pending Venue", Address: "456 Pending St", Latitude: 40.5, Longitude: -73.5, Status: VenueStatusPending}
+	venue1 := &Venue{Name: "Approved Venue", Address: "123 Main St", Lat: 40.0, Lng: -73.0, Status: VenueStatusApproved}
+	venue2 := &Venue{Name: "Pending Venue", Address: "456 Pending St", Lat: 40.5, Lng: -73.5, Status: VenueStatusPending}
 	handler.service.repo.(*MockVenueRepository).Create(venue1)
 	handler.service.repo.(*MockVenueRepository).Create(venue2)
 
@@ -521,8 +521,8 @@ func TestGetPendingVenues_Admin(t *testing.T) {
 	handler := createTestVenueHandler()
 
 	// Create venues with different statuses
-	venue1 := &Venue{Name: "Approved Venue", Address: "123 Main St", Latitude: 40.0, Longitude: -73.0, Status: VenueStatusApproved}
-	venue2 := &Venue{Name: "Pending Venue", Address: "456 Pending St", Latitude: 40.5, Longitude: -73.5, Status: VenueStatusPending}
+	venue1 := &Venue{Name: "Approved Venue", Address: "123 Main St", Lat: 40.0, Lng: -73.0, Status: VenueStatusApproved}
+	venue2 := &Venue{Name: "Pending Venue", Address: "456 Pending St", Lat: 40.5, Lng: -73.5, Status: VenueStatusPending}
 	handler.service.repo.(*MockVenueRepository).Create(venue1)
 	handler.service.repo.(*MockVenueRepository).Create(venue2)
 

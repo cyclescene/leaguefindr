@@ -153,9 +153,9 @@ func TestGetAllApprovedVenues_Success(t *testing.T) {
 	service := NewService(repo, authRepo)
 
 	// Create some venues
-	venue1 := &Venue{Name: "Madison Square Garden", Address: "33 E 33rd St, NYC", Latitude: 40.7505, Longitude: -73.9934, Status: VenueStatusApproved}
-	venue2 := &Venue{Name: "Staples Center", Address: "1111 S Figueroa St, LA", Latitude: 34.0430, Longitude: -118.2673, Status: VenueStatusApproved}
-	venue3 := &Venue{Name: "Pending Venue", Address: "123 Main St", Latitude: 40.0, Longitude: -73.0, Status: VenueStatusPending}
+	venue1 := &Venue{Name: "Madison Square Garden", Address: "33 E 33rd St, NYC", Lat: 40.7505, Lng: -73.9934, Status: VenueStatusApproved}
+	venue2 := &Venue{Name: "Staples Center", Address: "1111 S Figueroa St, LA", Lat: 34.0430, Lng: -118.2673, Status: VenueStatusApproved}
+	venue3 := &Venue{Name: "Pending Venue", Address: "123 Main St", Lat: 40.0, Lng: -73.0, Status: VenueStatusPending}
 
 	repo.Create(venue1)
 	repo.Create(venue2)
@@ -202,7 +202,7 @@ func TestGetVenueByID_Success(t *testing.T) {
 	authRepo := NewMockAuthRepository()
 	service := NewService(repo, authRepo)
 
-	venue := &Venue{Name: "Test Arena", Address: "123 Test St", Latitude: 40.5, Longitude: -73.5, Status: VenueStatusApproved}
+	venue := &Venue{Name: "Test Arena", Address: "123 Test St", Lat: 40.5, Lng: -73.5, Status: VenueStatusApproved}
 	repo.Create(venue)
 
 	retrieved, err := service.GetVenueByID(venue.ID)
@@ -231,7 +231,7 @@ func TestGetVenueByID_PendingNotReturned(t *testing.T) {
 	authRepo := NewMockAuthRepository()
 	service := NewService(repo, authRepo)
 
-	venue := &Venue{Name: "Pending Venue", Address: "456 Pending St", Latitude: 40.0, Longitude: -73.0, Status: VenueStatusPending}
+	venue := &Venue{Name: "Pending Venue", Address: "456 Pending St", Lat: 40.0, Lng: -73.0, Status: VenueStatusPending}
 	repo.Create(venue)
 
 	_, err := service.GetVenueByID(venue.ID)
@@ -251,8 +251,8 @@ func TestCreateVenue_AdminAutoApproves(t *testing.T) {
 	req := &CreateVenueRequest{
 		Name:      "Admin Venue",
 		Address:   "789 Admin Ave",
-		Latitude:  40.7128,
-		Longitude: -74.0060,
+		Lat:  40.7128,
+		Lng: -74.0060,
 	}
 	venue, err := service.CreateVenue("admin_123", req)
 	if err != nil {
@@ -279,8 +279,8 @@ func TestCreateVenue_RegularUserPending(t *testing.T) {
 	req := &CreateVenueRequest{
 		Name:      "User Venue",
 		Address:   "321 User Lane",
-		Latitude:  40.7580,
-		Longitude: -73.9855,
+		Lat:  40.7580,
+		Lng: -73.9855,
 	}
 	venue, err := service.CreateVenue("user_123", req)
 	if err != nil {
@@ -304,8 +304,8 @@ func TestCreateVenue_UserNotFound(t *testing.T) {
 	req := &CreateVenueRequest{
 		Name:      "Test Venue",
 		Address:   "123 Test St",
-		Latitude:  40.0,
-		Longitude: -73.0,
+		Lat:  40.0,
+		Lng: -73.0,
 	}
 	_, err := service.CreateVenue("nonexistent_user", req)
 	if err == nil {
@@ -323,8 +323,8 @@ func TestCreateVenue_StoresUserID(t *testing.T) {
 	req := &CreateVenueRequest{
 		Name:      "Test Venue",
 		Address:   "456 Test St",
-		Latitude:  40.5,
-		Longitude: -73.5,
+		Lat:  40.5,
+		Lng: -73.5,
 	}
 	venue, err := service.CreateVenue("user_456", req)
 	if err != nil {
@@ -346,20 +346,20 @@ func TestCreateVenue_StoresCoordinates(t *testing.T) {
 	req := &CreateVenueRequest{
 		Name:      "Coordinate Test",
 		Address:   "789 Coord St",
-		Latitude:  37.7749,
-		Longitude: -122.4194,
+		Lat:  37.7749,
+		Lng: -122.4194,
 	}
 	venue, err := service.CreateVenue("user_789", req)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if venue.Latitude != 37.7749 {
-		t.Errorf("expected latitude 37.7749, got %f", venue.Latitude)
+	if venue.Lat != 37.7749 {
+		t.Errorf("expected lat 37.7749, got %f", venue.Lat)
 	}
 
-	if venue.Longitude != -122.4194 {
-		t.Errorf("expected longitude -122.4194, got %f", venue.Longitude)
+	if venue.Lng != -122.4194 {
+		t.Errorf("expected lng -122.4194, got %f", venue.Lng)
 	}
 }
 
@@ -369,9 +369,9 @@ func TestGetAllVenues_Success(t *testing.T) {
 	service := NewService(repo, authRepo)
 
 	// Create venues with different statuses
-	venue1 := &Venue{Name: "Approved Venue", Address: "123 Main St", Latitude: 40.0, Longitude: -73.0, Status: VenueStatusApproved}
-	venue2 := &Venue{Name: "Pending Venue", Address: "456 Pending St", Latitude: 40.5, Longitude: -73.5, Status: VenueStatusPending}
-	venue3 := &Venue{Name: "Rejected Venue", Address: "789 Rejected St", Latitude: 41.0, Longitude: -74.0, Status: VenueStatusRejected}
+	venue1 := &Venue{Name: "Approved Venue", Address: "123 Main St", Lat: 40.0, Lng: -73.0, Status: VenueStatusApproved}
+	venue2 := &Venue{Name: "Pending Venue", Address: "456 Pending St", Lat: 40.5, Lng: -73.5, Status: VenueStatusPending}
+	venue3 := &Venue{Name: "Rejected Venue", Address: "789 Rejected St", Lat: 41.0, Lng: -74.0, Status: VenueStatusRejected}
 
 	repo.Create(venue1)
 	repo.Create(venue2)
@@ -393,9 +393,9 @@ func TestGetPendingVenues_Success(t *testing.T) {
 	service := NewService(repo, authRepo)
 
 	// Create venues with different statuses
-	venue1 := &Venue{Name: "Approved Venue", Address: "123 Main St", Latitude: 40.0, Longitude: -73.0, Status: VenueStatusApproved}
-	venue2 := &Venue{Name: "Pending Venue 1", Address: "456 Pending St", Latitude: 40.5, Longitude: -73.5, Status: VenueStatusPending}
-	venue3 := &Venue{Name: "Pending Venue 2", Address: "789 Another St", Latitude: 41.0, Longitude: -74.0, Status: VenueStatusPending}
+	venue1 := &Venue{Name: "Approved Venue", Address: "123 Main St", Lat: 40.0, Lng: -73.0, Status: VenueStatusApproved}
+	venue2 := &Venue{Name: "Pending Venue 1", Address: "456 Pending St", Lat: 40.5, Lng: -73.5, Status: VenueStatusPending}
+	venue3 := &Venue{Name: "Pending Venue 2", Address: "789 Another St", Lat: 41.0, Lng: -74.0, Status: VenueStatusPending}
 
 	repo.Create(venue1)
 	repo.Create(venue2)
@@ -437,7 +437,7 @@ func TestApproveVenue_Success(t *testing.T) {
 	authRepo := NewMockAuthRepository()
 	service := NewService(repo, authRepo)
 
-	venue := &Venue{Name: "Pending Venue", Address: "123 Pending St", Latitude: 40.0, Longitude: -73.0, Status: VenueStatusPending}
+	venue := &Venue{Name: "Pending Venue", Address: "123 Pending St", Lat: 40.0, Lng: -73.0, Status: VenueStatusPending}
 	repo.Create(venue)
 	venueID := venue.ID
 
@@ -468,7 +468,7 @@ func TestRejectVenue_Success(t *testing.T) {
 	authRepo := NewMockAuthRepository()
 	service := NewService(repo, authRepo)
 
-	venue := &Venue{Name: "Pending Venue", Address: "123 Pending St", Latitude: 40.0, Longitude: -73.0, Status: VenueStatusPending}
+	venue := &Venue{Name: "Pending Venue", Address: "123 Pending St", Lat: 40.0, Lng: -73.0, Status: VenueStatusPending}
 	repo.Create(venue)
 	venueID := venue.ID
 
@@ -515,8 +515,8 @@ func TestCreateVenue_MultipleUsers(t *testing.T) {
 	req1 := &CreateVenueRequest{
 		Name:      "Venue 1",
 		Address:   "123 Venue St",
-		Latitude:  40.0,
-		Longitude: -73.0,
+		Lat:  40.0,
+		Lng: -73.0,
 	}
 	venue1, err := service.CreateVenue("user_1", req1)
 	if err != nil {
@@ -531,8 +531,8 @@ func TestCreateVenue_MultipleUsers(t *testing.T) {
 	req2 := &CreateVenueRequest{
 		Name:      "Venue 2",
 		Address:   "456 Venue Ave",
-		Latitude:  40.5,
-		Longitude: -73.5,
+		Lat:  40.5,
+		Lng: -73.5,
 	}
 	venue2, err := service.CreateVenue("user_2", req2)
 	if err != nil {
@@ -547,8 +547,8 @@ func TestCreateVenue_MultipleUsers(t *testing.T) {
 	req3 := &CreateVenueRequest{
 		Name:      "Venue 3",
 		Address:   "789 Admin Ave",
-		Latitude:  41.0,
-		Longitude: -74.0,
+		Lat:  41.0,
+		Lng: -74.0,
 	}
 	venue3, err := service.CreateVenue("admin_1", req3)
 	if err != nil {
@@ -577,7 +577,7 @@ func TestApproveVenue_UpdatesTimestamp(t *testing.T) {
 	authRepo := NewMockAuthRepository()
 	service := NewService(repo, authRepo)
 
-	venue := &Venue{Name: "Pending Venue", Address: "123 Pending St", Latitude: 40.0, Longitude: -73.0, Status: VenueStatusPending}
+	venue := &Venue{Name: "Pending Venue", Address: "123 Pending St", Lat: 40.0, Lng: -73.0, Status: VenueStatusPending}
 	repo.Create(venue)
 	venueID := venue.ID
 
