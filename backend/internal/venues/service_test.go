@@ -79,6 +79,25 @@ func (m *MockVenueRepository) UpdateStatus(id int, status VenueStatus, rejection
 	return nil
 }
 
+func (m *MockVenueRepository) GetByAddress(address string) (*Venue, error) {
+	for _, venue := range m.venues {
+		if venue.Address == address {
+			return venue, nil
+		}
+	}
+	return nil, nil // Return nil if not found (not an error)
+}
+
+func (m *MockVenueRepository) IncrementRequestCount(id int) error {
+	venue, exists := m.venues[id]
+	if !exists {
+		return ErrVenueNotFound
+	}
+	venue.RequestCount++
+	venue.UpdatedAt = time.Now()
+	return nil
+}
+
 // Mock auth repository
 type MockAuthRepository struct {
 	users map[string]*auth.User

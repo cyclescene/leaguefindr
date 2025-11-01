@@ -33,9 +33,31 @@ func (s *Service) GetVenueByID(id int) (*Venue, error) {
 	return s.repo.GetByID(id)
 }
 
-// CreateVenue submits a new venue request
-// If user is admin, auto-approves; otherwise sets status to pending
+// CreateVenue submits a new venue request or increments request count if address already exists
+// If user is admin, auto-approves new venues; otherwise sets status to pending
+// If venue address already exists, increments the request_count instead of creating a duplicate
 func (s *Service) CreateVenue(userID string, req *CreateVenueRequest) (*Venue, error) {
+	// First check if venue with this address already exists
+	existingVenue, err := s.repo.GetByAddress(req.Address)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check venue existence: %w", err)
+	}
+
+	// If venue address already exists, increment request count and return it
+	if existingVenue != nil {
+		err = s.repo.IncrementRequestCount(existingVenue.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to increment request count: %w", err)
+		}
+		// Refresh the venue data to get updated request count
+		refreshedVenue, err := s.repo.GetByAddress(req.Address)
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve updated venue: %w", err)
+		}
+		return refreshedVenue, nil
+	}
+
+	// Venue doesn't exist, create new one
 	// Get user to check role
 	user, err := s.authRepo.GetUserByID(userID)
 	if err != nil {
@@ -48,14 +70,15 @@ func (s *Service) CreateVenue(userID string, req *CreateVenueRequest) (*Venue, e
 		status = VenueStatusApproved
 	}
 
-	// Create venue
+	// Create venue with request_count = 1 (the user creating it counts as a request)
 	venue := &Venue{
-		Name:    req.Name,
-		Address: req.Address,
-		Lat:     req.Lat,
-		Lng:     req.Lng,
-		Status:  status,
-		CreatedBy: &userID,
+		Name:         req.Name,
+		Address:      req.Address,
+		Lat:          req.Lat,
+		Lng:          req.Lng,
+		Status:       status,
+		CreatedBy:    &userID,
+		RequestCount: 1,
 	}
 
 	err = s.repo.Create(venue)

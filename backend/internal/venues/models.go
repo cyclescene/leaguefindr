@@ -28,16 +28,17 @@ func (v VenueStatus) String() string {
 
 // Venue represents a venue/location in the system
 type Venue struct {
-	ID              int       `json:"id"`
-	Name            string    `json:"name"`
-	Address         string    `json:"address"`
-	Lat             float64   `json:"lat"`
-	Lng             float64   `json:"lng"`
+	ID              int         `json:"id"`
+	Name            string      `json:"name"`
+	Address         string      `json:"address"`
+	Lat             float64     `json:"lat"`
+	Lng             float64     `json:"lng"`
 	Status          VenueStatus `json:"status"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
-	CreatedBy       *string   `json:"created_by"` // UUID of the user who submitted it
-	RejectionReason *string   `json:"rejection_reason"` // Reason for rejection if applicable
+	CreatedAt       time.Time   `json:"created_at"`
+	UpdatedAt       time.Time   `json:"updated_at"`
+	CreatedBy       *string     `json:"created_by"` // UUID of the user who submitted it
+	RejectionReason *string     `json:"rejection_reason"` // Reason for rejection if applicable
+	RequestCount    int         `json:"request_count"` // Number of users who have requested this venue
 }
 
 // CreateVenueRequest represents the request to create/submit a new venue

@@ -13,9 +13,11 @@ type RepositoryInterface interface {
 	GetAll() ([]Venue, error)
 	GetAllApproved() ([]Venue, error)
 	GetByID(id int) (*Venue, error)
+	GetByAddress(address string) (*Venue, error)
 	Create(venue *Venue) error
 	GetPending() ([]Venue, error)
 	UpdateStatus(id int, status VenueStatus, rejectionReason *string) error
+	IncrementRequestCount(id int) error
 }
 
 type Repository struct {
@@ -32,7 +34,7 @@ func (r *Repository) GetAll() ([]Venue, error) {
 	defer cancel()
 
 	query := `
-		SELECT id, name, address, lat, lng, status, created_at, updated_at, created_by, rejection_reason
+		SELECT id, name, address, lat, lng, status, created_at, updated_at, created_by, rejection_reason, request_count
 		FROM venues
 		ORDER BY
 		  CASE
@@ -63,6 +65,7 @@ func (r *Repository) GetAll() ([]Venue, error) {
 			&venue.UpdatedAt,
 			&venue.CreatedBy,
 			&venue.RejectionReason,
+			&venue.RequestCount,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan venue: %w", err)
@@ -83,7 +86,7 @@ func (r *Repository) GetAllApproved() ([]Venue, error) {
 	defer cancel()
 
 	query := `
-		SELECT id, name, address, lat, lng, status, created_at, updated_at, created_by, rejection_reason
+		SELECT id, name, address, lat, lng, status, created_at, updated_at, created_by, rejection_reason, request_count
 		FROM venues
 		WHERE status = $1
 		ORDER BY name ASC
@@ -109,6 +112,7 @@ func (r *Repository) GetAllApproved() ([]Venue, error) {
 			&venue.UpdatedAt,
 			&venue.CreatedBy,
 			&venue.RejectionReason,
+			&venue.RequestCount,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan venue: %w", err)
@@ -131,7 +135,7 @@ func (r *Repository) GetByID(id int) (*Venue, error) {
 	venue := &Venue{}
 
 	query := `
-		SELECT id, name, address, lat, lng, status, created_at, updated_at, created_by, rejection_reason
+		SELECT id, name, address, lat, lng, status, created_at, updated_at, created_by, rejection_reason, request_count
 		FROM venues
 		WHERE id = $1 AND status = $2
 	`
@@ -147,6 +151,7 @@ func (r *Repository) GetByID(id int) (*Venue, error) {
 		&venue.UpdatedAt,
 		&venue.CreatedBy,
 		&venue.RejectionReason,
+		&venue.RequestCount,
 	)
 
 	if err != nil {
@@ -162,8 +167,8 @@ func (r *Repository) Create(venue *Venue) error {
 	defer cancel()
 
 	query := `
-		INSERT INTO venues (name, address, lat, lng, status, created_at, updated_at, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO venues (name, address, lat, lng, status, created_at, updated_at, created_by, request_count)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id
 	`
 
@@ -178,6 +183,7 @@ func (r *Repository) Create(venue *Venue) error {
 		time.Now(),
 		time.Now(),
 		venue.CreatedBy,
+		venue.RequestCount,
 	).Scan(&venue.ID)
 
 	if err != nil {
@@ -196,7 +202,7 @@ func (r *Repository) GetPending() ([]Venue, error) {
 	defer cancel()
 
 	query := `
-		SELECT id, name, address, lat, lng, status, created_at, updated_at, created_by, rejection_reason
+		SELECT id, name, address, lat, lng, status, created_at, updated_at, created_by, rejection_reason, request_count
 		FROM venues
 		WHERE status = $1
 		ORDER BY created_at ASC
@@ -222,6 +228,7 @@ func (r *Repository) GetPending() ([]Venue, error) {
 			&venue.UpdatedAt,
 			&venue.CreatedBy,
 			&venue.RejectionReason,
+			&venue.RequestCount,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan venue: %w", err)
@@ -250,6 +257,64 @@ func (r *Repository) UpdateStatus(id int, status VenueStatus, rejectionReason *s
 	result, err := r.db.Exec(ctx, query, status.String(), rejectionReason, id)
 	if err != nil {
 		return fmt.Errorf("failed to update venue status: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("venue not found")
+	}
+
+	return nil
+}
+
+// GetByAddress retrieves a venue by address (case-insensitive)
+func (r *Repository) GetByAddress(address string) (*Venue, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	venue := &Venue{}
+
+	query := `
+		SELECT id, name, address, lat, lng, status, created_at, updated_at, created_by, rejection_reason, request_count
+		FROM venues
+		WHERE LOWER(address) = LOWER($1)
+		LIMIT 1
+	`
+
+	err := r.db.QueryRow(ctx, query, address).Scan(
+		&venue.ID,
+		&venue.Name,
+		&venue.Address,
+		&venue.Lat,
+		&venue.Lng,
+		&venue.Status,
+		&venue.CreatedAt,
+		&venue.UpdatedAt,
+		&venue.CreatedBy,
+		&venue.RejectionReason,
+		&venue.RequestCount,
+	)
+
+	if err != nil {
+		return nil, nil // Return nil if no venue found (not an error)
+	}
+
+	return venue, nil
+}
+
+// IncrementRequestCount increments the request count for a venue
+func (r *Repository) IncrementRequestCount(id int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `
+		UPDATE venues
+		SET request_count = request_count + 1, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to increment request count: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {
