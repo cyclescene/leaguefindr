@@ -112,7 +112,11 @@ export function AddVenueForm({ onSuccess, onClose }: AddVenueFormProps) {
   console.log(mapboxToken)
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      onClick={(e) => e.stopPropagation()}
+      className="space-y-6"
+    >
       {/* Venue Name */}
       <div className="space-y-2">
         <Label htmlFor="name">Venue Name</Label>
