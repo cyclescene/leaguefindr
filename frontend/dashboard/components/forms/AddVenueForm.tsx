@@ -109,6 +109,7 @@ export function AddVenueForm({ onSuccess, onClose }: AddVenueFormProps) {
   }
 
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+  console.log(mapboxToken)
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -132,13 +133,14 @@ export function AddVenueForm({ onSuccess, onClose }: AddVenueFormProps) {
         <Label htmlFor="address">Address</Label>
         {mapboxToken ? (
           <AddressAutofill accessToken={mapboxToken} onRetrieve={handleAddressChange}>
-            <Input
+            <input
               {...register('address')}
               ref={addressInputRef}
               id="address"
               autoComplete="address-line1"
               type="text"
               placeholder="Search for an address..."
+              className="h-9 w-full rounded-md border border-gray-300 px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               aria-invalid={errors.address ? 'true' : 'false'}
             />
           </AddressAutofill>
