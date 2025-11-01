@@ -19,6 +19,7 @@ export function ActionButtons({
   onLeagueAdded,
 }: ActionButtonsProps) {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
+  const [isMapboxDropdownOpen, setIsMapboxDropdownOpen] = useState(false);
 
   const handleCloseDialog = () => setOpenDialog(null);
 
@@ -71,7 +72,12 @@ export function ActionButtons({
       </Dialog>
 
       {/* Add Venue Dialog */}
-      <Dialog open={openDialog === "venue"} onOpenChange={(open) => !open && handleCloseDialog()}>
+      <Dialog open={openDialog === "venue"} onOpenChange={(open) => {
+        // Don't close if Mapbox dropdown is open
+        if (!open && !isMapboxDropdownOpen) {
+          handleCloseDialog();
+        }
+      }}>
         <DialogContent className="border-0">
           <DialogHeader className="bg-brand-dark text-white -mx-6 -mt-6 px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
             <DialogTitle className="text-white">Add Venue</DialogTitle>
@@ -82,6 +88,7 @@ export function ActionButtons({
           <AddVenueForm
             onSuccess={onVenueAdded}
             onClose={handleCloseDialog}
+            onMapboxDropdownStateChange={setIsMapboxDropdownOpen}
           />
         </DialogContent>
       </Dialog>

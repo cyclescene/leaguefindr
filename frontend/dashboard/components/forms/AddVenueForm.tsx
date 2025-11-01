@@ -18,9 +18,10 @@ const AddressAutofill = dynamic(
 interface AddVenueFormProps {
   onSuccess?: () => void
   onClose?: () => void
+  onMapboxDropdownStateChange?: (isOpen: boolean) => void
 }
 
-export function AddVenueForm({ onSuccess, onClose }: AddVenueFormProps) {
+export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }: AddVenueFormProps) {
   const { getToken, userId } = useAuth()
   const { register, handleSubmit, formState: { errors, isSubmitting }, setValue, watch } = useForm<AddVenueFormData>({
     resolver: zodResolver(addVenueSchema),
@@ -146,6 +147,8 @@ export function AddVenueForm({ onSuccess, onClose }: AddVenueFormProps) {
               placeholder="Search for an address..."
               className="h-9 w-full rounded-md border border-gray-300 px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               aria-invalid={errors.address ? 'true' : 'false'}
+              onFocus={() => onMapboxDropdownStateChange?.(true)}
+              onBlur={() => onMapboxDropdownStateChange?.(false)}
             />
           </AddressAutofill>
         ) : (
