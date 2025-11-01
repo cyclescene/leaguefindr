@@ -4,37 +4,20 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { addVenueSchema, type AddVenueFormData } from '@/lib/schemas'
 import { useAuth } from '@clerk/nextjs'
-import { useState, useRef, useEffect } from 'react'
+import dynamic from 'next/dynamic'
+import { useState, useRef } from 'react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+
+// Dynamically import AddressAutofill to avoid SSR issues
+const AddressAutofill = dynamic(
+  () => import('@mapbox/search-js-react').then(mod => mod.AddressAutofill),
+  { ssr: false }
+) as any
 
 interface AddVenueFormProps {
   onSuccess?: () => void
   onClose?: () => void
-}
-
-interface MapboxResult {
-  id: string
-  full_address: string
-  geometry: {
-    coordinates: [number, number] // [longitude, latitude]
-  }
-}
-
-interface MapboxSuggestion {
-  id: string
-  full_address: string
-  place_name: string
-  geometry: {
-    coordinates: [number, number]
-  }
-}
-
-interface MapboxRetrieveResult {
-  properties: {
-    full_address: string
-  }
-  geometry: {
-    coordinates: [number, number]
-  }
 }
 
 export function AddVenueForm({ onSuccess, onClose }: AddVenueFormProps) {
@@ -49,75 +32,30 @@ export function AddVenueForm({ onSuccess, onClose }: AddVenueFormProps) {
     }
   })
 
-  const [addressSuggestions, setAddressSuggestions] = useState<MapboxSuggestion[]>([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [selectedAddress, setSelectedAddress] = useState<MapboxRetrieveResult | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [selectedLocation, setSelectedLocation] = useState<{ address: string; lat: number; lng: number } | null>(null)
   const addressInputRef = useRef<HTMLInputElement>(null)
-  const suggestionsRef = useRef<HTMLDivElement>(null)
 
+  const nameValue = watch('name')
   const addressValue = watch('address')
 
-  // Mapbox autocomplete search
-  const handleAddressSearch = async (query: string) => {
-    if (!query || query.length < 3) {
-      setAddressSuggestions([])
-      setShowSuggestions(false)
-      return
-    }
+  // Handle address selection from Mapbox AddressAutofill
+  const handleAddressChange = (feature: any) => {
+    if (feature && feature.geometry && feature.properties) {
+      const [lng, lat] = feature.geometry.coordinates
+      const address = feature.properties.full_address || feature.properties.address
 
-    try {
-      const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-      if (!token) {
-        console.error('Mapbox token not configured')
-        return
-      }
+      // Update form with selected address and coordinates
+      setValue('address', address)
+      setValue('latitude', lat)
+      setValue('longitude', lng)
 
-      const response = await fetch(
-        `https://api.mapbox.com/search/searchbox/v1/suggest?q=${encodeURIComponent(query)}&access_token=${token}`
-      )
-
-      if (!response.ok) throw new Error('Failed to fetch suggestions')
-
-      const data = await response.json()
-      setAddressSuggestions(data.suggestions || [])
-      setShowSuggestions(true)
-    } catch (error) {
-      console.error('Address search error:', error)
-      setAddressSuggestions([])
-    }
-  }
-
-  // Handle address selection
-  const handleSelectAddress = async (suggestion: MapboxSuggestion) => {
-    // Get full details with coordinates
-    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    if (!token) {
-      console.error('Mapbox token not configured')
-      return
-    }
-
-    try {
-      const response = await fetch(
-        `https://api.mapbox.com/search/searchbox/v1/retrieve/${encodeURIComponent(suggestion.id)}?access_token=${token}`
-      )
-
-      if (!response.ok) throw new Error('Failed to retrieve address details')
-
-      const data = await response.json()
-      const result = data.features[0]
-
-      // Update form with address and coordinates
-      setValue('address', result.properties.full_address)
-      setValue('latitude', result.geometry.coordinates[1]) // latitude is second
-      setValue('longitude', result.geometry.coordinates[0]) // longitude is first
-
-      setSelectedAddress(result)
-      setShowSuggestions(false)
-      setAddressSuggestions([])
-    } catch (error) {
-      console.error('Failed to retrieve address details:', error)
+      setSelectedLocation({
+        address,
+        lat,
+        lng
+      })
     }
   }
 
@@ -162,20 +100,6 @@ export function AddVenueForm({ onSuccess, onClose }: AddVenueFormProps) {
     }
   }
 
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
-        if (addressInputRef.current && !addressInputRef.current.contains(event.target as Node)) {
-          setShowSuggestions(false)
-        }
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
   if (success) {
     return (
       <div className="py-4 text-center">
@@ -184,68 +108,58 @@ export function AddVenueForm({ onSuccess, onClose }: AddVenueFormProps) {
     )
   }
 
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
-      <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-          Venue Name
-        </label>
-        <input
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Venue Name */}
+      <div className="space-y-2">
+        <Label htmlFor="name">Venue Name</Label>
+        <Input
           {...register('name')}
+          id="name"
           type="text"
           placeholder="e.g., Downtown Sports Complex"
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          aria-invalid={errors.name ? 'true' : 'false'}
         />
         {errors.name && (
-          <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+          <p className="text-sm text-red-600">{errors.name.message}</p>
         )}
       </div>
 
-      <div className="relative">
-        <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-          Address
-        </label>
-        <input
-          {...register('address')}
-          ref={addressInputRef}
-          type="text"
-          placeholder="Search for an address..."
-          onChange={(e) => handleAddressSearch(e.target.value)}
-          onFocus={() => {
-            if (addressValue && addressValue.length >= 3) {
-              setShowSuggestions(true)
-            }
-          }}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        />
-
-        {/* Address suggestions dropdown */}
-        {showSuggestions && addressSuggestions.length > 0 && (
-          <div
-            ref={suggestionsRef}
-            className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10"
-          >
-            {addressSuggestions.map((suggestion) => (
-              <button
-                key={suggestion.id}
-                type="button"
-                onClick={() => handleSelectAddress(suggestion)}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 border-b last:border-b-0"
-              >
-                <p className="text-sm font-medium text-gray-900">{suggestion.full_address}</p>
-                <p className="text-xs text-gray-500">{suggestion.place_name}</p>
-              </button>
-            ))}
-          </div>
+      {/* Address with Mapbox Autofill */}
+      <div className="space-y-2">
+        <Label htmlFor="address">Address</Label>
+        {mapboxToken ? (
+          <AddressAutofill accessToken={mapboxToken} onRetrieve={handleAddressChange}>
+            <Input
+              {...register('address')}
+              ref={addressInputRef}
+              id="address"
+              autoComplete="address-line1"
+              type="text"
+              placeholder="Search for an address..."
+              aria-invalid={errors.address ? 'true' : 'false'}
+            />
+          </AddressAutofill>
+        ) : (
+          <Input
+            {...register('address')}
+            ref={addressInputRef}
+            id="address"
+            type="text"
+            placeholder="Search for an address..."
+            aria-invalid={errors.address ? 'true' : 'false'}
+          />
         )}
 
         {errors.address && (
-          <p className="mt-1 text-sm text-red-600">{errors.address.message}</p>
+          <p className="text-sm text-red-600">{errors.address.message}</p>
         )}
 
-        {selectedAddress && (
-          <p className="mt-1 text-sm text-green-600">
-             Location selected: {selectedAddress.properties.full_address}
+        {selectedLocation && (
+          <p className="text-sm text-green-600">
+            ✓ Location selected: {selectedLocation.address}
           </p>
         )}
       </div>
