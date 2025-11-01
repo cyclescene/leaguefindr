@@ -28,8 +28,8 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
     defaultValues: {
       name: '',
       address: '',
-      latitude: 0,
-      longitude: 0
+      lat: 0,
+      lng: 0
     }
   })
 
@@ -49,8 +49,8 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
 
       // Update form with selected address and coordinates
       setValue('address', address)
-      setValue('latitude', lat)
-      setValue('longitude', lng)
+      setValue('lat', lat)
+      setValue('lng', lng)
 
       setSelectedLocation({
         address,
@@ -172,8 +172,8 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
       </div>
 
       {/* Hidden fields for coordinates set by Mapbox */}
-      <input {...register('latitude')} type="hidden" />
-      <input {...register('longitude')} type="hidden" />
+      <input {...register('lat')} type="hidden" />
+      <input {...register('lng')} type="hidden" />
 
       {submitError && (
         <div className="rounded-md bg-red-50 p-4">
