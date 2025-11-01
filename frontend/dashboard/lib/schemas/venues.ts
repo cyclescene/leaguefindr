@@ -9,6 +9,12 @@ export const addVenueSchema = z.object({
     .min(1, "Address is required")
     .min(5, "Address must be at least 5 characters")
     .max(500, "Address must be at most 500 characters"),
+  latitude: z.number()
+    .min(-90, "Invalid latitude")
+    .max(90, "Invalid latitude"),
+  longitude: z.number()
+    .min(-180, "Invalid longitude")
+    .max(180, "Invalid longitude"),
 });
 
 export type AddVenueFormData = z.infer<typeof addVenueSchema>;
