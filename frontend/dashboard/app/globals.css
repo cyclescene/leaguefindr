@@ -132,9 +132,11 @@
   }
 }
 
-/* Mapbox AddressAutofill dropdown z-index fix */
+/* Mapbox AddressAutofill dropdown z-index and pointer events fix */
 .mapbox-search-web-suggestions,
 [class*="mapbox"][class*="suggestion"],
-[class*="mapbox"][class*="dropdown"] {
+[class*="mapbox"][class*="dropdown"],
+[id*="mbx"][id*="ResultsList"] {
   z-index: 9999 !important;
+  pointer-events: auto !important;
 }
