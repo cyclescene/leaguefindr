@@ -131,3 +131,10 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Mapbox AddressAutofill dropdown z-index fix */
+.mapbox-search-web-suggestions,
+[class*="mapbox"][class*="suggestion"],
+[class*="mapbox"][class*="dropdown"] {
+  z-index: 9999 !important;
+}
