@@ -23,7 +23,7 @@ interface AddVenueFormProps {
 
 export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }: AddVenueFormProps) {
   const { getToken, userId } = useAuth()
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue, watch } = useForm<AddVenueFormData>({
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue } = useForm<AddVenueFormData>({
     resolver: zodResolver(addVenueSchema),
     defaultValues: {
       name: '',
@@ -38,14 +38,14 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
   const [selectedLocation, setSelectedLocation] = useState<{ address: string; lat: number; lng: number } | null>(null)
   const addressInputRef = useRef<HTMLInputElement>(null)
 
-  const nameValue = watch('name')
-  const addressValue = watch('address')
-
   // Handle address selection from Mapbox AddressAutofill
-  const handleAddressChange = (feature: any) => {
+  const handleAddressChange = (featureCollection: any) => {
+    // Extract the first feature from the FeatureCollection
+    const feature = featureCollection?.features?.[0]
+
     if (feature && feature.geometry && feature.properties) {
       const [lng, lat] = feature.geometry.coordinates
-      const address = feature.properties.full_address || feature.properties.address
+      const address = feature.properties.full_address || feature.properties.place_name
 
       // Update form with selected address and coordinates
       setValue('address', address)
