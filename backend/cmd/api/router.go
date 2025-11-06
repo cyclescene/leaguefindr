@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leaguefindr/backend/internal/auth"
+	"github.com/leaguefindr/backend/internal/leagues"
 	"github.com/leaguefindr/backend/internal/sports"
 	"github.com/leaguefindr/backend/internal/venues"
 )
@@ -68,10 +69,16 @@ func newRouter(dbPool *pgxpool.Pool) *chi.Mux {
 	venuesService := venues.NewService(venuesRepo, authRepo)
 	venuesHandler := venues.NewHandler(venuesService, authService)
 
+	// Leagues
+	leaguesRepo := leagues.NewRepository(dbPool)
+	leaguesService := leagues.NewService(leaguesRepo)
+	leaguesHandler := leagues.NewHandler(leaguesService, authService)
+
 	r.Route("/v1", func(r chi.Router) {
 		authHandler.RegisterRoutes(r)
 		sportsHandler.RegisterRoutes(r)
 		venuesHandler.RegisterRoutes(r)
+		leaguesHandler.RegisterRoutes(r)
 
 	})
 
