@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useState } from "react";
 import { AddSportForm } from "./AddSportForm";
 import { AddVenueForm } from "./AddVenueForm";
+import { AddLeagueForm } from "./AddLeagueForm";
 
 interface ActionButtonsProps {
   onSportAdded?: () => void;
@@ -95,16 +96,17 @@ export function ActionButtons({
 
       {/* Add League Dialog */}
       <Dialog open={openDialog === "league"} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent className="border-0">
-          <DialogHeader className="bg-brand-dark text-white -mx-6 -mt-6 px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
+        <DialogContent className="border-0 !max-w-5xl w-[85vw] max-h-[95vh] overflow-y-auto">
+          <DialogHeader className="bg-brand-dark text-white !-mx-6 !-mt-6 !-mb-4 px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
             <DialogTitle className="text-white">Create League</DialogTitle>
             <DialogDescription className="text-gray-200">
-              Create a new league submission. Include details about the sport, venue, and schedule.
+              Create a new league submission. Include details about the sport, dates, schedule, and pricing.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">Coming soon...</p>
-          </div>
+          <AddLeagueForm
+            onSuccess={onLeagueAdded}
+            onClose={handleCloseDialog}
+          />
         </DialogContent>
       </Dialog>
     </>
