@@ -28,13 +28,39 @@ ALTER TABLE IF EXISTS leagues_drafts DROP CONSTRAINT IF EXISTS leagues_drafts_or
 -- Step 4: Drop indexes that reference the old id column
 DROP INDEX IF EXISTS idx_organizations_org_name;
 
--- Step 5: Drop old INT primary key and rename UUID column to id
+-- Step 5: Create a mapping table to preserve organization data during ID migration
+CREATE TABLE org_id_mapping AS
+SELECT id::TEXT as old_id, id_uuid as new_id FROM organizations;
+
+-- Step 6: Convert org_id columns in dependent tables from INT to UUID
+-- First, add new UUID columns
+ALTER TABLE IF EXISTS leagues ADD COLUMN org_id_uuid UUID;
+ALTER TABLE IF EXISTS leagues_drafts ADD COLUMN org_id_uuid UUID;
+
+-- Step 7: Populate new UUID columns using the mapping
+UPDATE leagues l SET org_id_uuid = (SELECT new_id FROM org_id_mapping WHERE old_id = l.org_id::TEXT);
+UPDATE leagues_drafts ld SET org_id_uuid = (SELECT new_id FROM org_id_mapping WHERE old_id = ld.org_id::TEXT);
+
+-- Step 8: Drop old INT org_id columns and foreign keys if they exist
+ALTER TABLE IF EXISTS leagues DROP CONSTRAINT IF EXISTS leagues_org_id_fkey;
+ALTER TABLE IF EXISTS leagues_drafts DROP CONSTRAINT IF EXISTS leagues_drafts_org_id_fkey;
+ALTER TABLE leagues DROP COLUMN org_id;
+ALTER TABLE leagues_drafts DROP COLUMN org_id;
+
+-- Step 9: Rename UUID columns to org_id
+ALTER TABLE leagues RENAME COLUMN org_id_uuid TO org_id;
+ALTER TABLE leagues_drafts RENAME COLUMN org_id_uuid TO org_id;
+
+-- Step 10: Drop the mapping table
+DROP TABLE org_id_mapping;
+
+-- Step 11: Drop old INT primary key from organizations and rename UUID column to id
 ALTER TABLE organizations DROP CONSTRAINT organizations_pkey;
 ALTER TABLE organizations DROP COLUMN id;
 ALTER TABLE organizations RENAME COLUMN id_uuid TO id;
 ALTER TABLE organizations ADD PRIMARY KEY (id);
 
--- Step 6: Recreate foreign keys in dependent tables with UUID references
+-- Step 12: Recreate foreign keys in dependent tables with UUID references
 -- These will reference the UUID id column we just created
 ALTER TABLE leagues ADD CONSTRAINT leagues_org_id_fkey FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE;
 ALTER TABLE leagues_drafts ADD CONSTRAINT leagues_drafts_org_id_fkey FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE;
