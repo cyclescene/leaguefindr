@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"github.com/leaguefindr/backend/internal/auth"
-	"github.com/leaguefindr/backend/internal/organizations"
 )
 
 type Handler struct {
@@ -207,6 +206,12 @@ func (h *Handler) GetPendingLeagues(w http.ResponseWriter, r *http.Request) {
 
 // ApproveLeague approves a pending league submission (admin only)
 func (h *Handler) ApproveLeague(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-Clerk-User-ID")
+	if userID == "" {
+		http.Error(w, "Missing user ID", http.StatusUnauthorized)
+		return
+	}
+
 	idStr := chi.URLParam(r, "id")
 	if idStr == "" {
 		http.Error(w, "league ID is required", http.StatusBadRequest)
@@ -219,7 +224,7 @@ func (h *Handler) ApproveLeague(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.ApproveLeague(id)
+	err = h.service.ApproveLeague(userID, id)
 	if err != nil {
 		slog.Error("approve league error", "id", id, "err", err)
 		http.Error(w, "Failed to approve league", http.StatusInternalServerError)
@@ -233,6 +238,12 @@ func (h *Handler) ApproveLeague(w http.ResponseWriter, r *http.Request) {
 
 // RejectLeague rejects a pending league submission (admin only)
 func (h *Handler) RejectLeague(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-Clerk-User-ID")
+	if userID == "" {
+		http.Error(w, "Missing user ID", http.StatusUnauthorized)
+		return
+	}
+
 	idStr := chi.URLParam(r, "id")
 	if idStr == "" {
 		http.Error(w, "league ID is required", http.StatusBadRequest)
@@ -263,7 +274,7 @@ func (h *Handler) RejectLeague(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.RejectLeague(id, req.RejectionReason)
+	err = h.service.RejectLeague(userID, id, req.RejectionReason)
 	if err != nil {
 		slog.Error("reject league error", "id", id, "err", err)
 		http.Error(w, "Failed to reject league", http.StatusInternalServerError)
@@ -311,20 +322,15 @@ func (h *Handler) SaveDraft(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get org_id from query parameter or context (adjust based on your auth setup)
-	orgIDStr := r.URL.Query().Get("org_id")
-	if orgIDStr == "" {
+	// Get org_id from query parameter (UUID string)
+	orgID := r.URL.Query().Get("org_id")
+	if orgID == "" {
 		http.Error(w, "organization ID is required", http.StatusBadRequest)
 		return
 	}
 
-	orgID, err := strconv.Atoi(orgIDStr)
-	if err != nil {
-		http.Error(w, "Invalid organization ID", http.StatusBadRequest)
-		return
-	}
-
 	var req SaveLeagueDraftRequest
+	var err error
 
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {

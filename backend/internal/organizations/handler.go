@@ -7,13 +7,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
-	"github.com/jd/leaguefindr/internal/auth"
+	"github.com/leaguefindr/backend/internal/auth"
 )
 
 type Handler struct {
-	service      *Service
-	authService  *auth.Service
-	validator    *validator.Validate
+	service     *Service
+	authService *auth.Service
+	validator   *validator.Validate
 }
 
 func NewHandler(service *Service, authService *auth.Service) *Handler {
@@ -65,12 +65,30 @@ func (h *Handler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Dereference optional string pointers
+	orgURL := ""
+	if req.OrgURL != nil {
+		orgURL = *req.OrgURL
+	}
+	orgEmail := ""
+	if req.OrgEmail != nil {
+		orgEmail = *req.OrgEmail
+	}
+	orgPhone := ""
+	if req.OrgPhone != nil {
+		orgPhone = *req.OrgPhone
+	}
+	orgAddress := ""
+	if req.OrgAddress != nil {
+		orgAddress = *req.OrgAddress
+	}
+
 	orgID, err := h.service.CreateOrganization(
 		req.OrgName,
-		req.OrgURL,
-		req.OrgEmail,
-		req.OrgPhone,
-		req.OrgAddress,
+		orgURL,
+		orgEmail,
+		orgPhone,
+		orgAddress,
 		userID,
 	)
 	if err != nil {

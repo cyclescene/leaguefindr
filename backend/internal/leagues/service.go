@@ -174,7 +174,7 @@ func (s *Service) GetDraft(orgID int) (*LeagueDraft, error) {
 }
 
 // SaveDraft saves or updates a draft for an organization
-func (s *Service) SaveDraft(orgID int, userID string, draftData DraftData) (*LeagueDraft, error) {
+func (s *Service) SaveDraft(orgID string, userID string, draftData DraftData) (*LeagueDraft, error) {
 	if draftData == nil || len(draftData) == 0 {
 		return nil, fmt.Errorf("draft data cannot be empty")
 	}
