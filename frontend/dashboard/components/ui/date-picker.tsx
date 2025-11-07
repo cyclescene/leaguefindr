@@ -7,12 +7,6 @@ import { Calendar as CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 
 interface DatePickerProps {
   date?: Date
@@ -30,36 +24,53 @@ export function DatePicker({
   className,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
+  const containerRef = React.useRef<HTMLDivElement>(null)
+
+  // Close calendar when clicking outside
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside)
+      return () => document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [open])
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn(
-            "w-full justify-start text-left font-normal",
-            !date && "text-muted-foreground",
-            className
-          )}
-          disabled={disabled}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "MMM d, yyyy") : placeholder}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="w-auto p-0">
-        <DialogTitle className="sr-only">Select a date</DialogTitle>
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={(selectedDate) => {
-            onDateChange(selectedDate)
-            setOpen(false)
-          }}
-          disabled={disabled}
-          initialFocus
-        />
-      </DialogContent>
-    </Dialog>
+    <div className="relative" ref={containerRef}>
+      <Button
+        type="button"
+        variant="outline"
+        className={cn(
+          "w-full justify-start text-left font-normal",
+          !date && "text-muted-foreground",
+          className
+        )}
+        disabled={disabled}
+        onClick={() => !disabled && setOpen(!open)}
+      >
+        <CalendarIcon className="mr-2 h-4 w-4" />
+        {date ? format(date, "MMM d, yyyy") : placeholder}
+      </Button>
+
+      {open && (
+        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-300 rounded-md shadow-lg z-50 p-3">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={(selectedDate) => {
+              onDateChange(selectedDate)
+              setOpen(false)
+            }}
+            disabled={disabled}
+            initialFocus
+          />
+        </div>
+      )}
+    </div>
   )
 }
