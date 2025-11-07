@@ -40,7 +40,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
     defaultValues: {
       sport_id: undefined,
       league_name: '',
-      division: '',
+      division: '' as any,
       age_group: '',
       gender: '',
       registration_deadline: '',
@@ -479,17 +479,20 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
           </div>
 
 
-          {/* // TODO: It would be better to use a select group using `beignner` `intermediate` etc */}
-          {/* Division */}
+          {/* Division/Skill Level */}
           <div className="space-y-2">
-            <Label htmlFor="division">Division/Skill Level *</Label>
-            <Input
+            <Label htmlFor="division">Skill Level *</Label>
+            <select
               {...register('division')}
               id="division"
-              type="text"
-              placeholder="e.g., Beginner, Intermediate, Advanced"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
               aria-invalid={errors.division ? 'true' : 'false'}
-            />
+            >
+              <option value="">Select a skill level</option>
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="expert">Expert</option>
+            </select>
             {errors.division && (
               <p className="text-sm text-red-600">{errors.division.message}</p>
             )}
