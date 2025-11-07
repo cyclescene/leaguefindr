@@ -4,14 +4,23 @@ import (
 	"fmt"
 	"math"
 	"time"
+
+	"github.com/leaguefindr/backend/internal/auth"
+	"github.com/leaguefindr/backend/internal/organizations"
 )
 
 type Service struct {
-	repo RepositoryInterface
+	repo       RepositoryInterface
+	orgService *organizations.Service
+	authService *auth.Service
 }
 
-func NewService(repo RepositoryInterface) *Service {
-	return &Service{repo: repo}
+func NewService(repo RepositoryInterface, orgService *organizations.Service, authService *auth.Service) *Service {
+	return &Service{
+		repo:        repo,
+		orgService:  orgService,
+		authService: authService,
+	}
 }
 
 // ============= LEAGUE METHODS =============
@@ -53,6 +62,16 @@ func (s *Service) GetPendingLeagues() ([]League, error) {
 func (s *Service) CreateLeague(userID string, request *CreateLeagueRequest) (*League, error) {
 	if request == nil {
 		return nil, fmt.Errorf("create league request cannot be nil")
+	}
+
+	// Verify user has access to the organization
+	if request.OrgID == nil {
+		return nil, fmt.Errorf("organization ID is required")
+	}
+
+	err := s.orgService.VerifyUserOrgAccess(userID, *request.OrgID)
+	if err != nil {
+		return nil, fmt.Errorf("user does not have access to this organization: %w", err)
 	}
 
 	// Validate pricing strategy
@@ -117,12 +136,30 @@ func (s *Service) CreateLeague(userID string, request *CreateLeagueRequest) (*Le
 }
 
 // ApproveLeague approves a pending league submission (admin only)
-func (s *Service) ApproveLeague(id int) error {
+func (s *Service) ApproveLeague(userID string, id int) error {
+	// Verify user is admin
+	isAdmin, err := s.authService.IsUserAdmin(userID)
+	if err != nil {
+		return fmt.Errorf("failed to verify admin status: %w", err)
+	}
+	if !isAdmin {
+		return fmt.Errorf("only admins can approve leagues")
+	}
+
 	return s.repo.UpdateStatus(id, LeagueStatusApproved, nil)
 }
 
 // RejectLeague rejects a pending league submission with a reason (admin only)
-func (s *Service) RejectLeague(id int, rejectionReason string) error {
+func (s *Service) RejectLeague(userID string, id int, rejectionReason string) error {
+	// Verify user is admin
+	isAdmin, err := s.authService.IsUserAdmin(userID)
+	if err != nil {
+		return fmt.Errorf("failed to verify admin status: %w", err)
+	}
+	if !isAdmin {
+		return fmt.Errorf("only admins can reject leagues")
+	}
+
 	if rejectionReason == "" {
 		return fmt.Errorf("rejection reason cannot be empty")
 	}

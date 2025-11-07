@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"github.com/leaguefindr/backend/internal/auth"
+	"github.com/leaguefindr/backend/internal/organizations"
 )
 
 type Handler struct {

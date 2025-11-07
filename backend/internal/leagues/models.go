@@ -80,7 +80,7 @@ func (g GameOccurrences) Value() (driver.Value, error) {
 // League represents a league in the system
 type League struct {
 	ID                   int             `json:"id"`
-	OrgID                *int            `json:"org_id"`
+	OrgID                *string         `json:"org_id"` // UUID of the organization
 	SportID              int             `json:"sport_id"`
 	LeagueName           *string         `json:"league_name"`
 	Division             *string         `json:"division"`
@@ -108,7 +108,7 @@ type League struct {
 
 // CreateLeagueRequest represents the request to create/submit a new league
 type CreateLeagueRequest struct {
-	OrgID                *int            `json:"org_id"`
+	OrgID                *string         `json:"org_id" validate:"required"` // UUID of the organization
 	SportID              int             `json:"sport_id" validate:"required"`
 	LeagueName           *string         `json:"league_name" validate:"max=255"`
 	Division             *string         `json:"division" validate:"required,max=255"`
@@ -151,7 +151,7 @@ type GetLeaguesResponse struct {
 // LeagueDraft represents a draft league submission
 type LeagueDraft struct {
 	ID        int       `json:"id"`
-	OrgID     int       `json:"org_id"`
+	OrgID     string    `json:"org_id"` // UUID of the organization
 	DraftData DraftData `json:"draft_data"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
