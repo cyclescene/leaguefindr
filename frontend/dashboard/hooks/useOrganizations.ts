@@ -13,21 +13,15 @@ interface Organization {
 
 export function useUserOrganizations() {
   const { user } = useUser()
-  const shouldFetch = !!user
 
   const { data, error, isLoading, mutate } = useSWR(
-    shouldFetch
-      ? [
-          `${process.env.NEXT_PUBLIC_API_URL}/v1/organizations/user`,
-          async () => {
-            const token = await user.getIdToken?.()
-            return token
-          },
-        ]
-      : null,
-    async (key, tokenFn) => {
-      const token = await tokenFn()
-      return fetcher(key, token)
+    user ? `${process.env.NEXT_PUBLIC_API_URL}/v1/organizations/user` : null,
+    async (url) => {
+      const token = await user?.getIdToken?.()
+      if (!token) {
+        throw new Error('No authentication token available')
+      }
+      return fetcher(url, token)
     },
     {
       revalidateOnFocus: false,
@@ -45,21 +39,15 @@ export function useUserOrganizations() {
 
 export function useOrganization(orgId: string) {
   const { user } = useUser()
-  const shouldFetch = !!user && !!orgId
 
   const { data, error, isLoading } = useSWR(
-    shouldFetch
-      ? [
-          `${process.env.NEXT_PUBLIC_API_URL}/v1/organizations/${orgId}`,
-          async () => {
-            const token = await user.getIdToken?.()
-            return token
-          },
-        ]
-      : null,
-    async (key, tokenFn) => {
-      const token = await tokenFn()
-      return fetcher(key, token)
+    user && orgId ? `${process.env.NEXT_PUBLIC_API_URL}/v1/organizations/${orgId}` : null,
+    async (url) => {
+      const token = await user?.getIdToken?.()
+      if (!token) {
+        throw new Error('No authentication token available')
+      }
+      return fetcher(url, token)
     },
     {
       revalidateOnFocus: false,
