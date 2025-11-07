@@ -11,6 +11,15 @@ import { DatePicker } from '@/components/ui/date-picker'
 import { X, Plus } from 'lucide-react'
 import { format, parse } from 'date-fns'
 import { Button } from '@/components/ui/button'
+import { useSportSearch } from '@/hooks/useSportSearch'
+import { SportAutocompleteDropdown } from './SportAutocompleteDropdown'
+
+interface Sport {
+  id: number
+  name: string
+  status: 'approved' | 'pending' | 'rejected'
+  request_count: number
+}
 
 interface AddLeagueFormProps {
   onSuccess?: () => void
@@ -66,6 +75,13 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
   const [draftSaveStatus, setDraftSaveStatus] = useState<string | null>(null)
   const [draftError, setDraftError] = useState<string | null>(null)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
+
+  // Sport search state
+  const { approvedSports } = useSportSearch()
+  const [debouncedSportName, setDebouncedSportName] = useState('')
+  const [showSportAutocomplete, setShowSportAutocomplete] = useState(false)
+  const [selectedSport, setSelectedSport] = useState<Sport | null>(null)
+  const [sportSearchInput, setSportSearchInput] = useState('')
 
   const pricingStrategy = watch('pricing_strategy')
   const pricingAmount = watch('pricing_amount')
@@ -143,6 +159,50 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
 
     loadDraft()
   }, [organizationId, getToken, setValue])
+
+  // Debounce sport search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSportName(sportSearchInput)
+      setShowSportAutocomplete(sportSearchInput.length >= 1)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [sportSearchInput])
+
+  // Populate sport display when draft loads with sport_id
+  useEffect(() => {
+    const sportId = watch('sport_id')
+    if (sportId && approvedSports.length > 0 && !selectedSport) {
+      const foundSport = approvedSports.find((s) => s.id === sportId)
+      if (foundSport) {
+        setSelectedSport(foundSport)
+        setSportSearchInput(foundSport.name)
+      }
+    }
+  }, [watch('sport_id'), approvedSports, selectedSport])
+
+  // Filter approved sports for autocomplete
+  const filteredSportSuggestions = showSportAutocomplete && debouncedSportName
+    ? approvedSports.filter((sport) =>
+      sport.name.toLowerCase().includes(debouncedSportName.toLowerCase())
+    )
+    : []
+
+  const handleSelectSport = (sport: Sport) => {
+    setSelectedSport(sport)
+    setSportSearchInput(sport.name)
+    setValue('sport_id', sport.id)
+    setShowSportAutocomplete(false)
+  }
+
+  const handleClearSportSelection = () => {
+    setSelectedSport(null)
+    setSportSearchInput('')
+    setValue('sport_id', undefined)
+    setDebouncedSportName('')
+    setShowSportAutocomplete(false)
+  }
 
   // Handle date changes
   const handleRegistrationDeadlineChange = (date: Date | undefined) => {
@@ -364,18 +424,40 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
         <h3 className="text-lg font-semibold text-gray-900 mb-4">League Information</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* // TODO: We have a component already built with our saved sports we can */}
-          {/* // use it here instead of using sport ids */}
-          {/* Sport ID */}
+          {/* Sport Selection with Autocomplete */}
           <div className="space-y-2">
-            <Label htmlFor="sport_id">Sport *</Label>
-            <Input
-              {...register('sport_id', { valueAsNumber: true })}
-              id="sport_id"
-              type="number"
-              placeholder="Sport ID"
-              aria-invalid={errors.sport_id ? 'true' : 'false'}
-            />
+            <Label htmlFor="sport_search">Sport *</Label>
+            <div className="relative">
+              <div className="relative">
+                <Input
+                  id="sport_search"
+                  placeholder="e.g., Basketball, Football, Tennis"
+                  value={sportSearchInput}
+                  onChange={(e) => setSportSearchInput(e.target.value)}
+                  onFocus={() => sportSearchInput.length >= 1 && setShowSportAutocomplete(true)}
+                  maxLength={255}
+                  autoComplete="off"
+                  aria-invalid={errors.sport_id ? 'true' : 'false'}
+                />
+                {selectedSport && (
+                  <button
+                    type="button"
+                    onClick={handleClearSportSelection}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Sport Autocomplete Dropdown */}
+              <SportAutocompleteDropdown
+                show={showSportAutocomplete && filteredSportSuggestions.length > 0}
+                suggestions={filteredSportSuggestions}
+                onSelect={handleSelectSport}
+              />
+            </div>
+
             {errors.sport_id && (
               <p className="text-sm text-red-600">{errors.sport_id.message}</p>
             )}
