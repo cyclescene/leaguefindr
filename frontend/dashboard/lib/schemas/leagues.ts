@@ -61,6 +61,8 @@ export const addLeagueSchema = z.object({
     .max(100, "Minimum team players must be at most 100"),
   org_id: z.number()
     .optional(),
+  organization_name: z.string()
+    .min(1, "Organization name is required"),
 });
 
 export type AddLeagueFormData = z.infer<typeof addLeagueSchema>;

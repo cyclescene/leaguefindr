@@ -28,7 +28,10 @@ interface AddLeagueFormProps {
 }
 
 export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueFormProps) {
-  const { getToken, userId } = useAuth()
+  const { getToken, userId, sessionClaims } = useAuth()
+
+  const orgName = sessionClaims?.organizationName
+
   const {
     register,
     handleSubmit,
@@ -55,6 +58,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
       duration: 8,
       minimum_team_players: 5,
       org_id: organizationId,
+      organization_name: orgName || '',
     },
   })
 
@@ -419,6 +423,12 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 w-full">
+      {/* Hidden organization name field */}
+      <input
+        type="hidden"
+        {...register('organization_name')}
+      />
+
       {/* Section: League Info */}
       <div className="border-t pt-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">League Information</h3>
