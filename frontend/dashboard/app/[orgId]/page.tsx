@@ -3,18 +3,11 @@
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { ClerkUser } from "@/types/clerk";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
-
-interface Organization {
-  id: string;
-  org_name: string;
-  org_email?: string;
-  org_phone?: string;
-  org_url?: string;
-}
+import { useOrganization } from "@/hooks/useOrganizations";
 
 function OrganizationDashboardContent() {
   const { user, isLoaded } = useUser() as { user: ClerkUser | null; isLoaded: boolean };
@@ -22,48 +15,14 @@ function OrganizationDashboardContent() {
   const router = useRouter();
   const orgId = params.orgId as string;
 
-  const [organization, setOrganization] = useState<Organization | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { organization, isLoading, error } = useOrganization(orgId);
 
-  // Load organization details and verify user access
+  // Redirect to home if user doesn't have access (403 error)
   useEffect(() => {
-    const loadOrganization = async () => {
-      if (!isLoaded || !user) return;
-
-      setIsLoading(true);
-      try {
-        const token = await user.getIdToken?.();
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/v1/organizations/${orgId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          if (response.status === 403) {
-            // User doesn't have access to this organization
-            router.push("/");
-            return;
-          }
-          throw new Error("Failed to load organization");
-        }
-
-        const data = await response.json();
-        setOrganization(data);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "An error occurred";
-        setError(message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadOrganization();
-  }, [isLoaded, user, orgId, router]);
+    if (error && error.message.includes("403")) {
+      router.push("/");
+    }
+  }, [error, router]);
 
   if (!isLoaded) {
     return (
@@ -91,14 +50,16 @@ function OrganizationDashboardContent() {
     );
   }
 
-  if (error || !organization) {
+  if (error || (isLoaded && !isLoading && !organization)) {
     return (
       <div className="flex flex-col min-h-screen bg-neutral-light">
         <Header />
         <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-brand-dark mb-4">Error Loading Organization</h1>
-            <p className="text-neutral-600 mb-8">{error || "Organization not found"}</p>
+            <p className="text-neutral-600 mb-8">
+              {error?.message || "Organization not found"}
+            </p>
             <button
               onClick={() => router.push("/")}
               className="text-brand-dark hover:text-brand-dark/80 underline"

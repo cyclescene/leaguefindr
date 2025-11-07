@@ -3,7 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ClerkUser } from "@/types/clerk";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
@@ -18,52 +18,14 @@ import {
 } from "@/components/ui/dialog";
 import { CreateOrganizationForm } from "@/components/organizations/CreateOrganizationForm";
 import { JoinOrganizationForm } from "@/components/organizations/JoinOrganizationForm";
-
-interface Organization {
-  id: string;
-  org_name: string;
-  org_email?: string;
-  org_phone?: string;
-}
+import { useUserOrganizations } from "@/hooks/useOrganizations";
 
 function OrganizationHubContent() {
   const { user, isLoaded } = useUser() as { user: ClerkUser | null; isLoaded: boolean };
   const router = useRouter();
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [isLoadingOrgs, setIsLoadingOrgs] = useState(false);
+  const { organizations, isLoading: isLoadingOrgs, mutate } = useUserOrganizations();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
-
-  // Load user's organizations
-  useEffect(() => {
-    const loadOrganizations = async () => {
-      if (!isLoaded || !user) return;
-
-      setIsLoadingOrgs(true);
-      try {
-        const token = await user.getIdToken?.();
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/v1/organizations/user`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          setOrganizations(data || []);
-        }
-      } catch (error) {
-        console.error("Failed to load organizations:", error);
-      } finally {
-        setIsLoadingOrgs(false);
-      }
-    };
-
-    loadOrganizations();
-  }, [isLoaded, user]);
 
   if (!isLoaded) {
     return (
@@ -84,17 +46,15 @@ function OrganizationHubContent() {
     router.push(`/${orgId}`);
   };
 
-  const handleCreateOrgSuccess = (orgId: string, orgName: string) => {
-    // Reload organizations list
-    setOrganizations([...organizations, { id: orgId, org_name: orgName }]);
-    // Redirect to the new org
+  const handleCreateOrgSuccess = (orgId: string) => {
+    // Revalidate organizations list and redirect
+    mutate();
     router.push(`/${orgId}`);
   };
 
-  const handleJoinOrgSuccess = (orgId: string, orgName: string) => {
-    // Reload organizations list
-    setOrganizations([...organizations, { id: orgId, org_name: orgName }]);
-    // Redirect to the org
+  const handleJoinOrgSuccess = (orgId: string) => {
+    // Revalidate organizations list and redirect
+    mutate();
     router.push(`/${orgId}`);
   };
 
