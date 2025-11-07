@@ -41,7 +41,15 @@ export function JoinOrganizationForm({ onSuccess, onClose }: JoinOrganizationFor
     setError(null);
 
     try {
-      const token = await user?.getIdToken?.();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      const token = await user.getIdToken();
+      if (!token) {
+        throw new Error("Failed to get authentication token");
+      }
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/v1/organizations/join`,
         {
