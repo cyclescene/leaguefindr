@@ -10,7 +10,7 @@ import (
 
 // RepositoryInterface defines the contract for repository implementations
 type RepositoryInterface interface {
-	CreateUser(userID, email, organizationName string, role Role) error
+	CreateUser(userID, email string, role Role) error
 	GetUserByID(userID string) (*User, error)
 	UserExists(userID string) (bool, error)
 	AdminExists() (bool, error)
@@ -26,17 +26,17 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 	return &Repository{db: db}
 }
 
-// CreateUser creates a new user in the database
-func (r *Repository) CreateUser(userID, email, organizationName string, role Role) error {
+// CreateUser creates a new user in the database (without organization assignment)
+func (r *Repository) CreateUser(userID, email string, role Role) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	query := `
-		INSERT INTO users (id, email, role, organization_name, is_active)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO users (id, email, role, is_active)
+		VALUES ($1, $2, $3, $4)
 	`
 
-	_, err := r.db.Exec(ctx, query, userID, email, role.String(), organizationName, true)
+	_, err := r.db.Exec(ctx, query, userID, email, role.String(), true)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -52,13 +52,13 @@ func (r *Repository) GetUserByID(userID string) (*User, error) {
 	user := &User{}
 
 	query := `
-		SELECT id, email, role, organization_name, is_active, login_count, created_at, updated_at, last_login
+		SELECT id, email, role, is_active, login_count, created_at, updated_at, last_login, currently_logged_in
 		FROM users
 		WHERE id = $1
 	`
 
 	err := r.db.QueryRow(ctx, query, userID).
-		Scan(&user.ID, &user.Email, &user.Role, &user.OrganizationName, &user.IsActive, &user.LoginCount, &user.CreatedAt, &user.UpdatedAt, &user.LastLogin)
+		Scan(&user.ID, &user.Email, &user.Role, &user.IsActive, &user.LoginCount, &user.CreatedAt, &user.UpdatedAt, &user.LastLogin, &user.CurrentlyLoggedIn)
 
 	if err != nil {
 		return nil, fmt.Errorf("user not found")

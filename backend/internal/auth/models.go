@@ -32,13 +32,24 @@ type User struct {
 	ID               string     `json:"id"`
 	Email            string     `json:"email"`
 	Role             Role       `json:"role"`
-	OrganizationName string     `json:"organization_name"`
-	EmailVerified    bool       `json:"email_verified"`
 	LastLogin        *time.Time `json:"last_login"`
 	LoginCount       int        `json:"login_count"`
 	IsActive         bool       `json:"is_active"`
+	CurrentlyLoggedIn bool      `json:"currently_logged_in"`
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at"`
+}
+
+// UserOrganization represents the relationship between a user and an organization
+type UserOrganization struct {
+	ID        int       `json:"id"`
+	UserID    string    `json:"user_id"`
+	OrgID     int       `json:"org_id"`
+	RoleInOrg string    `json:"role_in_org"` // owner, admin, member
+	IsActive  bool      `json:"is_active"`
+	JoinedAt  time.Time `json:"joined_at"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for User
@@ -53,10 +64,19 @@ func (u *User) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &aux)
 }
 
+// RegisterRequest represents a user signup request (account creation only)
 type RegisterRequest struct {
-	ClerkID          string `json:"clerkID" validate:"required"`
-	Email            string `json:"email" validate:"required,email"`
-	OrganizationName string `json:"organizationName" validate:"required,min=1,max=255"`
+	ClerkID string `json:"clerkID" validate:"required"`
+	Email   string `json:"email" validate:"required,email"`
+}
+
+// OnboardingRequest represents the request to create an organization during onboarding
+type OnboardingRequest struct {
+	OrgName     string `json:"org_name" validate:"required,min=1,max=255"`
+	OrgURL      string `json:"org_url" validate:"omitempty,url"`
+	OrgEmail    string `json:"org_email" validate:"omitempty,email"`
+	OrgPhone    string `json:"org_phone" validate:"omitempty"`
+	OrgAddress  string `json:"org_address" validate:"omitempty"`
 }
 
 type LoginRequest struct {

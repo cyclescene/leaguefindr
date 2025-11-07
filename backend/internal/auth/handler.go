@@ -63,8 +63,8 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Register user
-	err = h.service.RegisterUser(req.ClerkID, req.Email, req.OrganizationName)
+	// Register user (no organization assignment yet - user will do that during onboarding)
+	err = h.service.RegisterUser(req.ClerkID, req.Email)
 	if err != nil {
 		slog.Error("register error", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

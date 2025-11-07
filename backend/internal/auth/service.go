@@ -15,8 +15,9 @@ func NewService(repo RepositoryInterface) *Service {
 	return &Service{repo: repo}
 }
 
-// RegisterUser creates a new user with Clerk ID, email, and organization name
-func (s *Service) RegisterUser(clerkID, email, organizationName string) error {
+// RegisterUser creates a new user account (no organization assignment)
+// User will create or join an organization during onboarding via frontend
+func (s *Service) RegisterUser(clerkID, email string) error {
 	// Check if user already exists
 	exists, err := s.repo.UserExists(clerkID)
 	if err != nil {
@@ -38,8 +39,8 @@ func (s *Service) RegisterUser(clerkID, email, organizationName string) error {
 		role = RoleAdmin
 	}
 
-	// Create new user with determined role
-	err = s.repo.CreateUser(clerkID, email, organizationName, role)
+	// Create new user with determined role (no organization yet)
+	err = s.repo.CreateUser(clerkID, email, role)
 	if err != nil {
 		return err
 	}
@@ -58,7 +59,7 @@ func (s *Service) RegisterUser(clerkID, email, organizationName string) error {
 	}
 
 	// Sync user metadata to Clerk (best effort - don't fail registration if sync fails)
-	syncErr := SyncUserMetadataToClerk(clerkID, role, organizationName)
+	syncErr := SyncUserMetadataToClerk(clerkID, role)
 	if syncErr != nil {
 		// Log the error but don't fail - DB is source of truth
 		// TODO: In future, publish to GCP Pub/Sub for async retry
@@ -109,16 +110,12 @@ func (s *Service) UpdateUserRole(userID string, role Role) error {
 		return err
 	}
 
-	// Get user to sync updated metadata to Clerk
-	user, err := s.repo.GetUserByID(userID)
-	if err == nil {
-		// Sync user metadata to Clerk (best effort - don't fail update if sync fails)
-		syncErr := SyncUserMetadataToClerk(userID, role, user.OrganizationName)
-		if syncErr != nil {
-			// Log the error but don't fail - DB is source of truth
-			// TODO: In future, publish to GCP Pub/Sub for async retry
-			_ = syncErr
-		}
+	// Sync user metadata to Clerk (best effort - don't fail update if sync fails)
+	syncErr := SyncUserMetadataToClerk(userID, role)
+	if syncErr != nil {
+		// Log the error but don't fail - DB is source of truth
+		// TODO: In future, publish to GCP Pub/Sub for async retry
+		slog.Error("failed to sync user metadata to Clerk", "userID", userID, "err", syncErr)
 	}
 
 	return nil

@@ -12,17 +12,17 @@ import (
 	"github.com/clerk/clerk-sdk-go/v2/user"
 )
 
-// SyncUserMetadataToClerk syncs the user's role and organization to Clerk's public metadata
+// SyncUserMetadataToClerk syncs the user's role to Clerk's public metadata
+// Organization information is managed separately and not stored in user metadata
 // using the Clerk SDK instead of HTTP calls
-func SyncUserMetadataToClerk(userID string, role Role, organizationName string) error {
+func SyncUserMetadataToClerk(userID string, role Role) error {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Prepare metadata
+	// Prepare metadata (only role - no organization data)
 	publicMetadata := map[string]any{
-		"role":             role.String(),
-		"organizationName": organizationName,
+		"role": role.String(),
 	}
 
 	// Marshal to JSON RawMessage for SDK
@@ -56,7 +56,6 @@ func SyncUserMetadataToClerk(userID string, role Role, organizationName string) 
 	slog.Debug("SyncUserMetadataToClerk success",
 		"userID", userID,
 		"role", role,
-		"organizationName", organizationName,
 		"updatedUser", updatedUser.ID)
 
 	return nil
