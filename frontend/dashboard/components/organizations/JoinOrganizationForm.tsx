@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -21,7 +21,7 @@ interface JoinOrganizationFormProps {
 }
 
 export function JoinOrganizationForm({ onSuccess, onClose }: JoinOrganizationFormProps) {
-  const { user } = useUser();
+  const { getToken } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,11 +41,7 @@ export function JoinOrganizationForm({ onSuccess, onClose }: JoinOrganizationFor
     setError(null);
 
     try {
-      if (!user) {
-        throw new Error("User not authenticated");
-      }
-
-      const token = await user.getIdToken();
+      const token = await getToken();
       if (!token) {
         throw new Error("Failed to get authentication token");
       }

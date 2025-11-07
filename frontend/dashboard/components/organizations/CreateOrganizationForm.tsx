@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ interface CreateOrganizationFormProps {
 }
 
 export function CreateOrganizationForm({ onSuccess, onClose }: CreateOrganizationFormProps) {
-  const { user } = useUser();
+  const { getToken } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,11 +43,7 @@ export function CreateOrganizationForm({ onSuccess, onClose }: CreateOrganizatio
     setError(null);
 
     try {
-      if (!user) {
-        throw new Error("User not authenticated");
-      }
-
-      const token = await user.getIdToken();
+      const token = await getToken();
       if (!token) {
         throw new Error("Failed to get authentication token");
       }
