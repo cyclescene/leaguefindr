@@ -35,3 +35,8 @@ type CreateOrganizationRequest struct {
 	OrgPhone   *string `json:"org_phone" validate:"omitempty"`
 	OrgAddress *string `json:"org_address" validate:"omitempty"`
 }
+
+// JoinOrganizationRequest represents a request to join an organization
+type JoinOrganizationRequest struct {
+	OrgID string `json:"org_id" validate:"required,uuid"`
+}
