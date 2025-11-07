@@ -26,9 +26,8 @@ export const addLeagueSchema = z.object({
   age_group: z.string()
     .min(1, "Age group is required")
     .max(255, "Age group must be at most 255 characters"),
-  gender: z.string()
-    .min(1, "Gender is required")
-    .max(255, "Gender must be at most 255 characters"),
+  gender: z.enum(["male", "female", "co-ed"])
+    .refine(val => val, "Please select a gender"),
   registration_deadline: z.string()
     .min(1, "Registration deadline is required")
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
