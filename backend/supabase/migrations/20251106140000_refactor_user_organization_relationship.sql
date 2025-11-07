@@ -20,13 +20,13 @@ ADD COLUMN created_by TEXT,
 ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
--- Step 3: Drop old foreign key constraint from any tables that reference organizations
--- (We'll recreate with UUID after renaming columns)
-DROP INDEX IF EXISTS idx_organizations_org_name;
+-- Step 3: Drop foreign key constraints from dependent tables first
+-- (We need to do this before dropping the primary key on organizations)
+ALTER TABLE IF EXISTS leagues DROP CONSTRAINT IF EXISTS leagues_org_id_fkey;
+ALTER TABLE IF EXISTS leagues_drafts DROP CONSTRAINT IF EXISTS leagues_drafts_org_id_fkey;
 
--- Step 4: Add created_by foreign key
-ALTER TABLE organizations
-ADD CONSTRAINT fk_org_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL;
+-- Step 4: Drop indexes that reference the old id column
+DROP INDEX IF EXISTS idx_organizations_org_name;
 
 -- Step 5: Drop old INT primary key and rename UUID column to id
 ALTER TABLE organizations DROP CONSTRAINT organizations_pkey;
@@ -34,7 +34,16 @@ ALTER TABLE organizations DROP COLUMN id;
 ALTER TABLE organizations RENAME COLUMN id_uuid TO id;
 ALTER TABLE organizations ADD PRIMARY KEY (id);
 
--- Step 6: Create user_organizations junction table with UUID org_id
+-- Step 6: Recreate foreign keys in dependent tables with UUID references
+-- These will reference the UUID id column we just created
+ALTER TABLE leagues ADD CONSTRAINT leagues_org_id_fkey FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE;
+ALTER TABLE leagues_drafts ADD CONSTRAINT leagues_drafts_org_id_fkey FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE;
+
+-- Step 7: Add created_by foreign key
+ALTER TABLE organizations
+ADD CONSTRAINT fk_org_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL;
+
+-- Step 8: Create user_organizations junction table with UUID org_id
 CREATE TABLE user_organizations (
   id SERIAL PRIMARY KEY,
   user_id TEXT NOT NULL,
@@ -63,11 +72,11 @@ CREATE INDEX idx_user_organizations_role ON user_organizations(role_in_org);
 CREATE INDEX idx_organizations_org_name ON organizations(org_name);
 CREATE INDEX idx_organizations_created_by ON organizations(created_by);
 
--- Step 7: Add currently_logged_in tracking to users
+-- Step 9: Add currently_logged_in tracking to users
 ALTER TABLE users
 ADD COLUMN currently_logged_in BOOLEAN DEFAULT false;
 
--- Step 8: Remove organization_name from users
+-- Step 10: Remove organization_name from users
 -- First, drop the unique constraint
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_organization_name_key;
 
