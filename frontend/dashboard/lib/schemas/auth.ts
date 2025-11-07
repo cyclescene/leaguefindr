@@ -13,10 +13,6 @@ export const signUpSchema = z.object({
   email: z
     .email("Invalid email")
     .min(1, "Email is required"),
-  organizationName: z.string()
-    .min(1, "Organization name is required")
-    .min(2, "Organization name must be at least 2 characters")
-    .max(100, "Organization name must be at most 100 characters"),
   password: z.string()
     .min(1, "Password is required")
     .min(8, "Password must be at least 8 characters"),

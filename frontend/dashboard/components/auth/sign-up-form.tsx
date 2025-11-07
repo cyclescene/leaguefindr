@@ -30,7 +30,6 @@ export function SignUpForm() {
     resolver: zodResolver(signUpSchema),
     defaultValues: {
       email: "",
-      organizationName: "",
       password: "",
       confirmPassword: "",
     },
@@ -78,7 +77,6 @@ export function SignUpForm() {
         body: JSON.stringify({
           clerkID: clerkId,
           email: data.email,
-          organizationName: data.organizationName,
         }),
       });
 
@@ -162,26 +160,6 @@ export function SignUpForm() {
                   <Input
                     placeholder="your@email.com"
                     type="email"
-                    className="border-brand-light focus:ring-brand-dark focus:border-brand-dark"
-                    {...field}
-                    disabled={form.formState.isSubmitting}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="organizationName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-brand-dark">Organization Name</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Your Organization"
-                    type="text"
                     className="border-brand-light focus:ring-brand-dark focus:border-brand-dark"
                     {...field}
                     disabled={form.formState.isSubmitting}
