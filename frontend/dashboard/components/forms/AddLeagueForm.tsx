@@ -509,6 +509,21 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
             )}
           </div>
 
+          {/* Registration URL */}
+          <div className="space-y-2">
+            <Label htmlFor="registration_url">Registration URL *</Label>
+            <Input
+              {...register('registration_url')}
+              id="registration_url"
+              type="url"
+              placeholder="https://example.com/register"
+              aria-invalid={errors.registration_url ? 'true' : 'false'}
+            />
+            {errors.registration_url && (
+              <p className="text-sm text-red-600">{errors.registration_url.message}</p>
+            )}
+          </div>
+
           {/* Season Start Date */}
           <div className="space-y-2">
             <Label htmlFor="season_start_date">Season Start Date *</Label>
@@ -551,22 +566,6 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
               <p className="text-sm text-red-600">{errors.duration.message}</p>
             )}
           </div>
-        </div>
-
-        {/* Season Details */}
-        <div className="space-y-2 mt-4">
-          <Label htmlFor="season_details">Season Details (Optional)</Label>
-          <textarea
-            {...register('season_details')}
-            id="season_details"
-            placeholder="Additional details about the season format, rules, etc."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400"
-            rows={3}
-            aria-invalid={errors.season_details ? 'true' : 'false'}
-          />
-          {errors.season_details && (
-            <p className="text-sm text-red-600">{errors.season_details.message}</p>
-          )}
         </div>
       </div>
 
@@ -695,6 +694,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
         {/* Per Game Fee */}
         <div className="space-y-2 mb-6">
           <Label htmlFor="per_game_fee">Per Game Fee (Optional)</Label>
+          <p className="text-sm text-gray-600">Additional fee per game for referee, equipment, or facility costs</p>
           <Input
             {...register('per_game_fee', { valueAsNumber: true })}
             id="per_game_fee"
@@ -742,21 +742,22 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
         )}
       </div>
 
-      {/* Section: Registration */}
+      {/* Section: Season Details */}
       <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Registration</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Information</h3>
 
-        <div className="space-y-2 mb-6">
-          <Label htmlFor="registration_url">Registration URL *</Label>
-          <Input
-            {...register('registration_url')}
-            id="registration_url"
-            type="url"
-            placeholder="https://example.com/register"
-            aria-invalid={errors.registration_url ? 'true' : 'false'}
+        <div className="space-y-2">
+          <Label htmlFor="season_details">Season Details (Optional)</Label>
+          <textarea
+            {...register('season_details')}
+            id="season_details"
+            placeholder="Additional details about the season format, rules, etc."
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400"
+            rows={3}
+            aria-invalid={errors.season_details ? 'true' : 'false'}
           />
-          {errors.registration_url && (
-            <p className="text-sm text-red-600">{errors.registration_url.message}</p>
+          {errors.season_details && (
+            <p className="text-sm text-red-600">{errors.season_details.message}</p>
           )}
         </div>
       </div>
