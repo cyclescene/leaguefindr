@@ -119,7 +119,10 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
   }, [watch('sport_id'), approvedSports, selectedSport])
 
   // Filter approved sports for autocomplete
-  const filteredSportSuggestions = showSportAutocomplete && debouncedSportName
+  // Don't show suggestions if there's an exact match with selected sport
+  const hasExactSportMatch = selectedSport && selectedSport.name.toLowerCase() === debouncedSportName.toLowerCase();
+
+  const filteredSportSuggestions = showSportAutocomplete && debouncedSportName && !hasExactSportMatch
     ? approvedSports.filter((sport) =>
       sport.name.toLowerCase().includes(debouncedSportName.toLowerCase())
     )
@@ -385,7 +388,8 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
                   placeholder="e.g., Basketball, Football, Tennis"
                   value={sportSearchInput}
                   onChange={(e) => setSportSearchInput(e.target.value)}
-                  onFocus={() => sportSearchInput.length >= 1 && setShowSportAutocomplete(true)}
+                  onFocus={() => sportSearchInput.length >= 1 && !selectedSport && setShowSportAutocomplete(true)}
+                  onBlur={() => setTimeout(() => setShowSportAutocomplete(false), 150)}
                   maxLength={255}
                   autoComplete="off"
                   aria-invalid={errors.sport_id ? 'true' : 'false'}
