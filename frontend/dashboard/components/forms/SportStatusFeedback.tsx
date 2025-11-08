@@ -32,11 +32,18 @@ export function SportStatusFeedback({
         </div>
       )}
 
-      {/* Approved sport selected */}
+      {/* Approved sport selected from dropdown */}
       {isSelected && selectedSportStatus === "approved" && (
-        <div className="flex items-center gap-2 text-green-600 text-sm">
-          <CheckCircle2 className="h-4 w-4" />
-          <span>Sport selected - ready to submit</span>
+        <div className="space-y-2 bg-green-50 p-3 rounded-md border border-green-200">
+          <div className="flex items-start gap-2">
+            <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-green-700 text-sm font-medium">Sport already exists and is approved!</p>
+              <p className="text-xs text-green-600 mt-1">
+                This sport is ready to use in your leagues. You don't need to add it again.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
