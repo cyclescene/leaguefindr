@@ -32,7 +32,7 @@ export function useDrafts(orgId: string) {
   )
 
   return {
-    drafts: data as Draft[] | undefined,
+    drafts: (data?.drafts || []) as Draft[],
     isLoading,
     error,
     mutate,
@@ -58,7 +58,7 @@ export function useTemplates(orgId: string) {
   )
 
   return {
-    templates: data as Draft[] | undefined,
+    templates: (data?.templates || []) as Draft[],
     isLoading,
     error,
     mutate,

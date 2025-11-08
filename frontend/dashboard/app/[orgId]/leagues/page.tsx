@@ -72,7 +72,7 @@ function LeaguesContent() {
   const { templates: apiTemplates, isLoading: templatesLoading } = useTemplates(orgId);
 
   // Convert API drafts to display format
-  const displayDrafts = (apiDrafts || [])
+  const displayDrafts = apiDrafts
     .filter(d => d.type === 'draft')
     .map(d => ({
       id: d.id,
@@ -81,7 +81,7 @@ function LeaguesContent() {
     }));
 
   // Convert API templates to display format
-  const displayTemplates = (apiTemplates || [])
+  const displayTemplates = apiTemplates
     .filter(d => d.type === 'template')
     .map(d => ({
       id: d.id,
