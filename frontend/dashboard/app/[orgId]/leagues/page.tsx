@@ -24,6 +24,7 @@ import { AddVenueForm } from "@/components/forms/AddVenueForm";
 import { OrganizerLeagueTable } from "@/components/organizer/OrganizerLeagueTable";
 import { OrganizerTemplateTable } from "@/components/organizer/OrganizerTemplateTable";
 import { OrganizerDraftTable } from "@/components/organizer/OrganizerDraftTable";
+import { useDrafts, useTemplates } from "@/hooks/useDrafts";
 
 interface League {
   id: number;
@@ -66,7 +67,32 @@ function LeaguesContent() {
     "league" | "template" | "sport" | "venue" | null
   >(null);
 
-  // Mock data - will be replaced with API calls
+  // Fetch real drafts and templates from API
+  const { drafts: apiDrafts, isLoading: draftsLoading } = useDrafts(orgId);
+  const { templates: apiTemplates, isLoading: templatesLoading } = useTemplates(orgId);
+
+  // Convert API drafts to display format
+  const displayDrafts = (apiDrafts || [])
+    .filter(d => d.type === 'draft')
+    .map(d => ({
+      id: d.id,
+      name: d.name || `Draft #${d.id}`,
+      dateCreated: new Date(d.created_at).toLocaleDateString(),
+    }));
+
+  // Convert API templates to display format
+  const displayTemplates = (apiTemplates || [])
+    .filter(d => d.type === 'template')
+    .map(d => ({
+      id: d.id,
+      name: d.name || `Template #${d.id}`,
+      sport: d.draft_data?.sport_id || 'Unknown',
+      ageGroup: d.draft_data?.age_group || 'N/A',
+      gender: d.draft_data?.gender || 'N/A',
+      dateCreated: new Date(d.created_at).toLocaleDateString(),
+    }));
+
+  // Mock data for submitted leagues (will be replaced with API call later)
   const [submittedLeagues] = useState<League[]>([
     {
       id: 1,
@@ -91,33 +117,6 @@ function LeaguesContent() {
       venue: "Sports Hall",
       dateSubmitted: "2024-02-10",
       status: "pending_review",
-    },
-  ]);
-
-  const [drafts] = useState<Draft[]>([
-    {
-      id: 1,
-      name: "Draft League",
-      dateCreated: "2024-02-15",
-    },
-  ]);
-
-  const [templates] = useState<Template[]>([
-    {
-      id: 1,
-      name: "Standard Basketball Template",
-      sport: "Basketball",
-      ageGroup: "18+",
-      gender: "Co-ed",
-      dateCreated: "2024-01-10",
-    },
-    {
-      id: 2,
-      name: "Youth Soccer Template",
-      sport: "Soccer",
-      ageGroup: "U16",
-      gender: "Co-ed",
-      dateCreated: "2024-01-12",
     },
   ]);
 
@@ -247,9 +246,16 @@ function LeaguesContent() {
 
           {/* Drafts Tab */}
           <TabsContent value="drafts">
-            {drafts.length > 0 ? (
+            {draftsLoading ? (
+              <div className="bg-white rounded-lg p-8 border border-neutral-200 text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="animate-spin text-brand-dark" size={20} />
+                  <p className="text-neutral-600">Loading drafts...</p>
+                </div>
+              </div>
+            ) : displayDrafts.length > 0 ? (
               <OrganizerDraftTable
-                drafts={drafts}
+                drafts={displayDrafts}
                 onEdit={handleEditDraft}
                 onDelete={handleDeleteDraft}
               />
@@ -270,9 +276,16 @@ function LeaguesContent() {
 
           {/* Templates Tab */}
           <TabsContent value="templates">
-            {templates.length > 0 ? (
+            {templatesLoading ? (
+              <div className="bg-white rounded-lg p-8 border border-neutral-200 text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="animate-spin text-brand-dark" size={20} />
+                  <p className="text-neutral-600">Loading templates...</p>
+                </div>
+              </div>
+            ) : displayTemplates.length > 0 ? (
               <OrganizerTemplateTable
-                templates={templates}
+                templates={displayTemplates}
                 onEdit={handleEditTemplate}
                 onUse={handleUseTemplate}
                 onDelete={handleDeleteTemplate}
