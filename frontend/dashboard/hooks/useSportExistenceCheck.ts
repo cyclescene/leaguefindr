@@ -15,7 +15,7 @@ export function useSportExistenceCheck(
   debouncedSportName: string,
   isSelected: boolean
 ) {
-  const { data: sportCheckData, isLoading: isCheckingExistence } =
+  const { data: sportCheckData, isLoading: isCheckingExistence, error } =
     useSWR<CheckSportExistsResponse>(
       debouncedSportName && debouncedSportName.length >= 2 && !isSelected
         ? `${process.env.NEXT_PUBLIC_API_URL}/v1/sports/exists?name=${encodeURIComponent(debouncedSportName)}`
@@ -30,6 +30,11 @@ export function useSportExistenceCheck(
         dedupingInterval: 1000,
       }
     );
+
+  // Log errors for debugging
+  if (error) {
+    console.error("Sport existence check error:", error, debouncedSportName);
+  }
 
   return { sportCheckData, isCheckingExistence };
 }
