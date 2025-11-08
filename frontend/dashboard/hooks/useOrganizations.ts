@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import { useUser } from '@clerk/nextjs'
+import { useAuth } from '@clerk/nextjs'
 import { fetcher } from '@/lib/api'
 
 interface Organization {
@@ -12,12 +12,12 @@ interface Organization {
 }
 
 export function useUserOrganizations() {
-  const { user } = useUser()
+  const { getToken } = useAuth()
 
   const { data, error, isLoading, mutate } = useSWR(
-    user ? `${process.env.NEXT_PUBLIC_API_URL}/v1/organizations/user` : null,
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/organizations/user`,
     async (url) => {
-      const token = await user?.getIdToken?.()
+      const token = await getToken()
       if (!token) {
         throw new Error('No authentication token available')
       }
@@ -38,12 +38,12 @@ export function useUserOrganizations() {
 }
 
 export function useOrganization(orgId: string) {
-  const { user } = useUser()
+  const { getToken } = useAuth()
 
-  const { data, error, isLoading } = useSWR(
-    user && orgId ? `${process.env.NEXT_PUBLIC_API_URL}/v1/organizations/${orgId}` : null,
+  const { data, error, isLoading, mutate } = useSWR(
+    orgId ? `${process.env.NEXT_PUBLIC_API_URL}/v1/organizations/${orgId}` : null,
     async (url) => {
-      const token = await user?.getIdToken?.()
+      const token = await getToken()
       if (!token) {
         throw new Error('No authentication token available')
       }
@@ -58,5 +58,6 @@ export function useOrganization(orgId: string) {
     organization: data as Organization | undefined,
     isLoading,
     error,
+    mutate,
   }
 }

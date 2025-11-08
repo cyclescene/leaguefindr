@@ -11,6 +11,8 @@ type Organization struct {
 	OrgPhone  *string    `json:"org_phone"`
 	OrgAddress *string   `json:"org_address"`
 	CreatedBy *string    `json:"created_by"` // User ID who created it
+	IsDeleted bool       `json:"is_deleted"`
+	DeletedAt *time.Time `json:"deleted_at"` // Nullable since not all orgs are deleted
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 }
@@ -39,4 +41,13 @@ type CreateOrganizationRequest struct {
 // JoinOrganizationRequest represents a request to join an organization
 type JoinOrganizationRequest struct {
 	OrgID string `json:"org_id" validate:"required,uuid"`
+}
+
+// UpdateOrganizationRequest represents a request to update organization details
+type UpdateOrganizationRequest struct {
+	OrgName    *string `json:"org_name" validate:"omitempty,min=1,max=255"`
+	OrgURL     *string `json:"org_url" validate:"omitempty,url"`
+	OrgEmail   *string `json:"org_email" validate:"omitempty,email"`
+	OrgPhone   *string `json:"org_phone" validate:"omitempty"`
+	OrgAddress *string `json:"org_address" validate:"omitempty"`
 }

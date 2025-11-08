@@ -17,24 +17,35 @@ import { Input } from "@/components/ui/input";
 import { addOrgSchema, type AddOrgFormData } from "@/lib/schemas/organizations";
 import { Loader2 } from "lucide-react";
 
+interface Organization {
+  id: string;
+  org_name: string;
+  org_email?: string;
+  org_phone?: string;
+  org_url?: string;
+  org_address?: string;
+}
+
 interface CreateOrganizationFormProps {
   onSuccess: (orgId: string, orgName: string) => void;
   onClose: () => void;
+  organization?: Organization;
 }
 
-export function CreateOrganizationForm({ onSuccess, onClose }: CreateOrganizationFormProps) {
+export function CreateOrganizationForm({ onSuccess, onClose, organization }: CreateOrganizationFormProps) {
   const { getToken } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isEditMode = !!organization;
 
   const form = useForm<AddOrgFormData>({
     resolver: zodResolver(addOrgSchema),
     defaultValues: {
-      name: "",
-      url: "",
-      email: "",
-      phone: "",
-      address: "",
+      name: organization?.org_name || "",
+      url: organization?.org_url || "",
+      email: organization?.org_email || "",
+      phone: organization?.org_phone || "",
+      address: organization?.org_address || "",
     },
   });
 
@@ -48,31 +59,36 @@ export function CreateOrganizationForm({ onSuccess, onClose }: CreateOrganizatio
         throw new Error("Failed to get authentication token");
       }
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/organizations`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            org_name: data.name,
-            org_url: data.url || null,
-            org_email: data.email || null,
-            org_phone: data.phone || null,
-            org_address: data.address || null,
-          }),
-        }
-      );
+      const endpoint = isEditMode
+        ? `${process.env.NEXT_PUBLIC_API_URL}/v1/organizations/${organization!.id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/v1/organizations`;
+
+      const method = isEditMode ? "PUT" : "POST";
+
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          org_name: data.name,
+          org_url: data.url || null,
+          org_email: data.email || null,
+          org_phone: data.phone || null,
+          org_address: data.address || null,
+        }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create organization");
+        throw new Error(errorData.message || `Failed to ${isEditMode ? "update" : "create"} organization`);
       }
 
       const result = await response.json();
-      onSuccess(result.id, result.org_name);
+      const orgId = isEditMode ? organization!.id : result.id;
+      const orgName = isEditMode ? data.name : result.org_name;
+      onSuccess(orgId, orgName);
       onClose();
     } catch (err) {
       const message = err instanceof Error ? err.message : "An error occurred";
@@ -210,10 +226,10 @@ export function CreateOrganizationForm({ onSuccess, onClose }: CreateOrganizatio
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
+                  {isEditMode ? "Updating..." : "Creating..."}
                 </>
               ) : (
-                "Create Organization"
+                isEditMode ? "Update Organization" : "Create Organization"
               )}
             </Button>
           </div>

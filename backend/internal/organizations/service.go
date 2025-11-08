@@ -88,3 +88,36 @@ func (s *Service) IsUserOrgAdmin(userID, orgID string) (bool, error) {
 func (s *Service) RemoveUserFromOrganization(userID, orgID string) error {
 	return s.repo.RemoveUserFromOrganization(userID, orgID)
 }
+
+// UpdateOrganization updates organization details (admin/owner only)
+func (s *Service) UpdateOrganization(userID, orgID string, orgName, orgURL, orgEmail, orgPhone, orgAddress *string) error {
+	// Verify user is admin or owner
+	isAdmin, err := s.repo.IsUserOrgAdmin(userID, orgID)
+	if err != nil {
+		return fmt.Errorf("failed to verify admin status: %w", err)
+	}
+	if !isAdmin {
+		return fmt.Errorf("only admins and owners can update organization details")
+	}
+
+	// Verify at least one field is being updated
+	if orgName == nil && orgURL == nil && orgEmail == nil && orgPhone == nil && orgAddress == nil {
+		return fmt.Errorf("at least one field must be provided to update")
+	}
+
+	return s.repo.UpdateOrganization(orgID, orgName, orgURL, orgEmail, orgPhone, orgAddress)
+}
+
+// DeleteOrganization soft deletes an organization (owner only)
+func (s *Service) DeleteOrganization(userID, orgID string) error {
+	// Verify user is owner
+	role, err := s.repo.GetUserOrgRole(userID, orgID)
+	if err != nil {
+		return fmt.Errorf("failed to verify ownership: %w", err)
+	}
+	if role != "owner" {
+		return fmt.Errorf("only organization owner can delete the organization")
+	}
+
+	return s.repo.DeleteOrganization(orgID)
+}

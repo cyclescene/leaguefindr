@@ -21,6 +21,8 @@ type RepositoryInterface interface {
 	GetOrganizationMembers(orgID string) ([]UserOrganization, error)
 	IsUserOrgAdmin(userID, orgID string) (bool, error)
 	RemoveUserFromOrganization(userID, orgID string) error
+	UpdateOrganization(orgID string, orgName, orgURL, orgEmail, orgPhone, orgAddress *string) error
+	DeleteOrganization(orgID string) error
 }
 
 type Repository struct {
@@ -39,7 +41,7 @@ func (r *Repository) CreateOrganization(orgName, orgURL, orgEmail, orgPhone, org
 	orgID := uuid.New().String()
 
 	query := `
-		INSERT INTO organizations (id, org_name, org_url, org_email, org_phone, org_address, created_by)
+		INSERT INTO organizations (id, org_name, org_url, org_email, org_phone_number, org_address, created_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 
@@ -101,10 +103,10 @@ func (r *Repository) GetUserOrganizations(userID string) ([]Organization, error)
 	var orgs []Organization
 
 	query := `
-		SELECT o.id, o.org_name, o.org_url, o.org_email, o.org_phone, o.org_address, o.created_by, o.created_at, o.updated_at
+		SELECT o.id, o.org_name, o.org_url, o.org_email, o.org_phone_number, o.org_address, o.created_by, o.is_deleted, o.deleted_at, o.created_at, o.updated_at
 		FROM organizations o
 		INNER JOIN user_organizations uo ON o.id = uo.org_id
-		WHERE uo.user_id = $1 AND uo.is_active = true
+		WHERE uo.user_id = $1 AND uo.is_active = true AND o.is_deleted = false
 		ORDER BY o.created_at DESC
 	`
 
@@ -116,7 +118,7 @@ func (r *Repository) GetUserOrganizations(userID string) ([]Organization, error)
 
 	for rows.Next() {
 		var org Organization
-		err := rows.Scan(&org.ID, &org.OrgName, &org.OrgURL, &org.OrgEmail, &org.OrgPhone, &org.OrgAddress, &org.CreatedBy, &org.CreatedAt, &org.UpdatedAt)
+		err := rows.Scan(&org.ID, &org.OrgName, &org.OrgURL, &org.OrgEmail, &org.OrgPhone, &org.OrgAddress, &org.CreatedBy, &org.IsDeleted, &org.DeletedAt, &org.CreatedAt, &org.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan organization: %w", err)
 		}
@@ -138,8 +140,9 @@ func (r *Repository) GetAllOrganizations() ([]Organization, error) {
 	var orgs []Organization
 
 	query := `
-		SELECT id, org_name, org_url, org_email, org_phone, org_address, created_by, created_at, updated_at
+		SELECT id, org_name, org_url, org_email, org_phone_number, org_address, created_by, is_deleted, deleted_at, created_at, updated_at
 		FROM organizations
+		WHERE is_deleted = false
 		ORDER BY created_at DESC
 	`
 
@@ -151,7 +154,7 @@ func (r *Repository) GetAllOrganizations() ([]Organization, error) {
 
 	for rows.Next() {
 		var org Organization
-		err := rows.Scan(&org.ID, &org.OrgName, &org.OrgURL, &org.OrgEmail, &org.OrgPhone, &org.OrgAddress, &org.CreatedBy, &org.CreatedAt, &org.UpdatedAt)
+		err := rows.Scan(&org.ID, &org.OrgName, &org.OrgURL, &org.OrgEmail, &org.OrgPhone, &org.OrgAddress, &org.CreatedBy, &org.IsDeleted, &org.DeletedAt, &org.CreatedAt, &org.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan organization: %w", err)
 		}
@@ -195,13 +198,13 @@ func (r *Repository) GetOrganizationByID(orgID string) (*Organization, error) {
 	org := &Organization{}
 
 	query := `
-		SELECT id, org_name, org_url, org_email, org_phone, org_address, created_by, created_at, updated_at
+		SELECT id, org_name, org_url, org_email, org_phone_number, org_address, created_by, is_deleted, deleted_at, created_at, updated_at
 		FROM organizations
-		WHERE id = $1
+		WHERE id = $1 AND is_deleted = false
 	`
 
 	err := r.db.QueryRow(ctx, query, orgID).Scan(
-		&org.ID, &org.OrgName, &org.OrgURL, &org.OrgEmail, &org.OrgPhone, &org.OrgAddress, &org.CreatedBy, &org.CreatedAt, &org.UpdatedAt,
+		&org.ID, &org.OrgName, &org.OrgURL, &org.OrgEmail, &org.OrgPhone, &org.OrgAddress, &org.CreatedBy, &org.IsDeleted, &org.DeletedAt, &org.CreatedAt, &org.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("organization not found")
@@ -289,6 +292,58 @@ func (r *Repository) RemoveUserFromOrganization(userID, orgID string) error {
 
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("user is not a member of this organization")
+	}
+
+	return nil
+}
+
+// UpdateOrganization updates organization details
+func (r *Repository) UpdateOrganization(orgID string, orgName, orgURL, orgEmail, orgPhone, orgAddress *string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `
+		UPDATE organizations
+		SET
+			org_name = COALESCE($1, org_name),
+			org_url = COALESCE($2, org_url),
+			org_email = COALESCE($3, org_email),
+			org_phone_number = COALESCE($4, org_phone_number),
+			org_address = COALESCE($5, org_address),
+			updated_at = NOW()
+		WHERE id = $6
+	`
+
+	result, err := r.db.Exec(ctx, query, orgName, orgURL, orgEmail, orgPhone, orgAddress, orgID)
+	if err != nil {
+		return fmt.Errorf("failed to update organization: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("organization not found")
+	}
+
+	return nil
+}
+
+// DeleteOrganization soft deletes an organization by setting is_deleted and deleted_at
+func (r *Repository) DeleteOrganization(orgID string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `
+		UPDATE organizations
+		SET is_deleted = true, deleted_at = NOW(), updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query, orgID)
+	if err != nil {
+		return fmt.Errorf("failed to delete organization: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("organization not found")
 	}
 
 	return nil
