@@ -15,10 +15,13 @@ export function useSportExistenceCheck(
   debouncedSportName: string,
   isSelected: boolean
 ) {
+  // Normalize sport name to lowercase for case-insensitive matching
+  const normalizedSportName = debouncedSportName.toLowerCase();
+
   const { data: sportCheckData, isLoading: isCheckingExistence, error } =
     useSWR<CheckSportExistsResponse>(
       debouncedSportName && debouncedSportName.length >= 2 && !isSelected
-        ? `${process.env.NEXT_PUBLIC_API_URL}/v1/sports/exists?name=${encodeURIComponent(debouncedSportName)}`
+        ? `${process.env.NEXT_PUBLIC_API_URL}/v1/sports/exists?name=${encodeURIComponent(normalizedSportName)}`
         : null,
       async (url) => {
         const response = await fetch(url);
