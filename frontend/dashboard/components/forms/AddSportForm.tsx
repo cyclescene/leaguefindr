@@ -148,6 +148,18 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
   const isApprovedSport =
     sportCheckData && sportCheckData.exists && sportCheckData.status === "approved";
 
+  // Debug logging
+  useEffect(() => {
+    if (debouncedSportName && debouncedSportName.length >= 2) {
+      console.log("Sport check:", {
+        debouncedSportName,
+        sportCheckData,
+        isApprovedSport,
+        isRejectedSport,
+      });
+    }
+  }, [sportCheckData, debouncedSportName, isApprovedSport, isRejectedSport]);
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
       <div className="space-y-2">
