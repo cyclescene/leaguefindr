@@ -143,10 +143,15 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
     );
   }
 
+  // Check if sport is rejected (from API check or from selected sport)
   const isRejectedSport =
-    sportCheckData && sportCheckData.exists && sportCheckData.status === "rejected";
+    (sportCheckData && sportCheckData.exists && sportCheckData.status === "rejected") ||
+    (selectedSport?.status === "rejected");
+
+  // Check if sport is approved (from API check or from selected sport)
   const isApprovedSport =
-    sportCheckData && sportCheckData.exists && sportCheckData.status === "approved";
+    (sportCheckData && sportCheckData.exists && sportCheckData.status === "approved") ||
+    (selectedSport?.status === "approved");
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
