@@ -148,10 +148,20 @@ type GetLeaguesResponse struct {
 	Leagues []League `json:"leagues"`
 }
 
-// LeagueDraft represents a draft league submission
+// DraftType represents the type of draft (draft or template)
+type DraftType string
+
+const (
+	DraftTypeDraft    DraftType = "draft"
+	DraftTypeTemplate DraftType = "template"
+)
+
+// LeagueDraft represents a draft league submission or template
 type LeagueDraft struct {
 	ID        int       `json:"id"`
 	OrgID     string    `json:"org_id"` // UUID of the organization
+	Type      DraftType `json:"type"`   // "draft" or "template"
+	Name      *string   `json:"name"`   // Name for templates, null for drafts
 	DraftData DraftData `json:"draft_data"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -177,6 +187,12 @@ func (d DraftData) Value() (driver.Value, error) {
 
 // SaveLeagueDraftRequest represents the request to save a draft
 type SaveLeagueDraftRequest struct {
+	DraftData DraftData `json:"data" validate:"required"`
+}
+
+// SaveLeagueTemplateRequest represents the request to save a league as a template
+type SaveLeagueTemplateRequest struct {
+	Name      string    `json:"name" validate:"required,min=1,max=255"`
 	DraftData DraftData `json:"draft_data" validate:"required"`
 }
 

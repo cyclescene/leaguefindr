@@ -26,6 +26,11 @@ type RepositoryInterface interface {
 	SaveDraft(draft *LeagueDraft) error
 	DeleteDraft(orgID int) error
 	GetAllDrafts() ([]LeagueDraft, error)
+	GetDraftsByOrgID(orgID string) ([]LeagueDraft, error)
+	GetTemplatesByOrgID(orgID string) ([]LeagueDraft, error)
+	GetAllTemplates() ([]LeagueDraft, error)
+	UpdateTemplate(template *LeagueDraft) error
+	DeleteTemplate(templateID int, orgID string) error
 }
 
 type Repository struct {
@@ -327,12 +332,11 @@ func (r *Repository) SaveDraft(draft *LeagueDraft) error {
 		return fmt.Errorf("failed to marshal draft data: %w", err)
 	}
 
-	// Upsert: insert or update on conflict
+	// Always INSERT new drafts and templates (no UPSERT)
+	// Each save creates a new row, allowing users to have multiple drafts per organization
 	query := `
-		INSERT INTO leagues_drafts (org_id, draft_data, created_at, updated_at, created_by)
-		VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (org_id) DO UPDATE
-		SET draft_data = $2, updated_at = $4, created_by = $5
+		INSERT INTO leagues_drafts (org_id, type, name, draft_data, created_at, updated_at, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id
 	`
 
@@ -340,6 +344,8 @@ func (r *Repository) SaveDraft(draft *LeagueDraft) error {
 		ctx,
 		query,
 		draft.OrgID,
+		draft.Type,
+		draft.Name,
 		draftDataJSON,
 		time.Now(),
 		time.Now(),
@@ -418,6 +424,206 @@ func (r *Repository) GetAllDrafts() ([]LeagueDraft, error) {
 	}
 
 	return drafts, nil
+}
+
+// GetDraftsByOrgID retrieves all drafts for a specific organization
+func (r *Repository) GetDraftsByOrgID(orgID string) ([]LeagueDraft, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT id, org_id, type, name, draft_data, created_at, updated_at, created_by
+		FROM leagues_drafts
+		WHERE org_id = $1 AND type = 'draft'
+		ORDER BY updated_at DESC
+	`
+
+	rows, err := r.db.Query(ctx, query, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query drafts: %w", err)
+	}
+	defer rows.Close()
+
+	var drafts []LeagueDraft
+	for rows.Next() {
+		var draft LeagueDraft
+		var draftDataJSON []byte
+
+		err := rows.Scan(
+			&draft.ID,
+			&draft.OrgID,
+			&draft.Type,
+			&draft.Name,
+			&draftDataJSON,
+			&draft.CreatedAt,
+			&draft.UpdatedAt,
+			&draft.CreatedBy,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan draft: %w", err)
+		}
+
+		if err := json.Unmarshal(draftDataJSON, &draft.DraftData); err != nil {
+			return nil, fmt.Errorf("failed to parse draft data: %w", err)
+		}
+
+		drafts = append(drafts, draft)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error reading rows: %w", err)
+	}
+
+	return drafts, nil
+}
+
+// GetTemplatesByOrgID retrieves all templates for a specific organization
+func (r *Repository) GetTemplatesByOrgID(orgID string) ([]LeagueDraft, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT id, org_id, type, name, draft_data, created_at, updated_at, created_by
+		FROM leagues_drafts
+		WHERE org_id = $1 AND type = 'template'
+		ORDER BY updated_at DESC
+	`
+
+	rows, err := r.db.Query(ctx, query, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query templates: %w", err)
+	}
+	defer rows.Close()
+
+	var templates []LeagueDraft
+	for rows.Next() {
+		var template LeagueDraft
+		var draftDataJSON []byte
+
+		err := rows.Scan(
+			&template.ID,
+			&template.OrgID,
+			&template.Type,
+			&template.Name,
+			&draftDataJSON,
+			&template.CreatedAt,
+			&template.UpdatedAt,
+			&template.CreatedBy,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan template: %w", err)
+		}
+
+		if err := json.Unmarshal(draftDataJSON, &template.DraftData); err != nil {
+			return nil, fmt.Errorf("failed to parse template data: %w", err)
+		}
+
+		templates = append(templates, template)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error reading rows: %w", err)
+	}
+
+	return templates, nil
+}
+
+// GetAllTemplates retrieves all templates across all organizations (admin only)
+func (r *Repository) GetAllTemplates() ([]LeagueDraft, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT id, org_id, type, name, draft_data, created_at, updated_at, created_by
+		FROM leagues_drafts
+		WHERE type = 'template'
+		ORDER BY updated_at DESC
+	`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query templates: %w", err)
+	}
+	defer rows.Close()
+
+	var templates []LeagueDraft
+	for rows.Next() {
+		var template LeagueDraft
+		var draftDataJSON []byte
+
+		err := rows.Scan(
+			&template.ID,
+			&template.OrgID,
+			&template.Type,
+			&template.Name,
+			&draftDataJSON,
+			&template.CreatedAt,
+			&template.UpdatedAt,
+			&template.CreatedBy,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan template: %w", err)
+		}
+
+		if err := json.Unmarshal(draftDataJSON, &template.DraftData); err != nil {
+			return nil, fmt.Errorf("failed to parse template data: %w", err)
+		}
+
+		templates = append(templates, template)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error reading rows: %w", err)
+	}
+
+	return templates, nil
+}
+
+// UpdateTemplate updates an existing template (with org_id validation)
+func (r *Repository) UpdateTemplate(template *LeagueDraft) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	draftDataJSON, err := json.Marshal(template.DraftData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal draft data: %w", err)
+	}
+
+	query := `
+		UPDATE leagues_drafts
+		SET name = $1, draft_data = $2, updated_at = NOW()
+		WHERE id = $3 AND org_id = $4 AND type = 'template'
+	`
+
+	result, err := r.db.Exec(ctx, query, template.Name, draftDataJSON, template.ID, template.OrgID)
+	if err != nil {
+		return fmt.Errorf("failed to update template: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("template not found or access denied")
+	}
+
+	return nil
+}
+
+// DeleteTemplate deletes a template (with org_id validation)
+func (r *Repository) DeleteTemplate(templateID int, orgID string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `DELETE FROM leagues_drafts WHERE id = $1 AND org_id = $2 AND type = 'template'`
+
+	result, err := r.db.Exec(ctx, query, templateID, orgID)
+	if err != nil {
+		return fmt.Errorf("failed to delete template: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("template not found or access denied")
+	}
+
+	return nil
 }
 
 // ============= HELPER METHODS =============

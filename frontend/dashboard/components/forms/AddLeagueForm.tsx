@@ -24,7 +24,7 @@ interface Sport {
 interface AddLeagueFormProps {
   onSuccess?: () => void
   onClose?: () => void
-  organizationId?: number
+  organizationId?: string
 }
 
 export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueFormProps) {
@@ -91,78 +91,10 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
   const pricingAmount = watch('pricing_amount')
   const minimumPlayers = watch('minimum_team_players')
 
-  // Load draft on mount
+  // Remove auto-load on mount - users should select drafts from the drafts table
   useEffect(() => {
-    const loadDraft = async () => {
-      if (!organizationId || !getToken) {
-        setDraftLoading(false)
-        return
-      }
-
-      try {
-        const token = await getToken()
-        if (!token) {
-          setDraftLoading(false)
-          return
-        }
-
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/v1/drafts/${organizationId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        )
-
-        if (response.ok) {
-          const draftData = await response.json()
-          if (draftData) {
-            // Populate form with draft data
-            Object.keys(draftData).forEach((key) => {
-              const value = draftData[key]
-              // Handle date fields
-              if (
-                (key === 'registration_deadline' ||
-                  key === 'season_start_date' ||
-                  key === 'season_end_date') &&
-                value
-              ) {
-                try {
-                  const parsedDate = parse(value, 'yyyy-MM-dd', new Date())
-                  if (key === 'registration_deadline') {
-                    setRegistrationDeadline(parsedDate)
-                  } else if (key === 'season_start_date') {
-                    setSeasonStartDate(parsedDate)
-                  } else if (key === 'season_end_date') {
-                    setSeasonEndDate(parsedDate)
-                  }
-                } catch (e) {
-                  console.error(`Failed to parse date for ${key}:`, e)
-                }
-              }
-              // Handle game occurrences
-              else if (key === 'game_occurrences' && Array.isArray(value)) {
-                setGameOccurrences(value)
-              }
-              // Set all other form values
-              else {
-                setValue(key as any, value)
-              }
-            })
-            setDraftSaveStatus('Draft loaded')
-            setTimeout(() => setDraftSaveStatus(null), 2000)
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load draft:', error)
-      } finally {
-        setDraftLoading(false)
-      }
-    }
-
-    loadDraft()
-  }, [organizationId, getToken, setValue])
+    setDraftLoading(false)
+  }, [])
 
   // Debounce sport search input
   useEffect(() => {
@@ -305,7 +237,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
       }
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/drafts`,
+        `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/drafts?org_id=${organizationId}`,
         {
           method: 'POST',
           headers: {
@@ -314,7 +246,6 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
             'X-Clerk-User-ID': userId,
           },
           body: JSON.stringify({
-            org_id: organizationId,
             data: draftData,
           }),
         }
@@ -326,7 +257,10 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
       }
 
       setDraftSaveStatus('Draft saved successfully')
-      setTimeout(() => setDraftSaveStatus(null), 3000)
+      setTimeout(() => {
+        setDraftSaveStatus(null)
+        onClose?.()
+      }, 1500)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save draft'
       setDraftError(message)
@@ -344,7 +278,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
       const token = await getToken()
       if (!token) return
 
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/drafts/${organizationId}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/drafts/${organizationId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -423,6 +357,13 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 w-full">
+      {/* Hidden organization ID field */}
+      <input
+        type="hidden"
+        {...register('org_id')}
+        value={organizationId}
+      />
+
       {/* Hidden organization name field */}
       <input
         type="hidden"

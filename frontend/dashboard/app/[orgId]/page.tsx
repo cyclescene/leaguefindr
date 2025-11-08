@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { CreateOrganizationForm } from "@/components/organizations/CreateOrganizationForm";
 import { DeleteOrganizationDialog } from "@/components/organizations/DeleteOrganizationDialog";
+import { AddLeagueForm } from "@/components/forms/AddLeagueForm";
 import { useOrganization } from "@/hooks/useOrganizations";
 
 function OrganizationDashboardContent() {
@@ -26,6 +27,7 @@ function OrganizationDashboardContent() {
   const orgId = params.orgId as string;
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showLeagueDialog, setShowLeagueDialog] = useState(false);
 
   const { organization, isLoading, error, mutate } = useOrganization(orgId);
 
@@ -152,8 +154,11 @@ function OrganizationDashboardContent() {
           <div className="bg-white rounded-lg p-6 border border-neutral-200">
             <h2 className="text-lg font-semibold text-brand-dark mb-4">Leagues</h2>
             <p className="text-neutral-600 mb-4">Manage and create leagues for your organization</p>
-            <button className="text-brand-dark hover:text-brand-dark/80 font-semibold">
-              Coming Soon →
+            <button
+              onClick={() => router.push(`/${orgId}/leagues`)}
+              className="text-brand-dark hover:text-brand-dark/80 font-semibold"
+            >
+              View Leagues →
             </button>
           </div>
 

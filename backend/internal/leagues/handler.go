@@ -42,6 +42,13 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 			r.Get("/drafts/org/{orgId}", h.GetDraft)
 			r.Post("/drafts", h.SaveDraft)
 			r.Delete("/drafts/org/{orgId}", h.DeleteDraft)
+			r.Get("/drafts/{orgId}", h.GetDraftsByOrgID)
+
+			// Template routes
+			r.Post("/templates", h.SaveTemplate)
+			r.Get("/templates/{orgId}", h.GetTemplatesByOrgID)
+			r.Put("/templates/{templateId}", h.UpdateTemplate)
+			r.Delete("/templates/{templateId}", h.DeleteTemplate)
 
 			// Admin routes
 			r.Group(func(r chi.Router) {
@@ -49,6 +56,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 				r.Get("/admin/all", h.GetAllLeagues)
 				r.Get("/admin/pending", h.GetPendingLeagues)
 				r.Get("/admin/drafts/all", h.GetAllDrafts)
+				r.Get("/admin/templates/all", h.GetAllTemplates)
 				r.Put("/{id}/approve", h.ApproveLeague)
 				r.Put("/{id}/reject", h.RejectLeague)
 			})
@@ -402,4 +410,202 @@ func (h *Handler) GetAllDrafts(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string][]LeagueDraft{"drafts": drafts})
+}
+
+// SaveTemplate saves a league configuration as a reusable template
+func (h *Handler) SaveTemplate(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-Clerk-User-ID")
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	orgID := r.URL.Query().Get("org_id")
+	if orgID == "" {
+		http.Error(w, "organization ID is required", http.StatusBadRequest)
+		return
+	}
+
+	var req SaveLeagueTemplateRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		slog.Error("save template error", "err", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate request
+	err = h.validator.Struct(req)
+	if err != nil {
+		validationErrors := err.(validator.ValidationErrors)
+		slog.Error("save template error", "err", err)
+		http.Error(w, "Validation failed: "+validationErrors.Error(), http.StatusBadRequest)
+		return
+	}
+
+	template, err := h.service.SaveTemplate(orgID, userID, req.Name, req.DraftData)
+	if err != nil {
+		slog.Error("save template error", "orgID", orgID, "userID", userID, "err", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(GetLeagueDraftResponse{Draft: template})
+}
+
+// GetDraftsByOrgID returns all drafts for an organization
+func (h *Handler) GetDraftsByOrgID(w http.ResponseWriter, r *http.Request) {
+	orgID := chi.URLParam(r, "orgId")
+	if orgID == "" {
+		http.Error(w, "organization ID is required", http.StatusBadRequest)
+		return
+	}
+
+	drafts, err := h.service.GetDraftsByOrgID(orgID)
+	if err != nil {
+		slog.Error("get drafts by org id error", "orgID", orgID, "err", err)
+		http.Error(w, "Failed to fetch drafts", http.StatusInternalServerError)
+		return
+	}
+
+	if drafts == nil {
+		drafts = []LeagueDraft{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string][]LeagueDraft{"drafts": drafts})
+}
+
+// GetTemplatesByOrgID returns all templates for an organization
+func (h *Handler) GetTemplatesByOrgID(w http.ResponseWriter, r *http.Request) {
+	orgID := chi.URLParam(r, "orgId")
+	if orgID == "" {
+		http.Error(w, "organization ID is required", http.StatusBadRequest)
+		return
+	}
+
+	templates, err := h.service.GetTemplatesByOrgID(orgID)
+	if err != nil {
+		slog.Error("get templates by org id error", "orgID", orgID, "err", err)
+		http.Error(w, "Failed to fetch templates", http.StatusInternalServerError)
+		return
+	}
+
+	if templates == nil {
+		templates = []LeagueDraft{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string][]LeagueDraft{"templates": templates})
+}
+
+// GetAllTemplates returns all templates across all organizations (admin only)
+func (h *Handler) GetAllTemplates(w http.ResponseWriter, r *http.Request) {
+	templates, err := h.service.GetAllTemplates()
+	if err != nil {
+		slog.Error("get all templates error", "err", err)
+		http.Error(w, "Failed to fetch templates", http.StatusInternalServerError)
+		return
+	}
+
+	if templates == nil {
+		templates = []LeagueDraft{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string][]LeagueDraft{"templates": templates})
+}
+
+// UpdateTemplate updates an existing template
+func (h *Handler) UpdateTemplate(w http.ResponseWriter, r *http.Request) {
+	orgID := r.URL.Query().Get("org_id")
+	if orgID == "" {
+		http.Error(w, "organization ID is required", http.StatusBadRequest)
+		return
+	}
+
+	templateIDStr := chi.URLParam(r, "templateId")
+	if templateIDStr == "" {
+		http.Error(w, "template ID is required", http.StatusBadRequest)
+		return
+	}
+
+	templateID, err := strconv.Atoi(templateIDStr)
+	if err != nil {
+		http.Error(w, "Invalid template ID", http.StatusBadRequest)
+		return
+	}
+
+	var req SaveLeagueTemplateRequest
+	err = json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		slog.Error("update template error", "err", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate request
+	err = h.validator.Struct(req)
+	if err != nil {
+		validationErrors := err.(validator.ValidationErrors)
+		slog.Error("update template error", "err", err)
+		http.Error(w, "Validation failed: "+validationErrors.Error(), http.StatusBadRequest)
+		return
+	}
+
+	template, err := h.service.UpdateTemplate(templateID, orgID, req.Name, req.DraftData)
+	if err != nil {
+		slog.Error("update template error", "templateID", templateID, "orgID", orgID, "err", err)
+		if err.Error() == "template not found or access denied" {
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(GetLeagueDraftResponse{Draft: template})
+}
+
+// DeleteTemplate deletes a template
+func (h *Handler) DeleteTemplate(w http.ResponseWriter, r *http.Request) {
+	orgID := r.URL.Query().Get("org_id")
+	if orgID == "" {
+		http.Error(w, "organization ID is required", http.StatusBadRequest)
+		return
+	}
+
+	templateIDStr := chi.URLParam(r, "templateId")
+	if templateIDStr == "" {
+		http.Error(w, "template ID is required", http.StatusBadRequest)
+		return
+	}
+
+	templateID, err := strconv.Atoi(templateIDStr)
+	if err != nil {
+		http.Error(w, "Invalid template ID", http.StatusBadRequest)
+		return
+	}
+
+	err = h.service.DeleteTemplate(templateID, orgID)
+	if err != nil {
+		slog.Error("delete template error", "templateID", templateID, "orgID", orgID, "err", err)
+		if err.Error() == "template not found or access denied" {
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+		http.Error(w, "Failed to delete template", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }

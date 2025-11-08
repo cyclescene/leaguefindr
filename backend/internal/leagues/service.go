@@ -181,6 +181,7 @@ func (s *Service) SaveDraft(orgID string, userID string, draftData DraftData) (*
 
 	draft := &LeagueDraft{
 		OrgID:     orgID,
+		Type:      DraftTypeDraft,
 		DraftData: draftData,
 		CreatedBy: &userID,
 	}
@@ -192,6 +193,71 @@ func (s *Service) SaveDraft(orgID string, userID string, draftData DraftData) (*
 	return draft, nil
 }
 
+// SaveTemplate saves a league configuration as a reusable template
+func (s *Service) SaveTemplate(orgID string, userID string, name string, draftData DraftData) (*LeagueDraft, error) {
+	if draftData == nil || len(draftData) == 0 {
+		return nil, fmt.Errorf("draft data cannot be empty")
+	}
+
+	if name == "" {
+		return nil, fmt.Errorf("template name is required")
+	}
+
+	template := &LeagueDraft{
+		OrgID:     orgID,
+		Type:      DraftTypeTemplate,
+		Name:      &name,
+		DraftData: draftData,
+		CreatedBy: &userID,
+	}
+
+	if err := s.repo.SaveDraft(template); err != nil {
+		return nil, fmt.Errorf("failed to save template: %w", err)
+	}
+
+	return template, nil
+}
+
+// GetTemplatesByOrgID retrieves all templates for an organization
+func (s *Service) GetTemplatesByOrgID(orgID string) ([]LeagueDraft, error) {
+	return s.repo.GetTemplatesByOrgID(orgID)
+}
+
+// GetDraftsByOrgID retrieves all drafts for an organization
+func (s *Service) GetDraftsByOrgID(orgID string) ([]LeagueDraft, error) {
+	return s.repo.GetDraftsByOrgID(orgID)
+}
+
+// UpdateTemplate updates an existing template
+func (s *Service) UpdateTemplate(templateID int, orgID string, name string, draftData DraftData) (*LeagueDraft, error) {
+	if name == "" {
+		return nil, fmt.Errorf("template name is required")
+	}
+
+	if draftData == nil || len(draftData) == 0 {
+		return nil, fmt.Errorf("draft data cannot be empty")
+	}
+
+	template := &LeagueDraft{
+		ID:        templateID,
+		OrgID:     orgID,
+		Name:      &name,
+		DraftData: draftData,
+		Type:      DraftTypeTemplate,
+	}
+
+	if err := s.repo.UpdateTemplate(template); err != nil {
+		return nil, fmt.Errorf("failed to update template: %w", err)
+	}
+
+	return template, nil
+}
+
+// DeleteTemplate deletes a template
+func (s *Service) DeleteTemplate(templateID int, orgID string) error {
+	return s.repo.DeleteTemplate(templateID, orgID)
+}
+
 // DeleteDraft deletes the draft for an organization
 func (s *Service) DeleteDraft(orgID int) error {
 	return s.repo.DeleteDraft(orgID)
@@ -200,6 +266,11 @@ func (s *Service) DeleteDraft(orgID int) error {
 // GetAllDrafts retrieves all league drafts across all organizations (admin only)
 func (s *Service) GetAllDrafts() ([]LeagueDraft, error) {
 	return s.repo.GetAllDrafts()
+}
+
+// GetAllTemplates retrieves all templates across all organizations (admin only)
+func (s *Service) GetAllTemplates() ([]LeagueDraft, error) {
+	return s.repo.GetAllTemplates()
 }
 
 // ============= HELPER METHODS =============
