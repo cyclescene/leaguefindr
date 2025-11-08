@@ -137,7 +137,7 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
 
   if (success) {
     return (
-      <div className="py-4 text-center">
+      <div className="px-6 py-4 text-center">
         <p className="text-green-600 font-medium">Sport added successfully!</p>
       </div>
     );
@@ -146,7 +146,7 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
   const isRejectedSport = sportCheckData?.exists && sportCheckData.status === "rejected";
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
       <div className="space-y-2">
         <Label htmlFor="sport-name">Sport Name</Label>
         <div className="relative" ref={autocompleteRef}>

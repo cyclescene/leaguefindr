@@ -103,7 +103,7 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
 
   if (success) {
     return (
-      <div className="py-4 text-center">
+      <div className="px-6 py-4 text-center">
         <p className="text-green-600 font-medium">Venue submitted successfully! It will be reviewed by an admin.</p>
       </div>
     )
@@ -115,7 +115,7 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
     <form
       onSubmit={handleSubmit(onSubmit)}
       onClick={(e) => e.stopPropagation()}
-      className="space-y-6"
+      className="space-y-6 px-6 py-4"
     >
       {/* Venue Name */}
       <div className="space-y-2">
@@ -184,7 +184,7 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full rounded-md bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+        className="w-full rounded-md bg-brand-dark px-4 py-2 text-white font-medium hover:bg-brand-dark/90 disabled:bg-neutral-400 disabled:cursor-not-allowed"
       >
         {isSubmitting ? 'Submitting...' : 'Submit Venue'}
       </button>
