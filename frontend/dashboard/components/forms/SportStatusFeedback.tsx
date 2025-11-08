@@ -41,7 +41,10 @@ export function SportStatusFeedback({
       )}
 
       {/* Approved sport exists (not selected via autocomplete) */}
-      {!isSelected && sportCheckData?.exists && sportCheckData.status === "approved" && (
+      {!isSelected &&
+        sportCheckData &&
+        sportCheckData.exists &&
+        sportCheckData.status === "approved" && (
         <div className="space-y-2 bg-green-50 p-3 rounded-md border border-green-200">
           <div className="flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
