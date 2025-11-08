@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddLeagueForm } from "@/components/forms/AddLeagueForm";
+import { AddSportForm } from "@/components/forms/AddSportForm";
+import { AddVenueForm } from "@/components/forms/AddVenueForm";
 import { OrganizerLeagueTable } from "@/components/organizer/OrganizerLeagueTable";
 import { OrganizerTemplateTable } from "@/components/organizer/OrganizerTemplateTable";
 import { OrganizerDraftTable } from "@/components/organizer/OrganizerDraftTable";
@@ -61,7 +63,7 @@ function LeaguesContent() {
   const orgId = params.orgId as string;
 
   const [openDialog, setOpenDialog] = useState<
-    "league" | "template" | "from-template" | null
+    "league" | "template" | "sport" | "venue" | null
   >(null);
 
   // Mock data - will be replaced with API calls
@@ -196,15 +198,21 @@ function LeaguesContent() {
             <ButtonGroup>
               <Button
                 variant="brandDark"
-                onClick={() => setOpenDialog("template")}
+                onClick={() => setOpenDialog("sport")}
               >
-                Create Template
+                Add Sport
               </Button>
               <Button
                 variant="brandDark"
-                onClick={() => setOpenDialog("from-template")}
+                onClick={() => setOpenDialog("venue")}
               >
-                From Template
+                Add Venue
+              </Button>
+              <Button
+                variant="brandDark"
+                onClick={() => setOpenDialog("template")}
+              >
+                Create Template
               </Button>
               <Button
                 variant="brandDark"
@@ -328,24 +336,41 @@ function LeaguesContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Submit from Template Dialog */}
+      {/* Add Sport Dialog */}
       <Dialog
-        open={openDialog === "from-template"}
+        open={openDialog === "sport"}
         onOpenChange={(open) => !open && handleCloseDialog()}
       >
-        <DialogContent className="border-0 !max-w-5xl w-[85vw] max-h-[95vh] overflow-y-auto">
+        <DialogContent className="border-0 !max-w-2xl">
           <DialogHeader className="bg-brand-dark text-white !-mx-6 !-mt-6 !-mb-4 px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
-            <DialogTitle className="text-white">Create from Template</DialogTitle>
+            <DialogTitle className="text-white">Add Sport</DialogTitle>
             <DialogDescription className="text-gray-200">
-              Use one of your templates as a starting point for a new league.
-              You can customize any details after selecting a template.
+              Add a new sport to your organization.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 px-6">
-            <p className="text-gray-600">
-              Template selection form coming soon...
-            </p>
-          </div>
+          <AddSportForm
+            onSuccess={handleCloseDialog}
+            onClose={handleCloseDialog}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Venue Dialog */}
+      <Dialog
+        open={openDialog === "venue"}
+        onOpenChange={(open) => !open && handleCloseDialog()}
+      >
+        <DialogContent className="border-0 !max-w-2xl">
+          <DialogHeader className="bg-brand-dark text-white !-mx-6 !-mt-6 !-mb-4 px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
+            <DialogTitle className="text-white">Add Venue</DialogTitle>
+            <DialogDescription className="text-gray-200">
+              Add a new venue to your organization.
+            </DialogDescription>
+          </DialogHeader>
+          <AddVenueForm
+            onSuccess={handleCloseDialog}
+            onClose={handleCloseDialog}
+          />
         </DialogContent>
       </Dialog>
 
