@@ -26,7 +26,11 @@ export function SportAutocompleteDropdown({
         <button
           key={sport.id}
           type="button"
-          onClick={() => onSelect(sport)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSelect(sport);
+          }}
           className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors"
         >
           {sport.name}

@@ -6,6 +6,7 @@ interface SportFormInputProps {
   value: string;
   onChange: (value: string) => void;
   onFocus: () => void;
+  onBlur?: () => void;
   onClear: () => void;
   isSelected: boolean;
   loading: boolean;
@@ -19,6 +20,7 @@ export function SportFormInput({
   value,
   onChange,
   onFocus,
+  onBlur,
   onClear,
   isSelected,
   loading,
@@ -37,6 +39,7 @@ export function SportFormInput({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onFocus={onFocus}
+            onBlur={onBlur}
             disabled={loading}
             maxLength={255}
             autoComplete="off"

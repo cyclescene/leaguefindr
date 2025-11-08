@@ -69,7 +69,10 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
   );
 
   // Filter approved sports for autocomplete
-  const filteredSuggestions = showAutocomplete && debouncedSportName
+  // Don't show suggestions if there's an exact match with selected sport
+  const hasExactMatch = selectedSport && selectedSport.name.toLowerCase() === debouncedSportName.toLowerCase();
+
+  const filteredSuggestions = showAutocomplete && debouncedSportName && !hasExactMatch
     ? approvedSports.filter((sport) =>
       sport.name.toLowerCase().includes(debouncedSportName.toLowerCase())
     )
@@ -161,7 +164,8 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
           <SportFormInput
             value={sportName}
             onChange={(value) => setValue("name", value)}
-            onFocus={() => sportName.length >= 2 && setShowAutocomplete(true)}
+            onFocus={() => sportName.length >= 2 && !selectedSport && setShowAutocomplete(true)}
+            onBlur={() => setTimeout(() => setShowAutocomplete(false), 150)}
             onClear={handleClearSelection}
             isSelected={!!selectedSport}
             loading={loading}
