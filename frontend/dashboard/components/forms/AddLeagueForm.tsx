@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { addLeagueSchema, type AddLeagueFormData, type GameOccurrence } from '@/lib/schemas'
 import { useAuth } from '@clerk/nextjs'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -12,11 +12,29 @@ import { X, Plus } from 'lucide-react'
 import { format, parse } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { useSportSearch } from '@/hooks/useSportSearch'
+import { useVenueSearch } from '@/hooks/useVenueSearch'
 import { SportAutocompleteDropdown } from './SportAutocompleteDropdown'
+import dynamic from 'next/dynamic'
+
+// Dynamically import AddressAutofill to avoid SSR issues
+const AddressAutofill = dynamic(
+  () => import('@mapbox/search-js-react').then(mod => mod.AddressAutofill),
+  { ssr: false }
+) as any
 
 interface Sport {
   id: number
   name: string
+  status: 'approved' | 'pending' | 'rejected'
+  request_count: number
+}
+
+interface Venue {
+  id: number
+  name: string
+  address: string
+  lat: number
+  lng: number
   status: 'approved' | 'pending' | 'rejected'
   request_count: number
 }
@@ -42,6 +60,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
     resolver: zodResolver(addLeagueSchema),
     defaultValues: {
       sport_id: undefined,
+      venue_id: undefined,
       league_name: '',
       division: '' as any,
       age_group: '',
@@ -86,6 +105,11 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
   const [showSportAutocomplete, setShowSportAutocomplete] = useState(false)
   const [selectedSport, setSelectedSport] = useState<Sport | null>(null)
   const [sportSearchInput, setSportSearchInput] = useState('')
+
+  // Venue search state
+  const { approvedVenues } = useVenueSearch()
+  const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null)
+  const addressInputRef = useRef<HTMLInputElement>(null)
 
   const pricingStrategy = watch('pricing_strategy')
   const pricingAmount = watch('pricing_amount')
@@ -141,6 +165,46 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
     setValue('sport_id', undefined)
     setDebouncedSportName('')
     setShowSportAutocomplete(false)
+  }
+
+  // Handle venue address selection from Mapbox AddressAutofill
+  const handleVenueAddressChange = (featureCollection: any) => {
+    const feature = featureCollection?.features?.[0]
+
+    if (feature && feature.geometry && feature.properties) {
+      const [lng, lat] = feature.geometry.coordinates
+      const address = feature.properties.full_address || feature.properties.place_name
+
+      // Look for matching venue in the database by address
+      const matchingVenue = approvedVenues.find(
+        (v) => v.address.toLowerCase() === address.toLowerCase()
+      )
+
+      if (matchingVenue) {
+        // Venue exists in database - set venue_id
+        setSelectedVenue(matchingVenue)
+        setValue('venue_id', matchingVenue.id)
+        if (addressInputRef.current) {
+          addressInputRef.current.value = address
+        }
+      } else {
+        // Venue doesn't exist - we'll allow submission with just the address
+        // (admin will create the venue record on approval)
+        setSelectedVenue(null)
+        setValue('venue_id', null as any)
+        if (addressInputRef.current) {
+          addressInputRef.current.value = address
+        }
+      }
+    }
+  }
+
+  const handleClearVenueSelection = () => {
+    setSelectedVenue(null)
+    setValue('venue_id', null as any)
+    if (addressInputRef.current) {
+      addressInputRef.current.value = ''
+    }
   }
 
   // Handle date changes
@@ -222,6 +286,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
       // Prepare draft data - include both date values and current form values
       const draftData = {
         sport_id: watch('sport_id'),
+        venue_id: watch('venue_id'),
         league_name: watch('league_name'),
         division: watch('division'),
         age_group: watch('age_group'),
@@ -566,6 +631,65 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
               <p className="text-sm text-red-600">{errors.duration.message}</p>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Section: Venue */}
+      <div className="border-t pt-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Venue</h3>
+
+        <div className="space-y-2">
+          <Label htmlFor="venue_address">Venue Address (Optional)</Label>
+          <p className="text-sm text-gray-600">Search for an existing venue or enter a new one</p>
+          {(() => {
+            const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+            return mapboxToken ? (
+              <AddressAutofill accessToken={mapboxToken} onRetrieve={handleVenueAddressChange}>
+                <Input
+                  ref={addressInputRef}
+                  id="venue_address"
+                  type="text"
+                  autoComplete="address-line1"
+                  placeholder="Search for a venue address..."
+                  aria-invalid={errors.venue_id ? 'true' : 'false'}
+                />
+              </AddressAutofill>
+            ) : (
+              <Input
+                ref={addressInputRef}
+                id="venue_address"
+                type="text"
+                placeholder="Search for a venue address..."
+                aria-invalid={errors.venue_id ? 'true' : 'false'}
+              />
+            )
+          })()}
+
+          {selectedVenue && (
+            <div className="flex items-center justify-between bg-green-50 p-3 rounded-md border border-green-200">
+              <div className="flex-1">
+                <p className="text-sm text-green-700 font-medium">{selectedVenue.name}</p>
+                <p className="text-xs text-green-600">{selectedVenue.address}</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearVenueSelection}
+                className="ml-2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {!selectedVenue && addressInputRef.current?.value && (
+            <p className="text-xs text-gray-500 italic">
+              This venue will be created during admin approval if it doesn't exist
+            </p>
+          )}
+
+          {errors.venue_id && (
+            <p className="text-sm text-red-600">{errors.venue_id.message}</p>
+          )}
         </div>
       </div>
 
