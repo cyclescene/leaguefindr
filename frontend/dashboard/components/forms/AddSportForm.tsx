@@ -144,6 +144,7 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
   }
 
   const isRejectedSport = sportCheckData?.exists && sportCheckData.status === "rejected";
+  const isApprovedSport = sportCheckData?.exists && sportCheckData.status === "approved";
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
@@ -182,6 +183,7 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
         loading={loading}
         sportName={sportName}
         isRejectedSport={isRejectedSport}
+        isApprovedSport={isApprovedSport}
         onClose={onClose || (() => { })}
       />
     </form>

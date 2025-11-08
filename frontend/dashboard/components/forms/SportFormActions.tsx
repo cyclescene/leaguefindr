@@ -5,6 +5,7 @@ interface SportFormActionsProps {
   loading: boolean;
   sportName: string;
   isRejectedSport: boolean | undefined;
+  isApprovedSport: boolean | undefined;
   onClose: () => void;
 }
 
@@ -12,6 +13,7 @@ export function SportFormActions({
   loading,
   sportName,
   isRejectedSport,
+  isApprovedSport,
   onClose,
 }: SportFormActionsProps) {
   return (
@@ -25,7 +27,11 @@ export function SportFormActions({
         Cancel
       </Button>
 
-      {isRejectedSport ? (
+      {isApprovedSport ? (
+        <Button type="submit" variant="outline" disabled={true}>
+          Sport Already Available
+        </Button>
+      ) : isRejectedSport ? (
         <Button type="submit" variant="brandDark" disabled={loading || !sportName.trim()}>
           {loading ? (
             <>
