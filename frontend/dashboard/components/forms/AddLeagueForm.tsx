@@ -61,6 +61,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
     defaultValues: {
       sport_id: undefined,
       venue_id: undefined,
+      venue_name: '',
       league_name: '',
       division: '' as any,
       age_group: '',
@@ -181,9 +182,10 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
       )
 
       if (matchingVenue) {
-        // Venue exists in database - set venue_id
+        // Venue exists in database - set venue_id and venue_name
         setSelectedVenue(matchingVenue)
         setValue('venue_id', matchingVenue.id)
+        setValue('venue_name', matchingVenue.name)
         if (addressInputRef.current) {
           addressInputRef.current.value = address
         }
@@ -192,6 +194,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
         // (admin will create the venue record on approval)
         setSelectedVenue(null)
         setValue('venue_id', null as any)
+        setValue('venue_name', '')
         if (addressInputRef.current) {
           addressInputRef.current.value = address
         }
@@ -202,6 +205,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
   const handleClearVenueSelection = () => {
     setSelectedVenue(null)
     setValue('venue_id', null as any)
+    setValue('venue_name', '')
     if (addressInputRef.current) {
       addressInputRef.current.value = ''
     }
@@ -287,6 +291,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
       const draftData = {
         sport_id: watch('sport_id'),
         venue_id: watch('venue_id'),
+        venue_name: watch('venue_name'),
         league_name: watch('league_name'),
         division: watch('division'),
         age_group: watch('age_group'),
@@ -637,6 +642,24 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
       {/* Section: Venue */}
       <div className="border-t pt-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Venue</h3>
+
+        {/* Venue Name - allows custom name when submitting new venue */}
+        <div className="space-y-2 mb-4">
+          <Label htmlFor="venue_name">Venue Name (Optional)</Label>
+          <p className="text-sm text-gray-600">Name of the venue (e.g., Downtown Sports Complex)</p>
+          <Input
+            {...register('venue_name')}
+            id="venue_name"
+            type="text"
+            placeholder="Enter venue name..."
+            maxLength={255}
+            aria-invalid={errors.venue_name ? 'true' : 'false'}
+          />
+          {errors.venue_name && (
+            <p className="text-sm text-red-600">{errors.venue_name.message}</p>
+          )}
+          <p className="text-xs text-gray-500">{watch('venue_name')?.length || 0}/255 characters</p>
+        </div>
 
         <div className="space-y-2">
           <Label htmlFor="venue_address">Venue Address (Optional)</Label>
