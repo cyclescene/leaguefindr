@@ -68,7 +68,6 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
       venue_lng: undefined,
       league_name: '',
       division: '' as any,
-      age_group: '',
       gender: '' as any,
       registration_deadline: '',
       season_start_date: '',
@@ -358,7 +357,6 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
         venue_lng: watch('venue_lng'),
         league_name: watch('league_name'),
         division: watch('division'),
-        age_group: watch('age_group'),
         gender: watch('gender'),
         registration_deadline: registrationDeadline ? format(registrationDeadline, 'yyyy-MM-dd') : '',
         season_start_date: seasonStartDate ? format(seasonStartDate, 'yyyy-MM-dd') : '',
@@ -593,21 +591,6 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
             </select>
             {errors.division && (
               <p className="text-sm text-red-600">{errors.division.message}</p>
-            )}
-          </div>
-
-          {/* Age Group */}
-          <div className="space-y-2">
-            <Label htmlFor="age_group">Age Group *</Label>
-            <Input
-              {...register('age_group')}
-              id="age_group"
-              type="text"
-              placeholder="e.g., 18+, Adults, Youth (U18)"
-              aria-invalid={errors.age_group ? 'true' : 'false'}
-            />
-            {errors.age_group && (
-              <p className="text-sm text-red-600">{errors.age_group.message}</p>
             )}
           </div>
 
