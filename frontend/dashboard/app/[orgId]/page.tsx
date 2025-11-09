@@ -2,12 +2,11 @@
 
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, ChevronRight, Edit2, Trash2, Share2, Copy, Check } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ClerkUser } from "@/types/clerk";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +16,10 @@ import {
 } from "@/components/ui/dialog";
 import { CreateOrganizationForm } from "@/components/organizations/CreateOrganizationForm";
 import { DeleteOrganizationDialog } from "@/components/organizations/DeleteOrganizationDialog";
-import { AddLeagueForm } from "@/components/forms/AddLeagueForm";
+import { OrganizationHeader } from "@/components/organizations/OrganizationHeader";
+import { OrganizationInfo } from "@/components/organizations/OrganizationInfo";
+import { OrganizationActions } from "@/components/organizations/OrganizationActions";
+import { InviteMembersDialog } from "@/components/organizations/InviteMembersDialog";
 import { useOrganization } from "@/hooks/useOrganizations";
 
 function OrganizationDashboardContent() {
@@ -27,10 +29,8 @@ function OrganizationDashboardContent() {
   const orgId = params.orgId as string;
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showLeagueDialog, setShowLeagueDialog] = useState(false);
-  const [showInviteDialog, setShowInviteDialog] = useState(false);
-  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
-
+    const [showInviteDialog, setShowInviteDialog] = useState(false);
+  
   const { organization, isLoading, error, mutate } = useOrganization(orgId);
 
   // Redirect to home if user doesn't have access (403 error)
@@ -44,16 +44,7 @@ function OrganizationDashboardContent() {
     await mutate();
   };
 
-  const handleCopyOrgId = async () => {
-    try {
-      await navigator.clipboard.writeText(orgId);
-      setCopiedToClipboard(true);
-      setTimeout(() => setCopiedToClipboard(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy to clipboard:", err);
-    }
-  };
-
+  
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-neutral-light">
@@ -108,81 +99,22 @@ function OrganizationDashboardContent() {
       <Header />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12">
-        <div className="flex items-center justify-between gap-4 text-sm mb-6">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.push("/")}
-              className="text-brand-dark hover:text-brand-dark/80 font-medium"
-            >
-              Organizations
-            </button>
-            <ChevronRight size={16} className="text-neutral-400" />
-            <span className="text-neutral-600">{organization.org_name}</span>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setShowInviteDialog(true)}
-              variant="brandDark"
-              size="sm"
-            >
-              <Share2 size={16} className="mr-2" />
-              Invite Members
-            </Button>
-            <Button
-              onClick={() => setShowEditDialog(true)}
-              variant="outline"
-              size="sm"
-              className="border-brand-dark text-brand-dark hover:bg-brand-light"
-            >
-              <Edit2 size={16} className="mr-2" />
-              Edit
-            </Button>
-            <Button
-              onClick={() => setShowDeleteDialog(true)}
-              variant="outline"
-              size="sm"
-              className="border-red-300 text-red-600 hover:bg-red-50"
-            >
-              <Trash2 size={16} className="mr-2" />
-              Delete
-            </Button>
-          </div>
-        </div>
+        <OrganizationHeader
+          orgId={orgId}
+          orgName={organization.org_name}
+          onEditClick={() => setShowEditDialog(true)}
+          onDeleteClick={() => setShowDeleteDialog(true)}
+          onInviteClick={() => setShowInviteDialog(true)}
+        />
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-brand-dark mb-2">{organization.org_name}</h1>
-          <p className="text-neutral-600">Organization Dashboard</p>
-        </div>
+        <OrganizationInfo
+          name={organization.org_name}
+          email={organization.org_email}
+          phone={organization.org_phone}
+          url={organization.org_url}
+        />
 
-        {organization.org_email && (
-          <p className="text-neutral-600 mb-2">
-            <strong>Email:</strong> {organization.org_email}
-          </p>
-        )}
-        {organization.org_phone && (
-          <p className="text-neutral-600 mb-2">
-            <strong>Phone:</strong> {organization.org_phone}
-          </p>
-        )}
-        {organization.org_url && (
-          <p className="text-neutral-600 mb-8">
-            <strong>Website:</strong> <a href={organization.org_url} target="_blank" rel="noopener noreferrer" className="text-brand-dark hover:underline">{organization.org_url}</a>
-          </p>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
-          <div className="bg-white rounded-lg p-6 border border-neutral-200">
-            <h2 className="text-lg font-semibold text-brand-dark mb-4">Leagues</h2>
-            <p className="text-neutral-600 mb-4">Manage and create leagues for your organization</p>
-            <button
-              onClick={() => router.push(`/${orgId}/leagues`)}
-              className="text-brand-dark hover:text-brand-dark/80 font-semibold"
-            >
-              View Leagues →
-            </button>
-          </div>
-
-        </div>
+        <OrganizationActions orgId={orgId} />
       </main>
 
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
@@ -222,52 +154,11 @@ function OrganizationDashboardContent() {
         />
       )}
 
-      {/* Invite Members Dialog */}
-      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-brand-dark">Invite Members</DialogTitle>
-            <DialogDescription>
-              Share your organization ID with others to invite them to join
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-neutral-700 block mb-2">
-                Organization ID
-              </label>
-              <div className="flex gap-2">
-                <div className="flex-1 bg-neutral-100 border border-neutral-300 rounded px-3 py-2 text-sm font-mono text-neutral-700 break-all">
-                  {orgId}
-                </div>
-                <Button
-                  onClick={handleCopyOrgId}
-                  variant="outline"
-                  size="sm"
-                  className="border-brand-dark text-brand-dark hover:bg-brand-light"
-                >
-                  {copiedToClipboard ? (
-                    <>
-                      <Check size={16} className="mr-1" />
-                      Copied
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={16} className="mr-1" />
-                      Copy
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-            <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-700">
-              <p>
-                Share this ID with team members so they can join your organization without needing approval.
-              </p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <InviteMembersDialog
+        open={showInviteDialog}
+        onOpenChange={setShowInviteDialog}
+        orgId={orgId}
+      />
 
       <Footer />
     </div>
