@@ -114,6 +114,9 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
   // Venue search state
   const { approvedVenues } = useVenueSearch()
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null)
+  const [debouncedVenueName, setDebouncedVenueName] = useState('')
+  const [showVenueAutocomplete, setShowVenueAutocomplete] = useState(false)
+  const [venueSearchInput, setVenueSearchInput] = useState('')
   const addressInputRef = useRef<HTMLInputElement>(null)
 
   const pricingStrategy = watch('pricing_strategy')
@@ -135,6 +138,16 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
     return () => clearTimeout(timer)
   }, [sportSearchInput])
 
+  // Debounce venue search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedVenueName(venueSearchInput)
+      setShowVenueAutocomplete(venueSearchInput.length >= 1)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [venueSearchInput])
+
   // Populate sport display when draft loads with sport_id
   useEffect(() => {
     const sportId = watch('sport_id')
@@ -154,6 +167,29 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
   const filteredSportSuggestions = showSportAutocomplete && debouncedSportName && !hasExactSportMatch
     ? approvedSports.filter((sport) =>
       sport.name.toLowerCase().includes(debouncedSportName.toLowerCase())
+    )
+    : []
+
+  // Populate venue display when draft loads with venue_id
+  useEffect(() => {
+    const venueId = watch('venue_id')
+    if (venueId && approvedVenues.length > 0 && !selectedVenue) {
+      const foundVenue = approvedVenues.find((v) => v.id === venueId)
+      if (foundVenue) {
+        setSelectedVenue(foundVenue)
+        setVenueSearchInput(foundVenue.name)
+      }
+    }
+  }, [watch('venue_id'), approvedVenues, selectedVenue])
+
+  // Filter approved venues for autocomplete
+  // Don't show suggestions if there's an exact match with selected venue
+  const hasExactVenueMatch = selectedVenue && selectedVenue.name.toLowerCase() === debouncedVenueName.toLowerCase();
+
+  const filteredVenueSuggestions = showVenueAutocomplete && debouncedVenueName && !hasExactVenueMatch
+    ? approvedVenues.filter((venue) =>
+      venue.name.toLowerCase().includes(debouncedVenueName.toLowerCase()) ||
+      venue.address.toLowerCase().includes(debouncedVenueName.toLowerCase())
     )
     : []
 
@@ -680,110 +716,119 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
       <div className="border-t pt-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Venue</h3>
 
-        {/* Venue Name - allows custom name when submitting new venue */}
-        <div className="space-y-2 mb-4">
-          <Label htmlFor="venue_name">Venue Name (Optional)</Label>
-          <p className="text-sm text-gray-600">Name of the venue (e.g., Downtown Sports Complex)</p>
-          <Input
-            {...register('venue_name')}
-            id="venue_name"
-            type="text"
-            placeholder="Enter venue name..."
-            maxLength={255}
-            aria-invalid={errors.venue_name ? 'true' : 'false'}
-          />
-          {errors.venue_name && (
-            <p className="text-sm text-red-600">{errors.venue_name.message}</p>
-          )}
-          <p className="text-xs text-gray-500">{watch('venue_name')?.length || 0}/255 characters</p>
-        </div>
-
-        {/* Existing Venues Dropdown */}
-        <div className="space-y-2 mb-4">
-          <Label htmlFor="venue_select">Select from existing venues</Label>
-          <select
-            id="venue_select"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
-            onChange={(e) => {
-              const venueId = parseInt(e.target.value)
-              if (venueId) {
-                const selected = approvedVenues.find(v => v.id === venueId)
-                if (selected) {
-                  handleSelectVenue(selected)
-                }
-              } else {
-                handleClearVenueSelection()
-              }
-            }}
-            value={selectedVenue?.id || ''}
-          >
-            <option value="">-- Select a venue or enter a custom one below --</option>
-            {approvedVenues.map((venue) => (
-              <option key={venue.id} value={venue.id}>
-                {venue.name} - {venue.address}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Address Autofill or Custom Entry */}
-        <div className="space-y-2">
-          <Label htmlFor="venue_address">Venue Address (Optional)</Label>
-          <p className="text-sm text-gray-600">
-            {selectedVenue
-              ? 'Venue selected - edit address below if needed'
-              : 'Search for an address or use the dropdown above to select an existing venue'}
-          </p>
-          {(() => {
-            const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-            return mapboxToken ? (
-              <AddressAutofill accessToken={mapboxToken} onRetrieve={handleVenueAddressChange}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Venue Search with Autocomplete */}
+          <div className="space-y-2">
+            <Label htmlFor="venue_search">Venue (Optional)</Label>
+            <div className="relative">
+              <div className="relative">
                 <Input
-                  ref={addressInputRef}
-                  id="venue_address"
-                  type="text"
-                  autoComplete="address-line1"
-                  placeholder="Search for a venue address..."
-                  aria-invalid={errors.venue_id ? 'true' : 'false'}
+                  id="venue_search"
+                  placeholder="e.g., Central Park Courts"
+                  value={venueSearchInput}
+                  onChange={(e) => {
+                    setVenueSearchInput(e.target.value)
+                    setValue('venue_name', e.target.value)
+                  }}
+                  onFocus={() => venueSearchInput.length >= 1 && !selectedVenue && setShowVenueAutocomplete(true)}
+                  onBlur={() => setTimeout(() => setShowVenueAutocomplete(false), 150)}
+                  maxLength={255}
+                  autoComplete="off"
+                  aria-invalid={errors.venue_name ? 'true' : 'false'}
                 />
-              </AddressAutofill>
-            ) : (
-              <Input
-                ref={addressInputRef}
-                id="venue_address"
-                type="text"
-                placeholder="Search for a venue address..."
-                aria-invalid={errors.venue_id ? 'true' : 'false'}
-              />
-            )
-          })()}
-
-          {selectedVenue && (
-            <div className="flex items-center justify-between bg-green-50 p-3 rounded-md border border-green-200">
-              <div className="flex-1">
-                <p className="text-sm text-green-700 font-medium">{selectedVenue.name}</p>
-                <p className="text-xs text-green-600">{selectedVenue.address}</p>
+                {selectedVenue && (
+                  <button
+                    type="button"
+                    onClick={handleClearVenueSelection}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
-              <button
-                type="button"
-                onClick={handleClearVenueSelection}
-                className="ml-2 text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
+
+              {/* Venue Autocomplete Dropdown */}
+              {showVenueAutocomplete && filteredVenueSuggestions.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                  {filteredVenueSuggestions.map((venue) => (
+                    <button
+                      key={venue.id}
+                      type="button"
+                      onClick={() => {
+                        handleSelectVenue(venue)
+                        setShowVenueAutocomplete(false)
+                      }}
+                      className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b last:border-b-0"
+                    >
+                      <p className="text-sm font-medium text-gray-900">{venue.name}</p>
+                      <p className="text-xs text-gray-600">{venue.address}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {errors.venue_name && (
+              <p className="text-sm text-red-600">{errors.venue_name.message}</p>
+            )}
+          </div>
+
+          {/* Address field - hidden when venue is selected from dropdown */}
+          {!selectedVenue && (
+            <div className="space-y-2">
+              <Label htmlFor="venue_address">Search Address</Label>
+              <p className="text-sm text-gray-600">Find address or enter custom location</p>
+              {(() => {
+                const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+                return mapboxToken ? (
+                  <AddressAutofill accessToken={mapboxToken} onRetrieve={handleVenueAddressChange}>
+                    <Input
+                      ref={addressInputRef}
+                      id="venue_address"
+                      type="text"
+                      autoComplete="address-line1"
+                      placeholder="Search address..."
+                      aria-invalid={errors.venue_id ? 'true' : 'false'}
+                    />
+                  </AddressAutofill>
+                ) : (
+                  <Input
+                    ref={addressInputRef}
+                    id="venue_address"
+                    type="text"
+                    placeholder="Enter address..."
+                    aria-invalid={errors.venue_id ? 'true' : 'false'}
+                  />
+                )
+              })()}
+              {errors.venue_id && (
+                <p className="text-sm text-red-600">{errors.venue_id.message}</p>
+              )}
             </div>
           )}
-
-          {!selectedVenue && addressInputRef.current?.value && (
-            <p className="text-xs text-gray-500 italic">
-              This venue will be created during admin approval if it doesn't exist
-            </p>
-          )}
-
-          {errors.venue_id && (
-            <p className="text-sm text-red-600">{errors.venue_id.message}</p>
-          )}
         </div>
+
+        {selectedVenue && (
+          <div className="mt-4 flex items-center justify-between bg-green-50 p-3 rounded-md border border-green-200">
+            <div className="flex-1">
+              <p className="text-sm text-green-700 font-medium">{selectedVenue.name}</p>
+              <p className="text-xs text-green-600">{selectedVenue.address}</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleClearVenueSelection}
+              className="ml-2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {!selectedVenue && addressInputRef.current?.value && (
+          <p className="text-xs text-gray-500 italic mt-4">
+            This venue will be created during admin approval if it doesn't exist
+          </p>
+        )}
 
         {/* Hidden venue coordinates */}
         <input type="hidden" {...register('venue_lat', { valueAsNumber: true })} />
