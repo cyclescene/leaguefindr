@@ -147,7 +147,6 @@ func (s *Service) CreateLeague(userID string, request *CreateLeagueRequest) (*Le
 		PricingAmount:        request.PricingAmount,
 		PricingPerPlayer:     pricingPerPlayer,
 		VenueID:              request.VenueID,
-		AgeGroup:             request.AgeGroup,
 		Gender:               request.Gender,
 		SeasonDetails:        request.SeasonDetails,
 		RegistrationURL:      request.RegistrationURL,

@@ -54,7 +54,7 @@ func (r *Repository) GetAll() ([]League, error) {
 	query := `
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
-		       venue_id, age_group, gender, season_details, registration_url, duration,
+		       venue_id, gender, season_details, registration_url, duration,
 		       minimum_team_players, per_game_fee, supplemental_requests, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
@@ -78,7 +78,7 @@ func (r *Repository) GetAllApproved() ([]League, error) {
 	query := `
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
-		       venue_id, age_group, gender, season_details, registration_url, duration,
+		       venue_id, gender, season_details, registration_url, duration,
 		       minimum_team_players, per_game_fee, supplemental_requests, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
@@ -101,7 +101,7 @@ func (r *Repository) GetByID(id int) (*League, error) {
 	query := `
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
-		       venue_id, age_group, gender, season_details, registration_url, duration,
+		       venue_id, gender, season_details, registration_url, duration,
 		       minimum_team_players, per_game_fee, supplemental_requests, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
@@ -122,7 +122,6 @@ func (r *Repository) GetByID(id int) (*League, error) {
 		&league.PricingAmount,
 		&league.PricingPerPlayer,
 		&league.VenueID,
-		&league.AgeGroup,
 		&league.Gender,
 		&league.SeasonDetails,
 		&league.RegistrationURL,
@@ -162,7 +161,7 @@ func (r *Repository) GetByOrgID(orgID int) ([]League, error) {
 	query := `
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
-		       venue_id, age_group, gender, season_details, registration_url, duration,
+		       venue_id, gender, season_details, registration_url, duration,
 		       minimum_team_players, per_game_fee, supplemental_requests, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
@@ -187,7 +186,7 @@ func (r *Repository) GetByOrgIDAndStatus(orgID int, status LeagueStatus) ([]Leag
 	query := `
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
-		       venue_id, age_group, gender, season_details, registration_url, duration,
+		       venue_id, gender, season_details, registration_url, duration,
 		       minimum_team_players, per_game_fee, supplemental_requests, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
@@ -219,7 +218,7 @@ func (r *Repository) Create(league *League) error {
 	query := `
 		INSERT INTO leagues (org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		                     season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
-		                     venue_id, age_group, gender, season_details, registration_url, duration,
+		                     venue_id, gender, season_details, registration_url, duration,
 		                     minimum_team_players, per_game_fee, supplemental_requests, status, created_at, updated_at, created_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
 		RETURNING id
@@ -240,7 +239,6 @@ func (r *Repository) Create(league *League) error {
 		league.PricingAmount,
 		league.PricingPerPlayer,
 		league.VenueID,
-		league.AgeGroup,
 		league.Gender,
 		league.SeasonDetails,
 		league.RegistrationURL,
@@ -272,7 +270,7 @@ func (r *Repository) GetPending() ([]League, error) {
 	query := `
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
-		       venue_id, age_group, gender, season_details, registration_url, duration,
+		       venue_id, gender, season_details, registration_url, duration,
 		       minimum_team_players, per_game_fee, supplemental_requests, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
@@ -767,7 +765,6 @@ func (r *Repository) scanLeagues(ctx context.Context, query string, args ...inte
 			&league.PricingAmount,
 			&league.PricingPerPlayer,
 			&league.VenueID,
-			&league.AgeGroup,
 			&league.Gender,
 			&league.SeasonDetails,
 			&league.RegistrationURL,

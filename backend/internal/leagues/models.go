@@ -111,7 +111,6 @@ type League struct {
 	PricingAmount        *float64              `json:"pricing_amount"`
 	PricingPerPlayer     *float64              `json:"pricing_per_player"`
 	VenueID              *int                  `json:"venue_id"` // Nullable if venue doesn't exist yet
-	AgeGroup             *string               `json:"age_group"`
 	Gender               *string               `json:"gender"`
 	SeasonDetails        *string               `json:"season_details"`
 	RegistrationURL      *string               `json:"registration_url"`
@@ -144,7 +143,6 @@ type CreateLeagueRequest struct {
 	VenueAddress         *string         `json:"venue_address" validate:"max=500"` // Optional venue address
 	VenueLat             *float64        `json:"venue_lat"` // Optional venue latitude from Mapbox
 	VenueLng             *float64        `json:"venue_lng"` // Optional venue longitude from Mapbox
-	AgeGroup             *string         `json:"age_group" validate:"required,max=255"`
 	Gender               *string         `json:"gender" validate:"required,max=255"`
 	SeasonDetails        *string         `json:"season_details" validate:"max=2000"`
 	RegistrationURL      *string         `json:"registration_url" validate:"required,max=500"`
