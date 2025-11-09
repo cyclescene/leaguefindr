@@ -77,7 +77,7 @@ func newRouter(dbPool *pgxpool.Pool) *chi.Mux {
 
 	// Leagues
 	leaguesRepo := leagues.NewRepository(dbPool)
-	leaguesService := leagues.NewService(leaguesRepo, organizationsService, authService)
+	leaguesService := leagues.NewService(leaguesRepo, organizationsService, authService, sportsService, venuesService)
 	leaguesHandler := leagues.NewHandler(leaguesService, authService)
 
 	r.Route("/v1", func(r chi.Router) {

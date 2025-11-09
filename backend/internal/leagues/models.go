@@ -77,39 +77,60 @@ func (g GameOccurrences) Value() (driver.Value, error) {
 	return json.Marshal(g)
 }
 
+// SupplementalRequests represents sport and venue data for items that don't exist in the database yet
+type SupplementalRequests struct {
+	Sport *SupplementalSport `json:"sport,omitempty"`
+	Venue *SupplementalVenue `json:"venue,omitempty"`
+}
+
+// SupplementalSport represents a sport that needs to be created
+type SupplementalSport struct {
+	Name string `json:"name"`
+}
+
+// SupplementalVenue represents a venue that needs to be created
+type SupplementalVenue struct {
+	Name    string   `json:"name"`
+	Address string   `json:"address"`
+	Lat     *float64 `json:"lat"`
+	Lng     *float64 `json:"lng"`
+}
+
 // League represents a league in the system
 type League struct {
-	ID                   int             `json:"id"`
-	OrgID                *string         `json:"org_id"` // UUID of the organization
-	SportID              int             `json:"sport_id"`
-	LeagueName           *string         `json:"league_name"`
-	Division             *string         `json:"division"`
-	RegistrationDeadline *time.Time      `json:"registration_deadline"`
-	SeasonStartDate      *time.Time      `json:"season_start_date"`
-	SeasonEndDate        *time.Time      `json:"season_end_date"`
-	GameOccurrences      GameOccurrences `json:"game_occurrences"`
-	PricingStrategy      PricingStrategy `json:"pricing_strategy"`
-	PricingAmount        *float64        `json:"pricing_amount"`
-	PricingPerPlayer     *float64        `json:"pricing_per_player"`
-	VenueID              *int            `json:"venue_id"`
-	AgeGroup             *string         `json:"age_group"`
-	Gender               *string         `json:"gender"`
-	SeasonDetails        *string         `json:"season_details"`
-	RegistrationURL      *string         `json:"registration_url"`
-	Duration             *int            `json:"duration"`
-	MinimumTeamPlayers   *int            `json:"minimum_team_players"`
-	PerGameFee           *float64        `json:"per_game_fee"`
-	Status               LeagueStatus    `json:"status"`
-	CreatedAt            time.Time       `json:"created_at"`
-	UpdatedAt            time.Time       `json:"updated_at"`
-	CreatedBy            *string         `json:"created_by"` // UUID of the user who submitted it
-	RejectionReason      *string         `json:"rejection_reason"` // Reason for rejection if applicable
+	ID                   int                   `json:"id"`
+	OrgID                *string               `json:"org_id"` // UUID of the organization
+	SportID              *int                  `json:"sport_id"` // Nullable if sport doesn't exist yet
+	LeagueName           *string               `json:"league_name"`
+	Division             *string               `json:"division"`
+	RegistrationDeadline *time.Time            `json:"registration_deadline"`
+	SeasonStartDate      *time.Time            `json:"season_start_date"`
+	SeasonEndDate        *time.Time            `json:"season_end_date"`
+	GameOccurrences      GameOccurrences       `json:"game_occurrences"`
+	PricingStrategy      PricingStrategy       `json:"pricing_strategy"`
+	PricingAmount        *float64              `json:"pricing_amount"`
+	PricingPerPlayer     *float64              `json:"pricing_per_player"`
+	VenueID              *int                  `json:"venue_id"` // Nullable if venue doesn't exist yet
+	AgeGroup             *string               `json:"age_group"`
+	Gender               *string               `json:"gender"`
+	SeasonDetails        *string               `json:"season_details"`
+	RegistrationURL      *string               `json:"registration_url"`
+	Duration             *int                  `json:"duration"`
+	MinimumTeamPlayers   *int                  `json:"minimum_team_players"`
+	PerGameFee           *float64              `json:"per_game_fee"`
+	SupplementalRequests *SupplementalRequests `json:"supplemental_requests"` // Sport/venue data for items not in DB
+	Status               LeagueStatus          `json:"status"`
+	CreatedAt            time.Time             `json:"created_at"`
+	UpdatedAt            time.Time             `json:"updated_at"`
+	CreatedBy            *string               `json:"created_by"` // UUID of the user who submitted it
+	RejectionReason      *string               `json:"rejection_reason"` // Reason for rejection if applicable
 }
 
 // CreateLeagueRequest represents the request to create/submit a new league
 type CreateLeagueRequest struct {
 	OrgID                *string         `json:"org_id" validate:"required"` // UUID of the organization
-	SportID              int             `json:"sport_id" validate:"required"`
+	SportID              *int            `json:"sport_id"` // Optional if sport doesn't exist yet
+	SportName            string          `json:"sport_name" validate:"required,max=255"` // Sport name (always required)
 	LeagueName           *string         `json:"league_name" validate:"max=255"`
 	Division             *string         `json:"division" validate:"required,max=255"`
 	RegistrationDeadline *string         `json:"registration_deadline" validate:"required"` // ISO 8601 date string
@@ -118,7 +139,11 @@ type CreateLeagueRequest struct {
 	GameOccurrences      GameOccurrences `json:"game_occurrences" validate:"required"`
 	PricingStrategy      PricingStrategy `json:"pricing_strategy" validate:"required"`
 	PricingAmount        *float64        `json:"pricing_amount" validate:"required"`
-	VenueID              *int            `json:"venue_id"`
+	VenueID              *int            `json:"venue_id"` // Optional if venue doesn't exist yet
+	VenueName            *string         `json:"venue_name" validate:"max=255"` // Optional venue name
+	VenueAddress         *string         `json:"venue_address" validate:"max=500"` // Optional venue address
+	VenueLat             *float64        `json:"venue_lat"` // Optional venue latitude from Mapbox
+	VenueLng             *float64        `json:"venue_lng"` // Optional venue longitude from Mapbox
 	AgeGroup             *string         `json:"age_group" validate:"required,max=255"`
 	Gender               *string         `json:"gender" validate:"required,max=255"`
 	SeasonDetails        *string         `json:"season_details" validate:"max=2000"`

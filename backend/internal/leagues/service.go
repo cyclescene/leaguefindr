@@ -7,19 +7,25 @@ import (
 
 	"github.com/leaguefindr/backend/internal/auth"
 	"github.com/leaguefindr/backend/internal/organizations"
+	"github.com/leaguefindr/backend/internal/sports"
+	"github.com/leaguefindr/backend/internal/venues"
 )
 
 type Service struct {
-	repo       RepositoryInterface
-	orgService *organizations.Service
-	authService *auth.Service
+	repo           RepositoryInterface
+	orgService     *organizations.Service
+	authService    *auth.Service
+	sportsService  *sports.Service
+	venuesService  *venues.Service
 }
 
-func NewService(repo RepositoryInterface, orgService *organizations.Service, authService *auth.Service) *Service {
+func NewService(repo RepositoryInterface, orgService *organizations.Service, authService *auth.Service, sportsService *sports.Service, venuesService *venues.Service) *Service {
 	return &Service{
-		repo:        repo,
-		orgService:  orgService,
-		authService: authService,
+		repo:           repo,
+		orgService:     orgService,
+		authService:    authService,
+		sportsService:  sportsService,
+		venuesService:  venuesService,
 	}
 }
 
@@ -102,6 +108,31 @@ func (s *Service) CreateLeague(userID string, request *CreateLeagueRequest) (*Le
 	// Calculate per-player pricing
 	pricingPerPlayer := s.calculatePricingPerPlayer(request.PricingStrategy, request.PricingAmount, request.MinimumTeamPlayers)
 
+	// Build supplemental requests for sport/venue if IDs are not provided
+	var supplementalRequests *SupplementalRequests
+	if request.SportID == nil {
+		// Sport doesn't exist, add to supplemental requests
+		if supplementalRequests == nil {
+			supplementalRequests = &SupplementalRequests{}
+		}
+		supplementalRequests.Sport = &SupplementalSport{
+			Name: request.SportName,
+		}
+	}
+
+	if request.VenueID == nil && request.VenueAddress != nil {
+		// Venue doesn't exist, add to supplemental requests
+		if supplementalRequests == nil {
+			supplementalRequests = &SupplementalRequests{}
+		}
+		supplementalRequests.Venue = &SupplementalVenue{
+			Name:    *request.VenueName,
+			Address: *request.VenueAddress,
+			Lat:     request.VenueLat,
+			Lng:     request.VenueLng,
+		}
+	}
+
 	// Create league struct
 	league := &League{
 		OrgID:                request.OrgID,
@@ -123,6 +154,7 @@ func (s *Service) CreateLeague(userID string, request *CreateLeagueRequest) (*Le
 		Duration:             request.Duration,
 		MinimumTeamPlayers:   request.MinimumTeamPlayers,
 		PerGameFee:           request.PerGameFee,
+		SupplementalRequests: supplementalRequests,
 		Status:               LeagueStatusPending,
 		CreatedBy:            &userID,
 	}
@@ -136,6 +168,8 @@ func (s *Service) CreateLeague(userID string, request *CreateLeagueRequest) (*Le
 }
 
 // ApproveLeague approves a pending league submission (admin only)
+// If sport_id is nil and supplemental_requests.sport exists, creates the sport
+// If venue_id is nil and supplemental_requests.venue exists, creates the venue
 func (s *Service) ApproveLeague(userID string, id int) error {
 	// Verify user is admin
 	isAdmin, err := s.authService.IsUserAdmin(userID)
@@ -146,6 +180,55 @@ func (s *Service) ApproveLeague(userID string, id int) error {
 		return fmt.Errorf("only admins can approve leagues")
 	}
 
+	// Get the league to check supplemental requests
+	league, err := s.repo.GetByID(id)
+	if err != nil {
+		return fmt.Errorf("failed to fetch league: %w", err)
+	}
+
+	// If sport_id is nil and supplemental requests has sport, create it
+	if league.SportID == nil && league.SupplementalRequests != nil && league.SupplementalRequests.Sport != nil {
+		newSport, err := s.sportsService.CreateSport(userID, &sports.CreateSportRequest{
+			Name: league.SupplementalRequests.Sport.Name,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create sport: %w", err)
+		}
+		league.SportID = &newSport.ID
+	}
+
+	// If venue_id is nil and supplemental requests has venue, create it
+	if league.VenueID == nil && league.SupplementalRequests != nil && league.SupplementalRequests.Venue != nil {
+		lat := 0.0
+		lng := 0.0
+		if league.SupplementalRequests.Venue.Lat != nil {
+			lat = *league.SupplementalRequests.Venue.Lat
+		}
+		if league.SupplementalRequests.Venue.Lng != nil {
+			lng = *league.SupplementalRequests.Venue.Lng
+		}
+		venueReq := &venues.CreateVenueRequest{
+			Name:    league.SupplementalRequests.Venue.Name,
+			Address: league.SupplementalRequests.Venue.Address,
+			Lat:     lat,
+			Lng:     lng,
+		}
+		newVenue, err := s.venuesService.CreateVenue(userID, venueReq)
+		if err != nil {
+			return fmt.Errorf("failed to create venue: %w", err)
+		}
+		league.VenueID = &newVenue.ID
+	}
+
+	// Update league with any new IDs and set status to approved
+	if league.SportID != nil || league.VenueID != nil {
+		// Update the league with new IDs
+		if err := s.repo.UpdateLeague(league); err != nil {
+			return fmt.Errorf("failed to update league with new IDs: %w", err)
+		}
+	}
+
+	// Update status to approved
 	return s.repo.UpdateStatus(id, LeagueStatusApproved, nil)
 }
 

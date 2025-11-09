@@ -20,6 +20,7 @@ type RepositoryInterface interface {
 	Create(league *League) error
 	GetPending() ([]League, error)
 	UpdateStatus(id int, status LeagueStatus, rejectionReason *string) error
+	UpdateLeague(league *League) error
 
 	// Draft methods
 	GetDraftByOrgID(orgID int) (*LeagueDraft, error)
@@ -52,7 +53,7 @@ func (r *Repository) GetAll() ([]League, error) {
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, age_group, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, supplemental_requests, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		ORDER BY
@@ -76,7 +77,7 @@ func (r *Repository) GetAllApproved() ([]League, error) {
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, age_group, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, supplemental_requests, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE status = $1
@@ -93,12 +94,13 @@ func (r *Repository) GetByID(id int) (*League, error) {
 
 	league := &League{}
 	var gameOccurrencesJSON []byte
+	var supplementalRequestsJSON []byte
 
 	query := `
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, age_group, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, supplemental_requests, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE id = $1 AND status = $2
@@ -125,6 +127,7 @@ func (r *Repository) GetByID(id int) (*League, error) {
 		&league.Duration,
 		&league.MinimumTeamPlayers,
 		&league.PerGameFee,
+		&supplementalRequestsJSON,
 		&league.Status,
 		&league.CreatedAt,
 		&league.UpdatedAt,
@@ -140,6 +143,12 @@ func (r *Repository) GetByID(id int) (*League, error) {
 		return nil, fmt.Errorf("failed to parse game occurrences: %w", err)
 	}
 
+	if len(supplementalRequestsJSON) > 0 {
+		if err := json.Unmarshal(supplementalRequestsJSON, &league.SupplementalRequests); err != nil {
+			return nil, fmt.Errorf("failed to parse supplemental requests: %w", err)
+		}
+	}
+
 	return league, nil
 }
 
@@ -152,7 +161,7 @@ func (r *Repository) GetByOrgID(orgID int) ([]League, error) {
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, age_group, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, supplemental_requests, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE org_id = $1
@@ -177,7 +186,7 @@ func (r *Repository) GetByOrgIDAndStatus(orgID int, status LeagueStatus) ([]Leag
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, age_group, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, supplemental_requests, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE org_id = $1 AND status = $2
@@ -197,12 +206,20 @@ func (r *Repository) Create(league *League) error {
 		return fmt.Errorf("failed to marshal game occurrences: %w", err)
 	}
 
+	var supplementalRequestsJSON []byte
+	if league.SupplementalRequests != nil {
+		supplementalRequestsJSON, err = json.Marshal(league.SupplementalRequests)
+		if err != nil {
+			return fmt.Errorf("failed to marshal supplemental requests: %w", err)
+		}
+	}
+
 	query := `
 		INSERT INTO leagues (org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		                     season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		                     venue_id, age_group, gender, season_details, registration_url, duration,
-		                     minimum_team_players, per_game_fee, status, created_at, updated_at, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+		                     minimum_team_players, per_game_fee, supplemental_requests, status, created_at, updated_at, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
 		RETURNING id
 	`
 
@@ -228,6 +245,7 @@ func (r *Repository) Create(league *League) error {
 		league.Duration,
 		league.MinimumTeamPlayers,
 		league.PerGameFee,
+		supplementalRequestsJSON,
 		league.Status,
 		time.Now(),
 		time.Now(),
@@ -253,7 +271,7 @@ func (r *Repository) GetPending() ([]League, error) {
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, age_group, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, supplemental_requests, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE status = $1
@@ -277,6 +295,38 @@ func (r *Repository) UpdateStatus(id int, status LeagueStatus, rejectionReason *
 	result, err := r.db.Exec(ctx, query, status.String(), rejectionReason, id)
 	if err != nil {
 		return fmt.Errorf("failed to update league status: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("league not found")
+	}
+
+	return nil
+}
+
+// UpdateLeague updates an existing league (used when approving with new sport/venue IDs)
+func (r *Repository) UpdateLeague(league *League) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var supplementalRequestsJSON []byte
+	if league.SupplementalRequests != nil {
+		var err error
+		supplementalRequestsJSON, err = json.Marshal(league.SupplementalRequests)
+		if err != nil {
+			return fmt.Errorf("failed to marshal supplemental requests: %w", err)
+		}
+	}
+
+	query := `
+		UPDATE leagues
+		SET sport_id = $1, venue_id = $2, supplemental_requests = $3, updated_at = NOW()
+		WHERE id = $4
+	`
+
+	result, err := r.db.Exec(ctx, query, league.SportID, league.VenueID, supplementalRequestsJSON, league.ID)
+	if err != nil {
+		return fmt.Errorf("failed to update league: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {
@@ -640,6 +690,7 @@ func (r *Repository) scanLeagues(ctx context.Context, query string, args ...inte
 	for rows.Next() {
 		var league League
 		var gameOccurrencesJSON []byte
+		var supplementalRequestsJSON []byte
 
 		err := rows.Scan(
 			&league.ID,
@@ -662,6 +713,7 @@ func (r *Repository) scanLeagues(ctx context.Context, query string, args ...inte
 			&league.Duration,
 			&league.MinimumTeamPlayers,
 			&league.PerGameFee,
+			&supplementalRequestsJSON,
 			&league.Status,
 			&league.CreatedAt,
 			&league.UpdatedAt,
@@ -674,6 +726,12 @@ func (r *Repository) scanLeagues(ctx context.Context, query string, args ...inte
 
 		if err := json.Unmarshal(gameOccurrencesJSON, &league.GameOccurrences); err != nil {
 			return nil, fmt.Errorf("failed to parse game occurrences: %w", err)
+		}
+
+		if len(supplementalRequestsJSON) > 0 {
+			if err := json.Unmarshal(supplementalRequestsJSON, &league.SupplementalRequests); err != nil {
+				return nil, fmt.Errorf("failed to parse supplemental requests: %w", err)
+			}
 		}
 
 		leagues = append(leagues, league)
