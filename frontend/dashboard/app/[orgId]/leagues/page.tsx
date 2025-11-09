@@ -19,8 +19,6 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddLeagueForm } from "@/components/forms/AddLeagueForm";
-import { AddSportForm } from "@/components/forms/AddSportForm";
-import { AddVenueForm } from "@/components/forms/AddVenueForm";
 import { OrganizerLeagueTable } from "@/components/organizer/OrganizerLeagueTable";
 import { OrganizerTemplateTable } from "@/components/organizer/OrganizerTemplateTable";
 import { OrganizerDraftTable } from "@/components/organizer/OrganizerDraftTable";
@@ -195,19 +193,7 @@ function LeaguesContent() {
             </TabsList>
 
             <ButtonGroup>
-              <Button
-                variant="brandDark"
-                onClick={() => setOpenDialog("sport")}
-              >
-                Add Sport
-              </Button>
-              <Button
-                variant="brandDark"
-                onClick={() => setOpenDialog("venue")}
-              >
-                Add Venue
-              </Button>
-              <Button
+                                          <Button
                 variant="brandDark"
                 onClick={() => setOpenDialog("template")}
               >
@@ -348,45 +334,6 @@ function LeaguesContent() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Add Sport Dialog */}
-      <Dialog
-        open={openDialog === "sport"}
-        onOpenChange={(open) => !open && handleCloseDialog()}
-      >
-        <DialogContent className="border-0 !max-w-2xl">
-          <DialogHeader className="bg-brand-dark text-white !-mx-6 !-mt-6 !-mb-4 px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
-            <DialogTitle className="text-white">Add Sport</DialogTitle>
-            <DialogDescription className="text-gray-200">
-              Add a new sport to your organization.
-            </DialogDescription>
-          </DialogHeader>
-          <AddSportForm
-            onSuccess={handleCloseDialog}
-            onClose={handleCloseDialog}
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Venue Dialog */}
-      <Dialog
-        open={openDialog === "venue"}
-        onOpenChange={(open) => !open && handleCloseDialog()}
-      >
-        <DialogContent className="border-0 !max-w-2xl">
-          <DialogHeader className="bg-brand-dark text-white !-mx-6 !-mt-6 !-mb-4 px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
-            <DialogTitle className="text-white">Add Venue</DialogTitle>
-            <DialogDescription className="text-gray-200">
-              Add a new venue to your organization.
-            </DialogDescription>
-          </DialogHeader>
-          <AddVenueForm
-            onSuccess={handleCloseDialog}
-            onClose={handleCloseDialog}
-          />
-        </DialogContent>
-      </Dialog>
-
       <Footer />
     </div>
   );
