@@ -220,16 +220,9 @@ func (s *Service) ApproveLeague(userID string, id int) error {
 		league.VenueID = &newVenue.ID
 	}
 
-	// Update league with any new IDs and set status to approved
-	if league.SportID != nil || league.VenueID != nil {
-		// Update the league with new IDs
-		if err := s.repo.UpdateLeague(league); err != nil {
-			return fmt.Errorf("failed to update league with new IDs: %w", err)
-		}
-	}
-
-	// Update status to approved
-	return s.repo.UpdateStatus(id, LeagueStatusApproved, nil)
+	// Atomically update league IDs and status to approved in a single transaction
+	// This ensures both updates succeed or both fail together
+	return s.repo.ApproveLeagueWithTransaction(id, league.SportID, league.VenueID)
 }
 
 // RejectLeague rejects a pending league submission with a reason (admin only)

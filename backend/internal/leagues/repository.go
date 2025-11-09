@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -21,6 +22,7 @@ type RepositoryInterface interface {
 	GetPending() ([]League, error)
 	UpdateStatus(id int, status LeagueStatus, rejectionReason *string) error
 	UpdateLeague(league *League) error
+	ApproveLeagueWithTransaction(id int, sportID *int, venueID *int) error
 
 	// Draft methods
 	GetDraftByOrgID(orgID int) (*LeagueDraft, error)
@@ -331,6 +333,65 @@ func (r *Repository) UpdateLeague(league *League) error {
 
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("league not found")
+	}
+
+	return nil
+}
+
+// ApproveLeagueWithTransaction atomically updates sport_id, venue_id, and status to approved
+// Wraps all updates in a single transaction to ensure consistency
+func (r *Repository) ApproveLeagueWithTransaction(id int, sportID *int, venueID *int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Start a transaction
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
+	// Ensure transaction is rolled back if we return early with an error
+	defer tx.Rollback(ctx)
+
+	// Update sport_id and venue_id if they changed
+	if sportID != nil || venueID != nil {
+		updateQuery := `
+			UPDATE leagues
+			SET sport_id = COALESCE($1, sport_id),
+				venue_id = COALESCE($2, venue_id),
+				updated_at = NOW()
+			WHERE id = $3
+		`
+
+		result, err := tx.Exec(ctx, updateQuery, sportID, venueID, id)
+		if err != nil {
+			return fmt.Errorf("failed to update league IDs: %w", err)
+		}
+
+		if result.RowsAffected() == 0 {
+			return fmt.Errorf("league not found")
+		}
+	}
+
+	// Update status to approved
+	statusQuery := `
+		UPDATE leagues
+		SET status = $1, rejection_reason = NULL, updated_at = NOW()
+		WHERE id = $2
+	`
+
+	result, err := tx.Exec(ctx, statusQuery, LeagueStatusApproved.String(), id)
+	if err != nil {
+		return fmt.Errorf("failed to update league status: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("league not found")
+	}
+
+	// Commit the transaction
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
