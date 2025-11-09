@@ -211,6 +211,18 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
     }
   }
 
+  const handleSelectVenue = (venue: Venue) => {
+    setSelectedVenue(venue)
+    setValue('venue_id', venue.id)
+    setValue('venue_name', venue.name)
+    setValue('venue_address', venue.address)
+    setValue('venue_lat', venue.lat)
+    setValue('venue_lng', venue.lng)
+    if (addressInputRef.current) {
+      addressInputRef.current.value = venue.address
+    }
+  }
+
   const handleClearVenueSelection = () => {
     setSelectedVenue(null)
     setValue('venue_id', null as any)
@@ -686,9 +698,42 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
           <p className="text-xs text-gray-500">{watch('venue_name')?.length || 0}/255 characters</p>
         </div>
 
+        {/* Existing Venues Dropdown */}
+        <div className="space-y-2 mb-4">
+          <Label htmlFor="venue_select">Select from existing venues</Label>
+          <select
+            id="venue_select"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+            onChange={(e) => {
+              const venueId = parseInt(e.target.value)
+              if (venueId) {
+                const selected = approvedVenues.find(v => v.id === venueId)
+                if (selected) {
+                  handleSelectVenue(selected)
+                }
+              } else {
+                handleClearVenueSelection()
+              }
+            }}
+            value={selectedVenue?.id || ''}
+          >
+            <option value="">-- Select a venue or enter a custom one below --</option>
+            {approvedVenues.map((venue) => (
+              <option key={venue.id} value={venue.id}>
+                {venue.name} - {venue.address}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Address Autofill or Custom Entry */}
         <div className="space-y-2">
           <Label htmlFor="venue_address">Venue Address (Optional)</Label>
-          <p className="text-sm text-gray-600">Search for an existing venue or enter a new one</p>
+          <p className="text-sm text-gray-600">
+            {selectedVenue
+              ? 'Venue selected - edit address below if needed'
+              : 'Search for an address or use the dropdown above to select an existing venue'}
+          </p>
           {(() => {
             const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
             return mapboxToken ? (
