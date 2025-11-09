@@ -16,13 +16,26 @@ export type GameOccurrence = z.infer<typeof gameOccurrenceSchema>;
 // Main league form schema
 export const addLeagueSchema = z.object({
   sport_id: z.number()
-    .min(1, "Please select a sport")
-    .optional(),
+    .optional()
+    .nullable(),
+  sport_name: z.string()
+    .min(1, "Sport name is required")
+    .max(255, "Sport name must be at most 255 characters"),
   venue_id: z.number()
     .optional()
     .nullable(),
   venue_name: z.string()
     .max(255, "Venue name must be at most 255 characters")
+    .optional()
+    .nullable(),
+  venue_address: z.string()
+    .max(500, "Venue address must be at most 500 characters")
+    .optional()
+    .nullable(),
+  venue_lat: z.number()
+    .optional()
+    .nullable(),
+  venue_lng: z.number()
     .optional()
     .nullable(),
   league_name: z.string()

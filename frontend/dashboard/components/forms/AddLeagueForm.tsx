@@ -60,8 +60,12 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
     resolver: zodResolver(addLeagueSchema),
     defaultValues: {
       sport_id: undefined,
+      sport_name: '',
       venue_id: undefined,
       venue_name: '',
+      venue_address: '',
+      venue_lat: undefined,
+      venue_lng: undefined,
       league_name: '',
       division: '' as any,
       age_group: '',
@@ -157,6 +161,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
     setSelectedSport(sport)
     setSportSearchInput(sport.name)
     setValue('sport_id', sport.id)
+    setValue('sport_name', sport.name)
     setShowSportAutocomplete(false)
   }
 
@@ -182,19 +187,23 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
       )
 
       if (matchingVenue) {
-        // Venue exists in database - set venue_id and venue_name
+        // Venue exists in database - set venue_id and other venue fields
         setSelectedVenue(matchingVenue)
         setValue('venue_id', matchingVenue.id)
         setValue('venue_name', matchingVenue.name)
+        setValue('venue_address', address)
+        setValue('venue_lat', lat)
+        setValue('venue_lng', lng)
         if (addressInputRef.current) {
           addressInputRef.current.value = address
         }
       } else {
-        // Venue doesn't exist - we'll allow submission with just the address
-        // (admin will create the venue record on approval)
+        // Venue doesn't exist - store the address and coordinates for later creation
         setSelectedVenue(null)
         setValue('venue_id', null as any)
-        setValue('venue_name', '')
+        setValue('venue_address', address)
+        setValue('venue_lat', lat)
+        setValue('venue_lng', lng)
         if (addressInputRef.current) {
           addressInputRef.current.value = address
         }
@@ -206,6 +215,9 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
     setSelectedVenue(null)
     setValue('venue_id', null as any)
     setValue('venue_name', '')
+    setValue('venue_address', '')
+    setValue('venue_lat', null as any)
+    setValue('venue_lng', null as any)
     if (addressInputRef.current) {
       addressInputRef.current.value = ''
     }
@@ -290,8 +302,12 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
       // Prepare draft data - include both date values and current form values
       const draftData = {
         sport_id: watch('sport_id'),
+        sport_name: watch('sport_name'),
         venue_id: watch('venue_id'),
         venue_name: watch('venue_name'),
+        venue_address: watch('venue_address'),
+        venue_lat: watch('venue_lat'),
+        venue_lng: watch('venue_lng'),
         league_name: watch('league_name'),
         division: watch('division'),
         age_group: watch('age_group'),
@@ -450,19 +466,22 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Sport Selection with Autocomplete */}
           <div className="space-y-2">
-            <Label htmlFor="sport_search">Sport *</Label>
+            <Label htmlFor="sport_name">Sport *</Label>
             <div className="relative">
               <div className="relative">
                 <Input
-                  id="sport_search"
+                  id="sport_name"
                   placeholder="e.g., Basketball, Football, Tennis"
                   value={sportSearchInput}
-                  onChange={(e) => setSportSearchInput(e.target.value)}
+                  onChange={(e) => {
+                    setSportSearchInput(e.target.value)
+                    setValue('sport_name', e.target.value)
+                  }}
                   onFocus={() => sportSearchInput.length >= 1 && !selectedSport && setShowSportAutocomplete(true)}
                   onBlur={() => setTimeout(() => setShowSportAutocomplete(false), 150)}
                   maxLength={255}
                   autoComplete="off"
-                  aria-invalid={errors.sport_id ? 'true' : 'false'}
+                  aria-invalid={errors.sport_name ? 'true' : 'false'}
                 />
                 {selectedSport && (
                   <button
@@ -483,10 +502,16 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
               />
             </div>
 
-            {errors.sport_id && (
-              <p className="text-sm text-red-600">{errors.sport_id.message}</p>
+            {errors.sport_name && (
+              <p className="text-sm text-red-600">{errors.sport_name.message}</p>
             )}
           </div>
+
+          {/* Hidden sport_id field */}
+          <input
+            type="hidden"
+            {...register('sport_id', { valueAsNumber: true })}
+          />
 
           {/* League Name */}
           <div className="space-y-2">
@@ -714,6 +739,10 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
             <p className="text-sm text-red-600">{errors.venue_id.message}</p>
           )}
         </div>
+
+        {/* Hidden venue coordinates */}
+        <input type="hidden" {...register('venue_lat', { valueAsNumber: true })} />
+        <input type="hidden" {...register('venue_lng', { valueAsNumber: true })} />
       </div>
 
       {/* Section: Game Schedule */}
