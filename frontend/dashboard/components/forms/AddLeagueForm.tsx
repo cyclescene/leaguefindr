@@ -720,6 +720,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
           {/* Venue Search with Autocomplete */}
           <div className="space-y-2">
             <Label htmlFor="venue_search">Venue (Optional)</Label>
+            <p className="text-sm text-gray-600">Select from popular venues or add a new one</p>
             <div className="relative">
               <div className="relative">
                 <Input
@@ -834,58 +835,6 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
         <input type="hidden" {...register('venue_lat', { valueAsNumber: true })} />
         <input type="hidden" {...register('venue_lng', { valueAsNumber: true })} />
       </div>
-
-      {/* Approval Notification - Shows what will be created */}
-      {(() => {
-        const sportId = watch('sport_id')
-        const sportName = watch('sport_name')
-        const venueId = watch('venue_id')
-        const venueName = watch('venue_name')
-        const venueAddress = watch('venue_address')
-
-        const willCreateSport = !sportId && sportName
-        const willCreateVenue = !venueId && (venueName || venueAddress)
-
-        if (willCreateSport || willCreateVenue) {
-          return (
-            <div className="border-l-4 border-blue-400 bg-blue-50 p-4 rounded">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-blue-700 font-medium">
-                    The following will be created when this league is approved:
-                  </p>
-                  <ul className="mt-2 text-sm text-blue-600 space-y-1">
-                    {willCreateSport && (
-                      <li className="flex items-center">
-                        <span className="mr-2">•</span>
-                        <span><strong>Sport:</strong> {sportName}</span>
-                      </li>
-                    )}
-                    {willCreateVenue && (
-                      <li className="flex items-center">
-                        <span className="mr-2">•</span>
-                        <span>
-                          <strong>Venue:</strong> {venueName || 'Custom Venue'}
-                          {venueAddress && ` (${venueAddress})`}
-                        </span>
-                      </li>
-                    )}
-                  </ul>
-                  <p className="mt-2 text-xs text-blue-600 italic">
-                    An admin will review and approve these before they become available for other leagues.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )
-        }
-        return null
-      })()}
 
       {/* Section: Game Schedule */}
       <div className="border-t pt-6">
@@ -1093,6 +1042,58 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
           <p className="text-sm text-yellow-800">{draftError}</p>
         </div>
       )}
+
+      {/* Approval Notification - Shows what will be created */}
+      {(() => {
+        const sportId = watch('sport_id')
+        const sportName = watch('sport_name')
+        const venueId = watch('venue_id')
+        const venueName = watch('venue_name')
+        const venueAddress = watch('venue_address')
+
+        const willCreateSport = !sportId && sportName
+        const willCreateVenue = !venueId && (venueName || venueAddress)
+
+        if (willCreateSport || willCreateVenue) {
+          return (
+            <div className="border-l-4 border-blue-400 bg-blue-50 p-4 rounded">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-blue-700 font-medium">
+                    The following will be created when this league is approved:
+                  </p>
+                  <ul className="mt-2 text-sm text-blue-600 space-y-1">
+                    {willCreateSport && (
+                      <li className="flex items-center">
+                        <span className="mr-2">•</span>
+                        <span><strong>Sport:</strong> {sportName}</span>
+                      </li>
+                    )}
+                    {willCreateVenue && (
+                      <li className="flex items-center">
+                        <span className="mr-2">•</span>
+                        <span>
+                          <strong>Venue:</strong> {venueName || 'Custom Venue'}
+                          {venueAddress && ` (${venueAddress})`}
+                        </span>
+                      </li>
+                    )}
+                  </ul>
+                  <p className="mt-2 text-xs text-blue-600 italic">
+                    An admin will review and approve these before they become available for other leagues.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )
+        }
+        return null
+      })()}
 
       {/* Submit Error Message */}
       {submitError && (
