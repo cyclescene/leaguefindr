@@ -12,7 +12,7 @@ import { LeaguesHeader } from "@/components/leagues/LeaguesHeader";
 import { LeaguesActionBar } from "@/components/leagues/LeaguesActionBar";
 import { SubmitLeagueDialog } from "@/components/leagues/SubmitLeagueDialog";
 import { CreateTemplateDialog } from "@/components/leagues/CreateTemplateDialog";
-import { useDrafts, useTemplates } from "@/hooks/useDrafts";
+import { useDrafts, useTemplates, useLeagues } from "@/hooks/useDrafts";
 
 function LeaguesContent() {
   const { user, isLoaded } = useUser() as {
@@ -27,7 +27,8 @@ function LeaguesContent() {
     "league" | "template" | "sport" | "venue" | null
   >(null);
 
-  // Fetch real drafts and templates from API
+  // Fetch real leagues, drafts and templates from API
+  const { leagues: apiLeagues, isLoading: leaguesLoading } = useLeagues(orgId);
   const { drafts: apiDrafts, isLoading: draftsLoading } = useDrafts(orgId);
   const { templates: apiTemplates, isLoading: templatesLoading } = useTemplates(orgId);
 
@@ -46,39 +47,23 @@ function LeaguesContent() {
     .map(d => ({
       id: d.id,
       name: d.name || `Template #${d.id}`,
-      sport: d.draft_data?.sport_id || 'Unknown',
-      ageGroup: d.draft_data?.age_group || 'N/A',
+      sport: d.draft_data?.sport_name || 'Unknown',
       gender: d.draft_data?.gender || 'N/A',
       dateCreated: new Date(d.created_at).toLocaleDateString(),
     }));
 
-  // Mock data for submitted leagues (will be replaced with API call later)
-  const [submittedLeagues] = useState<League[]>([
-    {
-      id: 1,
-      name: "Summer Basketball League",
-      organizationName: "Test Org",
-      sport: "Basketball",
-      ageGroup: "18+",
-      gender: "Co-ed",
-      startDate: "2024-06-01",
-      venue: "Central Court",
-      dateSubmitted: "2024-01-15",
-      status: "approved",
-    },
-    {
-      id: 2,
-      name: "Winter Volleyball",
-      organizationName: "Test Org",
-      sport: "Volleyball",
-      ageGroup: "16+",
-      gender: "Female",
-      startDate: "2024-12-01",
-      venue: "Sports Hall",
-      dateSubmitted: "2024-02-10",
-      status: "pending_review",
-    },
-  ]);
+  // Convert API leagues to display format
+  const submittedLeagues: League[] = apiLeagues.map(league => ({
+    id: league.id,
+    name: league.league_name,
+    organizationName: "", // Will be populated from org context
+    sport: "", // Sport name would need to be fetched separately if needed
+    gender: league.gender || 'N/A',
+    startDate: league.season_start_date,
+    venue: "", // Venue name would need to be fetched separately if needed
+    dateSubmitted: new Date(league.created_at).toLocaleDateString(),
+    status: league.status === 'approved' ? 'approved' : league.status === 'pending' ? 'pending_review' : 'rejected',
+  }));
 
   const handleCloseDialog = () => setOpenDialog(null);
 
@@ -134,6 +119,7 @@ function LeaguesContent() {
           submittedLeagues={submittedLeagues}
           displayDrafts={displayDrafts}
           displayTemplates={displayTemplates}
+          submittedLeaguesLoading={leaguesLoading}
           draftsLoading={draftsLoading}
           templatesLoading={templatesLoading}
           onViewLeague={handleViewLeague}

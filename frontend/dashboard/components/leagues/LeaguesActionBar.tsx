@@ -12,6 +12,7 @@ interface LeaguesActionBarProps {
   submittedLeagues: League[];
   displayDrafts: Draft[];
   displayTemplates: Template[];
+  submittedLeaguesLoading?: boolean;
   draftsLoading: boolean;
   templatesLoading: boolean;
   onViewLeague: (leagueId: number) => void;
@@ -28,6 +29,7 @@ export function LeaguesActionBar({
   submittedLeagues,
   displayDrafts,
   displayTemplates,
+  submittedLeaguesLoading,
   draftsLoading,
   templatesLoading,
   onViewLeague,
