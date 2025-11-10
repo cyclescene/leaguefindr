@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { addLeagueSchema, type AddLeagueFormData, type GameOccurrence } from '@/lib/schemas'
 import { useAuth } from '@clerk/nextjs'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -43,12 +43,11 @@ interface AddLeagueFormProps {
   onSuccess?: () => void
   onClose?: () => void
   organizationId?: string
+  onSaveAsTemplate?: (formData: AddLeagueFormData) => void
 }
 
-export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueFormProps) {
-  const { getToken, userId, sessionClaims } = useAuth()
-
-  const orgName = sessionClaims?.organizationName
+export function AddLeagueForm({ onSuccess, onClose, organizationId, onSaveAsTemplate }: AddLeagueFormProps) {
+  const { getToken, userId } = useAuth()
 
   const {
     register,
@@ -81,7 +80,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
       duration: 8,
       minimum_team_players: 5,
       org_id: organizationId,
-      organization_name: orgName || '',
+      organization_name: '',
     },
   })
 
@@ -422,6 +421,37 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
     } catch (error) {
       console.error('Failed to delete draft:', error)
     }
+  }
+
+  // Handle save as template
+  const handleSaveAsTemplate = () => {
+    const formData: AddLeagueFormData = {
+      sport_id: watch('sport_id'),
+      sport_name: watch('sport_name'),
+      venue_id: watch('venue_id'),
+      venue_name: watch('venue_name'),
+      venue_address: watch('venue_address'),
+      venue_lat: watch('venue_lat'),
+      venue_lng: watch('venue_lng'),
+      league_name: watch('league_name'),
+      division: watch('division'),
+      gender: watch('gender'),
+      registration_deadline: registrationDeadline ? format(registrationDeadline, 'yyyy-MM-dd') : '',
+      season_start_date: seasonStartDate ? format(seasonStartDate, 'yyyy-MM-dd') : '',
+      season_end_date: seasonEndDate ? format(seasonEndDate, 'yyyy-MM-dd') : null,
+      season_details: watch('season_details'),
+      game_occurrences: gameOccurrences,
+      pricing_strategy: watch('pricing_strategy'),
+      pricing_amount: watch('pricing_amount'),
+      per_game_fee: watch('per_game_fee'),
+      minimum_team_players: watch('minimum_team_players'),
+      registration_url: watch('registration_url'),
+      duration: watch('duration'),
+      org_id: organizationId,
+      organization_name: '',
+    }
+
+    onSaveAsTemplate?.(formData)
   }
 
   // Handle form submission
@@ -1096,6 +1126,17 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId }: AddLeagueF
         >
           {isSavingDraft ? 'Saving Draft...' : 'Save Draft'}
         </Button>
+        {onSaveAsTemplate && (
+          <Button
+            type="button"
+            onClick={handleSaveAsTemplate}
+            disabled={isSubmitting || isSavingDraft}
+            variant="outline"
+            className="flex-1"
+          >
+            Continue to Save as Template
+          </Button>
+        )}
         <Button
           type="submit"
           disabled={isSubmitting || isSavingDraft}

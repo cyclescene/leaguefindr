@@ -83,3 +83,15 @@ export const addLeagueSchema = z.object({
 });
 
 export type AddLeagueFormData = z.infer<typeof addLeagueSchema>;
+
+// Template creation schema
+export const createTemplateSchema = z.object({
+  name: z.string()
+    .min(1, "Template name is required")
+    .max(255, "Template name must be at most 255 characters"),
+  description: z.string()
+    .max(500, "Description must be at most 500 characters")
+    .optional(),
+});
+
+export type CreateTemplateFormData = z.infer<typeof createTemplateSchema>;

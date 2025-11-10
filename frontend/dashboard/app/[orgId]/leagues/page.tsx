@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { ClerkUser } from "@/types/clerk";
 import type { League, Template, Draft } from "@/types/leagues";
+import type { AddLeagueFormData } from "@/lib/schemas/leagues";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { LeaguesHeader } from "@/components/leagues/LeaguesHeader";
@@ -29,8 +30,8 @@ function LeaguesContent() {
 
   // Fetch real leagues, drafts and templates from API
   const { leagues: apiLeagues, isLoading: leaguesLoading } = useLeagues(orgId);
-  const { drafts: apiDrafts, isLoading: draftsLoading } = useDrafts(orgId);
-  const { templates: apiTemplates, isLoading: templatesLoading } = useTemplates(orgId);
+  const { drafts: apiDrafts, isLoading: draftsLoading, mutate: mutateDrafts } = useDrafts(orgId);
+  const { templates: apiTemplates, isLoading: templatesLoading, mutate: mutateTemplates } = useTemplates(orgId);
 
   // Convert API drafts to display format
   const displayDrafts = apiDrafts
@@ -91,6 +92,11 @@ function LeaguesContent() {
     console.log("Delete draft:", draftId);
   };
 
+  const handleTemplateCreated = () => {
+    mutateTemplates();
+    setOpenDialog(null);
+  };
+
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-neutral-light">
@@ -141,6 +147,8 @@ function LeaguesContent() {
       <CreateTemplateDialog
         open={openDialog === "template"}
         onOpenChange={(open) => !open && handleCloseDialog()}
+        organizationId={orgId}
+        onSuccess={handleTemplateCreated}
       />
 
       <Footer />
