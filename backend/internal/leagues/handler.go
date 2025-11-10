@@ -116,6 +116,13 @@ func (h *Handler) CreateLeague(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Extract org_id from query parameter
+	orgID := r.URL.Query().Get("org_id")
+	if orgID == "" {
+		http.Error(w, "organization ID is required", http.StatusBadRequest)
+		return
+	}
+
 	var req CreateLeagueRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -134,7 +141,7 @@ func (h *Handler) CreateLeague(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	league, err := h.service.CreateLeague(userID, &req)
+	league, err := h.service.CreateLeague(userID, orgID, &req)
 	if err != nil {
 		slog.Error("create league error", "userID", userID, "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -364,9 +371,23 @@ func (h *Handler) DeleteDraft(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.DeleteDraft(orgID)
+	var req struct {
+		DraftID int `json:"draft_id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.DraftID == 0 {
+		http.Error(w, "draft_id is required", http.StatusBadRequest)
+		return
+	}
+
+	err := h.service.DeleteDraftByID(req.DraftID, orgID)
 	if err != nil {
-		slog.Error("delete draft error", "orgID", orgID, "err", err)
+		slog.Error("delete draft error", "draftID", req.DraftID, "orgID", orgID, "err", err)
 		http.Error(w, "Failed to delete draft", http.StatusInternalServerError)
 		return
 	}

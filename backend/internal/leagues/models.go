@@ -118,6 +118,7 @@ type League struct {
 	MinimumTeamPlayers   *int                  `json:"minimum_team_players"`
 	PerGameFee           *float64              `json:"per_game_fee"`
 	SupplementalRequests *SupplementalRequests `json:"supplemental_requests"` // Sport/venue data for items not in DB
+	DraftData            DraftData             `json:"draft_data"` // Complete form submission data
 	Status               LeagueStatus          `json:"status"`
 	CreatedAt            time.Time             `json:"created_at"`
 	UpdatedAt            time.Time             `json:"updated_at"`
@@ -127,7 +128,6 @@ type League struct {
 
 // CreateLeagueRequest represents the request to create/submit a new league
 type CreateLeagueRequest struct {
-	OrgID                *string         `json:"org_id" validate:"required"` // UUID of the organization
 	SportID              *int            `json:"sport_id"` // Optional if sport doesn't exist yet
 	SportName            string          `json:"sport_name" validate:"required,max=255"` // Sport name (always required)
 	LeagueName           *string         `json:"league_name" validate:"max=255"`

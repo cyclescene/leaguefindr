@@ -9,6 +9,7 @@ export interface League {
   venue: string;
   dateSubmitted: string;
   status: string;
+  draft_data?: Record<string, any>;
 }
 
 export interface Template {

@@ -1,0 +1,55 @@
+'use client';
+
+import { createContext, useContext, ReactNode } from 'react';
+import type { AddLeagueFormData } from '@/lib/schemas/leagues';
+
+export type FormMode = 'new' | 'edit-draft' | 'edit-template' | 'view';
+
+export interface LeagueFormContextType {
+  // Mode
+  mode: FormMode;
+
+  // IDs
+  draftId?: number;
+  templateId?: number;
+  leagueId?: number;
+
+  // Form data
+  prePopulatedFormData?: AddLeagueFormData;
+  organizationId?: string;
+  organizationName?: string;
+
+  // Callbacks
+  onSuccess?: () => void;
+  onClose?: () => void;
+  onLeagueSubmitted?: () => void;
+
+  // Mutate functions
+  mutateDrafts?: () => Promise<any>;
+  mutateTemplates?: () => Promise<any>;
+  mutateLeagues?: () => Promise<any>;
+}
+
+const LeagueFormContext = createContext<LeagueFormContextType | undefined>(undefined);
+
+export function LeagueFormProvider({
+  children,
+  value,
+}: {
+  children: ReactNode;
+  value: LeagueFormContextType;
+}) {
+  return (
+    <LeagueFormContext.Provider value={value}>
+      {children}
+    </LeagueFormContext.Provider>
+  );
+}
+
+export function useLeagueFormContext() {
+  const context = useContext(LeagueFormContext);
+  if (!context) {
+    throw new Error('useLeagueFormContext must be used within LeagueFormProvider');
+  }
+  return context;
+}

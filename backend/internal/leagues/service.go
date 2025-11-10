@@ -65,17 +65,16 @@ func (s *Service) GetPendingLeagues() ([]League, error) {
 }
 
 // CreateLeague creates a new league with validation and pricing calculation
-func (s *Service) CreateLeague(userID string, request *CreateLeagueRequest) (*League, error) {
+func (s *Service) CreateLeague(userID string, orgID string, request *CreateLeagueRequest) (*League, error) {
 	if request == nil {
 		return nil, fmt.Errorf("create league request cannot be nil")
 	}
 
-	// Verify user has access to the organization
-	if request.OrgID == nil {
+	if orgID == "" {
 		return nil, fmt.Errorf("organization ID is required")
 	}
 
-	err := s.orgService.VerifyUserOrgAccess(userID, *request.OrgID)
+	err := s.orgService.VerifyUserOrgAccess(userID, orgID)
 	if err != nil {
 		return nil, fmt.Errorf("user does not have access to this organization: %w", err)
 	}
@@ -133,9 +132,39 @@ func (s *Service) CreateLeague(userID string, request *CreateLeagueRequest) (*Le
 		}
 	}
 
-	// Create league struct
+	// Create league struct - store orgID in a variable before taking its address
+	orgIDValue := orgID
+	createdByValue := userID
+
+	// Convert request to map for draft_data
+	draftDataMap := map[string]interface{}{
+		"sport_id":              request.SportID,
+		"sport_name":            request.SportName,
+		"league_name":           request.LeagueName,
+		"division":              request.Division,
+		"registration_deadline": *request.RegistrationDeadline,
+		"season_start_date":     *request.SeasonStartDate,
+		"season_end_date":       request.SeasonEndDate,
+		"game_occurrences":      request.GameOccurrences,
+		"pricing_strategy":      request.PricingStrategy,
+		"pricing_amount":        request.PricingAmount,
+		"venue_id":              request.VenueID,
+		"venue_name":            request.VenueName,
+		"venue_address":         request.VenueAddress,
+		"venue_lat":             request.VenueLat,
+		"venue_lng":             request.VenueLng,
+		"gender":                request.Gender,
+		"season_details":        request.SeasonDetails,
+		"registration_url":      request.RegistrationURL,
+		"duration":              request.Duration,
+		"minimum_team_players":  request.MinimumTeamPlayers,
+		"per_game_fee":          request.PerGameFee,
+		"org_id":                orgID,
+		"organization_name":     "", // Will be populated from org context if needed
+	}
+
 	league := &League{
-		OrgID:                request.OrgID,
+		OrgID:                &orgIDValue,
 		SportID:              request.SportID,
 		LeagueName:           request.LeagueName,
 		Division:             request.Division,
@@ -154,8 +183,9 @@ func (s *Service) CreateLeague(userID string, request *CreateLeagueRequest) (*Le
 		MinimumTeamPlayers:   request.MinimumTeamPlayers,
 		PerGameFee:           request.PerGameFee,
 		SupplementalRequests: supplementalRequests,
+		DraftData:            DraftData(draftDataMap),
 		Status:               LeagueStatusPending,
-		CreatedBy:            &userID,
+		CreatedBy:            &createdByValue,
 	}
 
 	// Save league
@@ -333,9 +363,9 @@ func (s *Service) DeleteTemplate(templateID int, orgID string) error {
 	return s.repo.DeleteTemplate(templateID, orgID)
 }
 
-// DeleteDraft deletes the draft for an organization
-func (s *Service) DeleteDraft(orgID string) error {
-	return s.repo.DeleteDraft(orgID)
+// DeleteDraftByID deletes a specific draft by ID for an organization
+func (s *Service) DeleteDraftByID(draftID int, orgID string) error {
+	return s.repo.DeleteDraftByID(draftID, orgID)
 }
 
 // GetAllDrafts retrieves all league drafts across all organizations (admin only)

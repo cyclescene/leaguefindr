@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { addLeagueSchema, type AddLeagueFormData, type GameOccurrence } from '@/lib/schemas'
 import { useAuth } from '@clerk/nextjs'
 import { useState, useEffect, useRef } from 'react'
+import { useLeagueFormContext } from '@/context/LeagueFormContext'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -40,16 +41,31 @@ interface Venue {
 }
 
 interface AddLeagueFormProps {
-  onSuccess?: () => void
-  onClose?: () => void
-  organizationId?: string
-  organizationName?: string
   onSaveAsTemplate?: (formData: AddLeagueFormData) => void
-  prePopulatedFormData?: AddLeagueFormData
-  isEditingDraft?: boolean
 }
 
-export function AddLeagueForm({ onSuccess, onClose, organizationId, organizationName, onSaveAsTemplate, prePopulatedFormData, isEditingDraft }: AddLeagueFormProps) {
+export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
+  // Get all form context from the provider
+  const {
+    mode,
+    draftId: editingDraftId,
+    templateId: editingTemplateId,
+    leagueId: viewingLeagueId,
+    prePopulatedFormData,
+    organizationId,
+    organizationName,
+    onSuccess,
+    onClose,
+    onLeagueSubmitted,
+    mutateDrafts,
+    mutateTemplates,
+    mutateLeagues,
+  } = useLeagueFormContext()
+
+  // Derive boolean flags from mode
+  const isEditingDraft = mode === 'edit-draft'
+  const isEditingTemplate = mode === 'edit-template'
+  const isViewingLeague = mode === 'view'
   const { getToken, userId } = useAuth()
 
   const {
@@ -136,14 +152,21 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
       Object.keys(prePopulatedFormData).forEach((key) => {
         const value = prePopulatedFormData[key as keyof AddLeagueFormData]
         if (key === 'registration_deadline' && value) {
-          setRegistrationDeadline(parse(value as string, 'yyyy-MM-dd', new Date()))
+          const parsedDate = parse(value as string, 'yyyy-MM-dd', new Date())
+          setRegistrationDeadline(parsedDate)
+          setValue('registration_deadline', value as string)
         } else if (key === 'season_start_date' && value) {
-          setSeasonStartDate(parse(value as string, 'yyyy-MM-dd', new Date()))
+          const parsedDate = parse(value as string, 'yyyy-MM-dd', new Date())
+          setSeasonStartDate(parsedDate)
+          setValue('season_start_date', value as string)
         } else if (key === 'season_end_date' && value) {
-          setSeasonEndDate(parse(value as string, 'yyyy-MM-dd', new Date()))
+          const parsedDate = parse(value as string, 'yyyy-MM-dd', new Date())
+          setSeasonEndDate(parsedDate)
+          setValue('season_end_date', value as string)
         } else if (key === 'game_occurrences' && Array.isArray(value)) {
           setGameOccurrences(value as GameOccurrence[])
-        } else if (key !== 'game_occurrences') {
+          setValue('game_occurrences', value as GameOccurrence[])
+        } else if (key !== 'game_occurrences' && key !== 'registration_deadline' && key !== 'season_start_date' && key !== 'season_end_date') {
           setValue(key as keyof AddLeagueFormData, value as any)
         }
       })
@@ -414,6 +437,11 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
         throw new Error(errorData.error || 'Failed to save draft')
       }
 
+      // Refresh drafts list after creation
+      if (mutateDrafts) {
+        await mutateDrafts()
+      }
+
       setDraftSaveStatus('Draft saved successfully')
       setTimeout(() => {
         setDraftSaveStatus(null)
@@ -430,20 +458,96 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
 
   // Delete draft
   const handleDeleteDraft = async () => {
-    if (!organizationId) return
+    if (!organizationId || !editingDraftId) return
 
     try {
       const token = await getToken()
       if (!token) return
 
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/drafts/${organizationId}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/drafts/org/${organizationId}`, {
         method: 'DELETE',
         headers: {
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify({
+          draft_id: editingDraftId,
+        }),
       })
+
+      // Refresh drafts list after deletion
+      if (mutateDrafts) {
+        await mutateDrafts()
+      }
     } catch (error) {
       console.error('Failed to delete draft:', error)
+    }
+  }
+
+  // Update template
+  const handleUpdateTemplate = async () => {
+    if (!organizationId || !editingTemplateId) return
+
+    try {
+      const token = await getToken()
+      if (!token) return
+
+      // Prepare template data
+      const templateData = {
+        sport_id: watch('sport_id'),
+        sport_name: watch('sport_name'),
+        venue_id: watch('venue_id'),
+        venue_name: watch('venue_name'),
+        venue_address: watch('venue_address'),
+        venue_lat: watch('venue_lat'),
+        venue_lng: watch('venue_lng'),
+        league_name: watch('league_name'),
+        division: watch('division'),
+        gender: watch('gender'),
+        registration_deadline: registrationDeadline ? format(registrationDeadline, 'yyyy-MM-dd') : '',
+        season_start_date: seasonStartDate ? format(seasonStartDate, 'yyyy-MM-dd') : '',
+        season_end_date: seasonEndDate ? format(seasonEndDate, 'yyyy-MM-dd') : null,
+        season_details: watch('season_details'),
+        game_occurrences: gameOccurrences,
+        pricing_strategy: watch('pricing_strategy'),
+        pricing_amount: watch('pricing_amount'),
+        per_game_fee: watch('per_game_fee'),
+        minimum_team_players: watch('minimum_team_players'),
+        registration_url: watch('registration_url'),
+        duration: watch('duration'),
+      }
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/templates/${editingTemplateId}?org_id=${organizationId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(templateData),
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update template')
+      }
+
+      // Refresh templates list after update
+      if (mutateTemplates) {
+        await mutateTemplates()
+      }
+
+      setSuccess(true)
+      setTimeout(() => {
+        onSuccess?.()
+        onClose?.()
+      }, 1500)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update template'
+      setSubmitError(message)
+      console.error('Update template error:', error)
     }
   }
 
@@ -514,8 +618,17 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
       // Delete draft after successful submission
       await handleDeleteDraft()
 
+      // Refresh leagues and drafts lists after submission
+      if (mutateLeagues) {
+        await mutateLeagues()
+      }
+      if (mutateDrafts) {
+        await mutateDrafts()
+      }
+
       setSuccess(true)
       setTimeout(() => {
+        onLeagueSubmitted?.()
         onSuccess?.()
         onClose?.()
       }, 1500)
@@ -579,9 +692,10 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
                   onBlur={() => setTimeout(() => setShowSportAutocomplete(false), 150)}
                   maxLength={255}
                   autoComplete="off"
+                  disabled={isViewingLeague}
                   aria-invalid={errors.sport_name ? 'true' : 'false'}
                 />
-                {selectedSport && (
+                {selectedSport && !isViewingLeague && (
                   <button
                     type="button"
                     onClick={handleClearSportSelection}
@@ -619,6 +733,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
               id="league_name"
               type="text"
               placeholder="e.g., Summer Basketball League"
+              disabled={isViewingLeague}
               aria-invalid={errors.league_name ? 'true' : 'false'}
             />
             {errors.league_name && (
@@ -633,7 +748,8 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
             <select
               {...register('division')}
               id="division"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+              disabled={isViewingLeague}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500"
               aria-invalid={errors.division ? 'true' : 'false'}
             >
               <option value="">Select a skill level</option>
@@ -652,7 +768,8 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
             <select
               {...register('gender')}
               id="gender"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+              disabled={isViewingLeague}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500"
               aria-invalid={errors.gender ? 'true' : 'false'}
             >
               <option value="">Select a gender</option>
@@ -681,6 +798,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
               date={registrationDeadline}
               onDateChange={handleRegistrationDeadlineChange}
               placeholder="Select deadline"
+              disabled={isViewingLeague}
             />
             {errors.registration_deadline && (
               <p className="text-sm text-red-600">{errors.registration_deadline.message}</p>
@@ -695,6 +813,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
               id="registration_url"
               type="url"
               placeholder="https://example.com/register"
+              disabled={isViewingLeague}
               aria-invalid={errors.registration_url ? 'true' : 'false'}
             />
             {errors.registration_url && (
@@ -709,6 +828,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
               date={seasonStartDate}
               onDateChange={handleSeasonStartDateChange}
               placeholder="Select start date"
+              disabled={isViewingLeague}
             />
             {errors.season_start_date && (
               <p className="text-sm text-red-600">{errors.season_start_date.message}</p>
@@ -722,6 +842,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
               date={seasonEndDate}
               onDateChange={handleSeasonEndDateChange}
               placeholder="Select end date"
+              disabled={isViewingLeague}
             />
             {errors.season_end_date && (
               <p className="text-sm text-red-600">{errors.season_end_date.message}</p>
@@ -738,6 +859,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
               min="1"
               max="52"
               placeholder="8"
+              disabled={isViewingLeague}
               aria-invalid={errors.duration ? 'true' : 'false'}
             />
             {errors.duration && (
@@ -770,9 +892,10 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
                   onBlur={() => setTimeout(() => setShowVenueAutocomplete(false), 150)}
                   maxLength={255}
                   autoComplete="off"
+                  disabled={isViewingLeague}
                   aria-invalid={errors.venue_name ? 'true' : 'false'}
                 />
-                {selectedVenue && (
+                {selectedVenue && !isViewingLeague && (
                   <button
                     type="button"
                     onClick={handleClearVenueSelection}
@@ -824,6 +947,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
                       type="text"
                       autoComplete="address-line1"
                       placeholder="Search address..."
+                      disabled={isViewingLeague}
                       aria-invalid={errors.venue_id ? 'true' : 'false'}
                     />
                   </AddressAutofill>
@@ -833,6 +957,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
                     id="venue_address"
                     type="text"
                     placeholder="Enter address..."
+                    disabled={isViewingLeague}
                     aria-invalid={errors.venue_id ? 'true' : 'false'}
                   />
                 )
@@ -888,6 +1013,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
                 placeholder="e.g., Monday, Wednesday"
                 value={newGameDay}
                 onChange={(e) => setNewGameDay(e.target.value)}
+                disabled={isViewingLeague}
               />
             </div>
 
@@ -899,6 +1025,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
                 type="time"
                 value={newGameStartTime}
                 onChange={(e) => setNewGameStartTime(e.target.value)}
+                disabled={isViewingLeague}
               />
             </div>
 
@@ -910,14 +1037,17 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
                 type="time"
                 value={newGameEndTime}
                 onChange={(e) => setNewGameEndTime(e.target.value)}
+                disabled={isViewingLeague}
               />
             </div>
           </div>
 
-          <Button type="button" onClick={handleAddGameOccurrence}>
-            <Plus size={16} />
-            Add Game Occurrence
-          </Button>
+          {!isViewingLeague && (
+            <Button type="button" onClick={handleAddGameOccurrence}>
+              <Plus size={16} />
+              Add Game Occurrence
+            </Button>
+          )}
         </div>
 
         {/* Game Occurrences List */}
@@ -932,15 +1062,17 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
                 <span className="text-sm text-gray-700">
                   {occurrence.day} · {occurrence.startTime} - {occurrence.endTime}
                 </span>
-                <Button
-                  type="button"
-                  onClick={() => handleRemoveGameOccurrence(index)}
-                  variant="ghost"
-                  size="icon"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  <X size={18} />
-                </Button>
+                {!isViewingLeague && (
+                  <Button
+                    type="button"
+                    onClick={() => handleRemoveGameOccurrence(index)}
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <X size={18} />
+                  </Button>
+                )}
               </div>
             ))}
           </div>
@@ -962,7 +1094,8 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
             <select
               {...register('pricing_strategy')}
               id="pricing_strategy"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+              disabled={isViewingLeague}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500"
               aria-invalid={errors.pricing_strategy ? 'true' : 'false'}
             >
               <option value="per_person">Per Person</option>
@@ -985,6 +1118,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
               step="0.01"
               min="0.01"
               placeholder="0.00"
+              disabled={isViewingLeague}
               aria-invalid={errors.pricing_amount ? 'true' : 'false'}
             />
             {errors.pricing_amount && (
@@ -1004,6 +1138,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
             step="0.01"
             min="0"
             placeholder="0.00"
+            disabled={isViewingLeague}
             aria-invalid={errors.per_game_fee ? 'true' : 'false'}
           />
           {errors.per_game_fee && (
@@ -1021,6 +1156,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
             min="1"
             max="100"
             placeholder="5"
+            disabled={isViewingLeague}
             aria-invalid={errors.minimum_team_players ? 'true' : 'false'}
           />
           {errors.minimum_team_players && (
@@ -1054,7 +1190,8 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
             {...register('season_details')}
             id="season_details"
             placeholder="Additional details about the season format, rules, etc."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400"
+            disabled={isViewingLeague}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:text-gray-500"
             rows={3}
             aria-invalid={errors.season_details ? 'true' : 'false'}
           />
@@ -1139,40 +1276,66 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
 
       {/* Button Group */}
       <div className="flex gap-3">
-        {!isEditingDraft && (
+        {isViewingLeague ? (
           <Button
             type="button"
-            onClick={handleSaveDraft}
-            disabled={isSavingDraft || isSubmitting}
-            variant="outline"
+            onClick={onClose}
             className="flex-1"
           >
-            {isSavingDraft ? 'Saving Draft...' : 'Save Draft'}
+            Close
           </Button>
+        ) : (
+          <>
+            {!isEditingDraft && !isEditingTemplate && (
+              <Button
+                type="button"
+                onClick={handleSaveDraft}
+                disabled={isSavingDraft || isSubmitting}
+                variant="outline"
+                className="flex-1"
+              >
+                {isSavingDraft ? 'Saving Draft...' : 'Save Draft'}
+              </Button>
+            )}
+            {!isEditingDraft && !isEditingTemplate && onSaveAsTemplate && (
+              <Button
+                type="button"
+                onClick={handleSaveAsTemplate}
+                disabled={isSubmitting || isSavingDraft}
+                variant="outline"
+                className="flex-1"
+              >
+                Continue to Save as Template
+              </Button>
+            )}
+            {!isEditingTemplate && (
+              <Button
+                type="submit"
+                disabled={isSubmitting || isSavingDraft}
+                className="flex-1"
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit League'}
+              </Button>
+            )}
+            {isEditingTemplate && (
+              <Button
+                type="button"
+                onClick={handleUpdateTemplate}
+                disabled={isSubmitting}
+                className="flex-1"
+              >
+                {isSubmitting ? 'Updating...' : 'Update Template'}
+              </Button>
+            )}
+          </>
         )}
-        {!isEditingDraft && onSaveAsTemplate && (
-          <Button
-            type="button"
-            onClick={handleSaveAsTemplate}
-            disabled={isSubmitting || isSavingDraft}
-            variant="outline"
-            className="flex-1"
-          >
-            Continue to Save as Template
-          </Button>
-        )}
-        <Button
-          type="submit"
-          disabled={isSubmitting || isSavingDraft}
-          className="flex-1"
-        >
-          {isSubmitting ? 'Submitting...' : 'Submit League'}
-        </Button>
       </div>
 
-      <p className="text-xs text-gray-500">
-        Your league submission will be reviewed by an admin before appearing on the map.
-      </p>
+      {!isEditingTemplate && !isViewingLeague && (
+        <p className="text-xs text-gray-500">
+          Your league submission will be reviewed by an admin before appearing on the map.
+        </p>
+      )}
     </form>
   )
 }

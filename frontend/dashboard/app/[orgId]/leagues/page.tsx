@@ -31,9 +31,14 @@ function LeaguesContent() {
   >(null);
   const [prePopulatedFormData, setPrePopulatedFormData] = useState<AddLeagueFormData | undefined>();
   const [isEditingDraft, setIsEditingDraft] = useState(false);
+  const [editingDraftId, setEditingDraftId] = useState<number | undefined>();
+  const [isEditingTemplate, setIsEditingTemplate] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<number | undefined>();
+  const [isViewingLeague, setIsViewingLeague] = useState(false);
+  const [viewingLeagueId, setViewingLeagueId] = useState<number | undefined>();
 
   // Fetch real leagues, drafts and templates from API
-  const { leagues: apiLeagues, isLoading: leaguesLoading } = useLeagues(orgId);
+  const { leagues: apiLeagues, isLoading: leaguesLoading, mutate: mutateLeagues } = useLeagues(orgId);
   const { drafts: apiDrafts, isLoading: draftsLoading, mutate: mutateDrafts } = useDrafts(orgId);
   const { templates: apiTemplates, isLoading: templatesLoading, mutate: mutateTemplates } = useTemplates(orgId);
 
@@ -74,10 +79,49 @@ function LeaguesContent() {
     setOpenDialog(null);
     setPrePopulatedFormData(undefined);
     setIsEditingDraft(false);
+    setEditingDraftId(undefined);
+    setIsEditingTemplate(false);
+    setEditingTemplateId(undefined);
+    setIsViewingLeague(false);
+    setViewingLeagueId(undefined);
   };
 
   const handleViewLeague = (leagueId: number) => {
-    console.log("View league:", leagueId);
+    const league = apiLeagues.find((l) => l.id === leagueId);
+    if (!league) return;
+
+    // Build form data from draft_data if available, otherwise from league fields
+    const draftData = league.draft_data || {};
+    const formData: AddLeagueFormData = {
+      sport_id: draftData.sport_id,
+      sport_name: draftData.sport_name || league.sport || '',
+      venue_id: draftData.venue_id,
+      venue_name: draftData.venue_name || league.venue || '',
+      venue_address: draftData.venue_address || '',
+      venue_lat: draftData.venue_lat,
+      venue_lng: draftData.venue_lng,
+      league_name: draftData.league_name || league.name || '',
+      division: draftData.division || '',
+      gender: draftData.gender || league.gender || '',
+      registration_deadline: draftData.registration_deadline || '',
+      season_start_date: draftData.season_start_date || league.startDate || '',
+      season_end_date: draftData.season_end_date || '',
+      season_details: draftData.season_details || '',
+      game_occurrences: draftData.game_occurrences || [],
+      pricing_strategy: draftData.pricing_strategy || 'per_person',
+      pricing_amount: draftData.pricing_amount,
+      per_game_fee: draftData.per_game_fee,
+      minimum_team_players: draftData.minimum_team_players,
+      registration_url: draftData.registration_url || '',
+      duration: draftData.duration,
+      org_id: orgId,
+      organization_name: draftData.organization_name || '',
+    };
+
+    setPrePopulatedFormData(formData);
+    setIsViewingLeague(true);
+    setViewingLeagueId(leagueId);
+    setOpenDialog("league");
   };
 
   const handleDeleteDraft = async (draftId: number) => {
@@ -86,12 +130,16 @@ function LeaguesContent() {
       if (!token) return;
 
       await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/drafts/${orgId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/drafts/org/${orgId}`,
         {
           method: 'DELETE',
           headers: {
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
+          body: JSON.stringify({
+            draft_id: draftId,
+          }),
         }
       );
 
@@ -107,6 +155,7 @@ function LeaguesContent() {
       // Load draft data and open form
       setPrePopulatedFormData(draft.draft_data as AddLeagueFormData);
       setIsEditingDraft(true);
+      setEditingDraftId(draftId);
       setOpenDialog("league");
     }
   };
@@ -134,10 +183,12 @@ function LeaguesContent() {
 
   const handleEditTemplate = (templateId: number) => {
     const template = apiTemplates.find((t) => t.id === templateId);
-    if (template) {
-      // Open edit template dialog
-      console.log("Edit template:", template);
-      // TODO: Implement template edit dialog
+    if (template && template.draft_data) {
+      // Load template data and open form
+      setPrePopulatedFormData(template.draft_data as AddLeagueFormData);
+      setIsEditingTemplate(true);
+      setEditingTemplateId(templateId);
+      setOpenDialog("league");
     }
   };
 
@@ -153,6 +204,10 @@ function LeaguesContent() {
   const handleTemplateCreated = () => {
     mutateTemplates();
     setOpenDialog(null);
+  };
+
+  const handleLeagueSubmitted = () => {
+    mutateLeagues();
   };
 
   if (!isLoaded) {
@@ -202,6 +257,15 @@ function LeaguesContent() {
         onSuccess={handleCloseDialog}
         prePopulatedFormData={prePopulatedFormData}
         isEditingDraft={isEditingDraft}
+        editingDraftId={editingDraftId}
+        isEditingTemplate={isEditingTemplate}
+        editingTemplateId={editingTemplateId}
+        isViewingLeague={isViewingLeague}
+        viewingLeagueId={viewingLeagueId}
+        onLeagueSubmitted={handleLeagueSubmitted}
+        mutateDrafts={mutateDrafts}
+        mutateTemplates={mutateTemplates}
+        mutateLeagues={mutateLeagues}
       />
 
       <CreateTemplateDialog
@@ -209,6 +273,7 @@ function LeaguesContent() {
         onOpenChange={(open) => !open && handleCloseDialog()}
         organizationId={orgId}
         onSuccess={handleTemplateCreated}
+        mutateTemplates={mutateTemplates}
       />
 
       <Footer />

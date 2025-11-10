@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AddLeagueForm } from "@/components/forms/AddLeagueForm";
+import { LeagueFormProvider } from "@/context/LeagueFormContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ interface CreateTemplateDialogProps {
   onOpenChange: (open: boolean) => void;
   organizationId?: string;
   onSuccess?: () => void;
+  mutateTemplates?: () => Promise<any>;
 }
 
 export function CreateTemplateDialog({
@@ -28,6 +30,7 @@ export function CreateTemplateDialog({
   onOpenChange,
   organizationId,
   onSuccess,
+  mutateTemplates,
 }: CreateTemplateDialogProps) {
   const { getToken } = useAuth();
   const { organization } = useOrganization(organizationId || "");
@@ -101,6 +104,11 @@ export function CreateTemplateDialog({
         throw new Error(errorData.message || 'Failed to create template');
       }
 
+      // Refresh templates list after creation
+      if (mutateTemplates) {
+        await mutateTemplates();
+      }
+
       setTemplateName('');
       setTemplateDescription('');
       setFormData(null);
@@ -168,12 +176,16 @@ export function CreateTemplateDialog({
           {/* League Form Section */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">League Configuration</h3>
-            <AddLeagueForm
-              organizationId={organizationId}
-              organizationName={organizationName}
-              onSaveAsTemplate={handleSaveAsTemplate}
-              onClose={handleClose}
-            />
+            <LeagueFormProvider
+              value={{
+                mode: 'new',
+                organizationId,
+                organizationName,
+                onClose: handleClose,
+              }}
+            >
+              <AddLeagueForm onSaveAsTemplate={handleSaveAsTemplate} />
+            </LeagueFormProvider>
           </div>
         </div>
 
