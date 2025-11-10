@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@clerk/nextjs';
+import { useOrganization } from "@/hooks/useOrganizations";
 import type { AddLeagueFormData } from '@/lib/schemas/leagues';
 
 interface CreateTemplateDialogProps {
@@ -29,6 +30,8 @@ export function CreateTemplateDialog({
   onSuccess,
 }: CreateTemplateDialogProps) {
   const { getToken } = useAuth();
+  const { organization } = useOrganization(organizationId || "");
+  const organizationName = organization?.org_name;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [templateName, setTemplateName] = useState('');
@@ -165,6 +168,7 @@ export function CreateTemplateDialog({
             <h3 className="text-lg font-semibold text-gray-900 mb-4">League Configuration</h3>
             <AddLeagueForm
               organizationId={organizationId}
+              organizationName={organizationName}
               onSaveAsTemplate={handleSaveAsTemplate}
               onClose={handleClose}
             />

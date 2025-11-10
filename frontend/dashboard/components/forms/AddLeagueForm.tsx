@@ -43,10 +43,11 @@ interface AddLeagueFormProps {
   onSuccess?: () => void
   onClose?: () => void
   organizationId?: string
+  organizationName?: string
   onSaveAsTemplate?: (formData: AddLeagueFormData) => void
 }
 
-export function AddLeagueForm({ onSuccess, onClose, organizationId, onSaveAsTemplate }: AddLeagueFormProps) {
+export function AddLeagueForm({ onSuccess, onClose, organizationId, organizationName, onSaveAsTemplate }: AddLeagueFormProps) {
   const { getToken, userId } = useAuth()
 
   const {
@@ -80,7 +81,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, onSaveAsTemp
       duration: 8,
       minimum_team_players: 5,
       org_id: organizationId,
-      organization_name: '',
+      organization_name: organizationName || '',
     },
   })
 
@@ -448,7 +449,7 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, onSaveAsTemp
       registration_url: watch('registration_url'),
       duration: watch('duration'),
       org_id: organizationId,
-      organization_name: '',
+      organization_name: organizationName || '',
     }
 
     onSaveAsTemplate?.(formData)

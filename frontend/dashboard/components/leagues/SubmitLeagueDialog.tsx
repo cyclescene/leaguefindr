@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AddLeagueForm } from "@/components/forms/AddLeagueForm";
+import { useOrganization } from "@/hooks/useOrganizations";
 
 interface SubmitLeagueDialogProps {
   open: boolean;
@@ -20,6 +21,8 @@ export function SubmitLeagueDialog({
   organizationId,
   onSuccess,
 }: SubmitLeagueDialogProps) {
+  const { organization } = useOrganization(organizationId);
+  const organizationName = organization?.org_name;
   const handleClose = () => onOpenChange(false);
 
   return (
@@ -34,6 +37,7 @@ export function SubmitLeagueDialog({
         </DialogHeader>
         <AddLeagueForm
           organizationId={organizationId}
+          organizationName={organizationName}
           onSuccess={onSuccess}
           onClose={handleClose}
         />
