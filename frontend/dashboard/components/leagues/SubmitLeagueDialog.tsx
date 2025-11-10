@@ -7,12 +7,14 @@ import {
 } from "@/components/ui/dialog";
 import { AddLeagueForm } from "@/components/forms/AddLeagueForm";
 import { useOrganization } from "@/hooks/useOrganizations";
+import type { AddLeagueFormData } from "@/lib/schemas/leagues";
 
 interface SubmitLeagueDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationId: string;
   onSuccess: () => void;
+  prePopulatedFormData?: AddLeagueFormData;
 }
 
 export function SubmitLeagueDialog({
@@ -20,6 +22,7 @@ export function SubmitLeagueDialog({
   onOpenChange,
   organizationId,
   onSuccess,
+  prePopulatedFormData,
 }: SubmitLeagueDialogProps) {
   const { organization } = useOrganization(organizationId);
   const organizationName = organization?.org_name;
@@ -40,6 +43,8 @@ export function SubmitLeagueDialog({
           organizationName={organizationName}
           onSuccess={onSuccess}
           onClose={handleClose}
+          prePopulatedFormData={prePopulatedFormData}
+          isEditingDraft={!!prePopulatedFormData}
         />
       </DialogContent>
     </Dialog>

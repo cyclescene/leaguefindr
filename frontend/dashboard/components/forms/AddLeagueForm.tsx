@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { addLeagueSchema, type AddLeagueFormData, type GameOccurrence } from '@/lib/schemas'
 import { useAuth } from '@clerk/nextjs'
-import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -45,9 +45,11 @@ interface AddLeagueFormProps {
   organizationId?: string
   organizationName?: string
   onSaveAsTemplate?: (formData: AddLeagueFormData) => void
+  prePopulatedFormData?: AddLeagueFormData
+  isEditingDraft?: boolean
 }
 
-export function AddLeagueForm({ onSuccess, onClose, organizationId, organizationName, onSaveAsTemplate }: AddLeagueFormProps) {
+export function AddLeagueForm({ onSuccess, onClose, organizationId, organizationName, onSaveAsTemplate, prePopulatedFormData, isEditingDraft }: AddLeagueFormProps) {
   const { getToken, userId } = useAuth()
 
   const {
@@ -126,6 +128,27 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
   useEffect(() => {
     setDraftLoading(false)
   }, [])
+
+  // Load pre-populated form data
+  useEffect(() => {
+    if (prePopulatedFormData) {
+      // Populate form fields
+      Object.keys(prePopulatedFormData).forEach((key) => {
+        const value = prePopulatedFormData[key as keyof AddLeagueFormData]
+        if (key === 'registration_deadline' && value) {
+          setRegistrationDeadline(parse(value as string, 'yyyy-MM-dd', new Date()))
+        } else if (key === 'season_start_date' && value) {
+          setSeasonStartDate(parse(value as string, 'yyyy-MM-dd', new Date()))
+        } else if (key === 'season_end_date' && value) {
+          setSeasonEndDate(parse(value as string, 'yyyy-MM-dd', new Date()))
+        } else if (key === 'game_occurrences' && Array.isArray(value)) {
+          setGameOccurrences(value as GameOccurrence[])
+        } else if (key !== 'game_occurrences') {
+          setValue(key as keyof AddLeagueFormData, value as any)
+        }
+      })
+    }
+  }, [prePopulatedFormData, setValue])
 
   // Debounce sport search input
   useEffect(() => {
@@ -1116,16 +1139,18 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
 
       {/* Button Group */}
       <div className="flex gap-3">
-        <Button
-          type="button"
-          onClick={handleSaveDraft}
-          disabled={isSavingDraft || isSubmitting}
-          variant="outline"
-          className="flex-1"
-        >
-          {isSavingDraft ? 'Saving Draft...' : 'Save Draft'}
-        </Button>
-        {onSaveAsTemplate && (
+        {!isEditingDraft && (
+          <Button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={isSavingDraft || isSubmitting}
+            variant="outline"
+            className="flex-1"
+          >
+            {isSavingDraft ? 'Saving Draft...' : 'Save Draft'}
+          </Button>
+        )}
+        {!isEditingDraft && onSaveAsTemplate && (
           <Button
             type="button"
             onClick={handleSaveAsTemplate}

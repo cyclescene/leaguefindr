@@ -27,6 +27,7 @@ function LeaguesContent() {
   const [openDialog, setOpenDialog] = useState<
     "league" | "template" | "sport" | "venue" | null
   >(null);
+  const [prePopulatedFormData, setPrePopulatedFormData] = useState<AddLeagueFormData | undefined>();
 
   // Fetch real leagues, drafts and templates from API
   const { leagues: apiLeagues, isLoading: leaguesLoading } = useLeagues(orgId);
@@ -66,30 +67,82 @@ function LeaguesContent() {
     status: league.status === 'approved' ? 'approved' : league.status === 'pending' ? 'pending_review' : 'rejected',
   }));
 
-  const handleCloseDialog = () => setOpenDialog(null);
+  const handleCloseDialog = () => {
+    setOpenDialog(null);
+    setPrePopulatedFormData(undefined);
+  };
 
   const handleViewLeague = (leagueId: number) => {
     console.log("View league:", leagueId);
   };
 
-  const handleEditTemplate = (templateId: number) => {
-    console.log("Edit template:", templateId);
-  };
+  const handleDeleteDraft = async (draftId: number) => {
+    try {
+      const token = await getToken();
+      if (!token) return;
 
-  const handleUseTemplate = (templateId: number) => {
-    console.log("Use template:", templateId);
-  };
+      await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/drafts/${orgId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-  const handleDeleteTemplate = (templateId: number) => {
-    console.log("Delete template:", templateId);
+      mutateDrafts();
+    } catch (error) {
+      console.error("Failed to delete draft:", error);
+    }
   };
 
   const handleEditDraft = (draftId: number) => {
-    console.log("Edit draft:", draftId);
+    const draft = apiDrafts.find((d) => d.id === draftId);
+    if (draft && draft.draft_data) {
+      // Load draft data and open form
+      setPrePopulatedFormData(draft.draft_data as AddLeagueFormData);
+      setOpenDialog("league");
+    }
   };
 
-  const handleDeleteDraft = (draftId: number) => {
-    console.log("Delete draft:", draftId);
+  const handleDeleteTemplate = async (templateId: number) => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/templates/${templateId}?org_id=${orgId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      mutateTemplates();
+    } catch (error) {
+      console.error("Failed to delete template:", error);
+    }
+  };
+
+  const handleEditTemplate = (templateId: number) => {
+    const template = apiTemplates.find((t) => t.id === templateId);
+    if (template) {
+      // Open edit template dialog
+      console.log("Edit template:", template);
+      // TODO: Implement template edit dialog
+    }
+  };
+
+  const handleUseTemplate = (templateId: number) => {
+    const template = apiTemplates.find((t) => t.id === templateId);
+    if (template && template.draft_data) {
+      // Load template data and open form
+      setPrePopulatedFormData(template.draft_data as AddLeagueFormData);
+      setOpenDialog("league");
+    }
   };
 
   const handleTemplateCreated = () => {
@@ -142,6 +195,7 @@ function LeaguesContent() {
         onOpenChange={(open) => !open && handleCloseDialog()}
         organizationId={orgId}
         onSuccess={handleCloseDialog}
+        prePopulatedFormData={prePopulatedFormData}
       />
 
       <CreateTemplateDialog
