@@ -37,12 +37,12 @@ func (s *Service) GetAllLeagues() ([]League, error) {
 }
 
 // GetLeaguesByOrgID retrieves all leagues for a specific organization
-func (s *Service) GetLeaguesByOrgID(orgID int) ([]League, error) {
+func (s *Service) GetLeaguesByOrgID(orgID string) ([]League, error) {
 	return s.repo.GetByOrgID(orgID)
 }
 
 // GetLeaguesByOrgIDAndStatus retrieves leagues filtered by organization and status
-func (s *Service) GetLeaguesByOrgIDAndStatus(orgID int, status LeagueStatus) ([]League, error) {
+func (s *Service) GetLeaguesByOrgIDAndStatus(orgID string, status LeagueStatus) ([]League, error) {
 	if !status.IsValid() {
 		return nil, fmt.Errorf("invalid league status: %s", status)
 	}
@@ -244,7 +244,7 @@ func (s *Service) RejectLeague(userID string, id int, rejectionReason string) er
 // ============= DRAFT METHODS =============
 
 // GetDraft retrieves the draft for an organization
-func (s *Service) GetDraft(orgID int) (*LeagueDraft, error) {
+func (s *Service) GetDraft(orgID string) (*LeagueDraft, error) {
 	return s.repo.GetDraftByOrgID(orgID)
 }
 
@@ -334,7 +334,7 @@ func (s *Service) DeleteTemplate(templateID int, orgID string) error {
 }
 
 // DeleteDraft deletes the draft for an organization
-func (s *Service) DeleteDraft(orgID int) error {
+func (s *Service) DeleteDraft(orgID string) error {
 	return s.repo.DeleteDraft(orgID)
 }
 

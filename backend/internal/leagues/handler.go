@@ -148,15 +148,9 @@ func (h *Handler) CreateLeague(w http.ResponseWriter, r *http.Request) {
 
 // GetLeaguesByOrgID returns leagues for a specific organization
 func (h *Handler) GetLeaguesByOrgID(w http.ResponseWriter, r *http.Request) {
-	orgIDStr := chi.URLParam(r, "orgId")
-	if orgIDStr == "" {
+	orgID := chi.URLParam(r, "orgId")
+	if orgID == "" {
 		http.Error(w, "organization ID is required", http.StatusBadRequest)
-		return
-	}
-
-	orgID, err := strconv.Atoi(orgIDStr)
-	if err != nil {
-		http.Error(w, "Invalid organization ID", http.StatusBadRequest)
 		return
 	}
 
@@ -298,15 +292,9 @@ func (h *Handler) RejectLeague(w http.ResponseWriter, r *http.Request) {
 
 // GetDraft returns the draft for an organization
 func (h *Handler) GetDraft(w http.ResponseWriter, r *http.Request) {
-	orgIDStr := chi.URLParam(r, "orgId")
-	if orgIDStr == "" {
+	orgID := chi.URLParam(r, "orgId")
+	if orgID == "" {
 		http.Error(w, "organization ID is required", http.StatusBadRequest)
-		return
-	}
-
-	orgID, err := strconv.Atoi(orgIDStr)
-	if err != nil {
-		http.Error(w, "Invalid organization ID", http.StatusBadRequest)
 		return
 	}
 
@@ -370,19 +358,13 @@ func (h *Handler) SaveDraft(w http.ResponseWriter, r *http.Request) {
 
 // DeleteDraft deletes a draft for an organization
 func (h *Handler) DeleteDraft(w http.ResponseWriter, r *http.Request) {
-	orgIDStr := chi.URLParam(r, "orgId")
-	if orgIDStr == "" {
+	orgID := chi.URLParam(r, "orgId")
+	if orgID == "" {
 		http.Error(w, "organization ID is required", http.StatusBadRequest)
 		return
 	}
 
-	orgID, err := strconv.Atoi(orgIDStr)
-	if err != nil {
-		http.Error(w, "Invalid organization ID", http.StatusBadRequest)
-		return
-	}
-
-	err = h.service.DeleteDraft(orgID)
+	err := h.service.DeleteDraft(orgID)
 	if err != nil {
 		slog.Error("delete draft error", "orgID", orgID, "err", err)
 		http.Error(w, "Failed to delete draft", http.StatusInternalServerError)

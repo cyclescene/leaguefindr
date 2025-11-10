@@ -16,8 +16,8 @@ type RepositoryInterface interface {
 	GetAll() ([]League, error)
 	GetAllApproved() ([]League, error)
 	GetByID(id int) (*League, error)
-	GetByOrgID(orgID int) ([]League, error)
-	GetByOrgIDAndStatus(orgID int, status LeagueStatus) ([]League, error)
+	GetByOrgID(orgID string) ([]League, error)
+	GetByOrgIDAndStatus(orgID string, status LeagueStatus) ([]League, error)
 	Create(league *League) error
 	GetPending() ([]League, error)
 	UpdateStatus(id int, status LeagueStatus, rejectionReason *string) error
@@ -25,9 +25,9 @@ type RepositoryInterface interface {
 	ApproveLeagueWithTransaction(id int, sportID *int, venueID *int) error
 
 	// Draft methods
-	GetDraftByOrgID(orgID int) (*LeagueDraft, error)
+	GetDraftByOrgID(orgID string) (*LeagueDraft, error)
 	SaveDraft(draft *LeagueDraft) error
-	DeleteDraft(orgID int) error
+	DeleteDraft(orgID string) error
 	GetAllDrafts() ([]LeagueDraft, error)
 	GetDraftsByOrgID(orgID string) ([]LeagueDraft, error)
 	GetTemplatesByOrgID(orgID string) ([]LeagueDraft, error)
@@ -154,7 +154,7 @@ func (r *Repository) GetByID(id int) (*League, error) {
 }
 
 // GetByOrgID retrieves all leagues for an organization (all statuses)
-func (r *Repository) GetByOrgID(orgID int) ([]League, error) {
+func (r *Repository) GetByOrgID(orgID string) ([]League, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -179,7 +179,7 @@ func (r *Repository) GetByOrgID(orgID int) ([]League, error) {
 }
 
 // GetByOrgIDAndStatus retrieves leagues for an organization filtered by status
-func (r *Repository) GetByOrgIDAndStatus(orgID int, status LeagueStatus) ([]League, error) {
+func (r *Repository) GetByOrgIDAndStatus(orgID string, status LeagueStatus) ([]League, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -398,7 +398,7 @@ func (r *Repository) ApproveLeagueWithTransaction(id int, sportID *int, venueID 
 // ============= DRAFT METHODS =============
 
 // GetDraftByOrgID retrieves the draft for an organization
-func (r *Repository) GetDraftByOrgID(orgID int) (*LeagueDraft, error) {
+func (r *Repository) GetDraftByOrgID(orgID string) (*LeagueDraft, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -469,7 +469,7 @@ func (r *Repository) SaveDraft(draft *LeagueDraft) error {
 }
 
 // DeleteDraft deletes a draft for an organization
-func (r *Repository) DeleteDraft(orgID int) error {
+func (r *Repository) DeleteDraft(orgID string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
