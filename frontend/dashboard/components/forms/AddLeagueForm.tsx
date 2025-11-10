@@ -466,24 +466,22 @@ export function AddLeagueForm({ onSuccess, onClose, organizationId, organization
         throw new Error('Authentication required. Please sign in.')
       }
 
-      // Format the payload
-      const payload = {
-        ...data,
-        org_id: organizationId || undefined,
-      }
+      // Format the payload - remove org_id and organization_name from body
+      const { org_id, organization_name, ...payload } = data
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-            'X-Clerk-User-ID': userId,
-          },
-          body: JSON.stringify(payload),
-        }
-      )
+      const url = organizationId
+        ? `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues?org_id=${organizationId}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues`
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'X-Clerk-User-ID': userId,
+        },
+        body: JSON.stringify(payload),
+      })
 
       if (!response.ok) {
         const errorData = await response.json()
