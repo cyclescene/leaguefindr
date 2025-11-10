@@ -1,11 +1,11 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
-import { useParams, useRouter } from "next/navigation";
+import { useAuth, useUser } from "@clerk/nextjs";
+import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { ClerkUser } from "@/types/clerk";
-import type { League, Template, Draft } from "@/types/leagues";
+import type { League } from "@/types/leagues";
 import type { AddLeagueFormData } from "@/lib/schemas/leagues";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
@@ -21,13 +21,16 @@ function LeaguesContent() {
     isLoaded: boolean;
   };
   const params = useParams();
-  const router = useRouter();
   const orgId = params.orgId as string;
+
+
+  const { getToken } = useAuth();
 
   const [openDialog, setOpenDialog] = useState<
     "league" | "template" | "sport" | "venue" | null
   >(null);
   const [prePopulatedFormData, setPrePopulatedFormData] = useState<AddLeagueFormData | undefined>();
+  const [isEditingDraft, setIsEditingDraft] = useState(false);
 
   // Fetch real leagues, drafts and templates from API
   const { leagues: apiLeagues, isLoading: leaguesLoading } = useLeagues(orgId);
@@ -70,6 +73,7 @@ function LeaguesContent() {
   const handleCloseDialog = () => {
     setOpenDialog(null);
     setPrePopulatedFormData(undefined);
+    setIsEditingDraft(false);
   };
 
   const handleViewLeague = (leagueId: number) => {
@@ -102,6 +106,7 @@ function LeaguesContent() {
     if (draft && draft.draft_data) {
       // Load draft data and open form
       setPrePopulatedFormData(draft.draft_data as AddLeagueFormData);
+      setIsEditingDraft(true);
       setOpenDialog("league");
     }
   };
@@ -196,6 +201,7 @@ function LeaguesContent() {
         organizationId={orgId}
         onSuccess={handleCloseDialog}
         prePopulatedFormData={prePopulatedFormData}
+        isEditingDraft={isEditingDraft}
       />
 
       <CreateTemplateDialog

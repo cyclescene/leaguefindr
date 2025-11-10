@@ -15,6 +15,7 @@ interface SubmitLeagueDialogProps {
   organizationId: string;
   onSuccess: () => void;
   prePopulatedFormData?: AddLeagueFormData;
+  isEditingDraft?: boolean;
 }
 
 export function SubmitLeagueDialog({
@@ -23,6 +24,7 @@ export function SubmitLeagueDialog({
   organizationId,
   onSuccess,
   prePopulatedFormData,
+  isEditingDraft,
 }: SubmitLeagueDialogProps) {
   const { organization } = useOrganization(organizationId);
   const organizationName = organization?.org_name;
@@ -44,7 +46,7 @@ export function SubmitLeagueDialog({
           onSuccess={onSuccess}
           onClose={handleClose}
           prePopulatedFormData={prePopulatedFormData}
-          isEditingDraft={!!prePopulatedFormData}
+          isEditingDraft={isEditingDraft}
         />
       </DialogContent>
     </Dialog>
