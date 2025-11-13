@@ -48,7 +48,12 @@ function LeaguesContent() {
     .map(d => ({
       id: d.id,
       name: d.name || `Draft #${d.id}`,
-      dateCreated: new Date(d.created_at).toLocaleDateString(),
+      sport: d.draft_data?.sport_name || 'Unknown',
+      gender: d.draft_data?.gender || 'N/A',
+      startDate: d.draft_data?.season_start_date ? new Date(d.draft_data.season_start_date).toLocaleDateString() : 'N/A',
+      venue: d.draft_data?.venue_name || 'N/A',
+      dateSubmitted: new Date(d.created_at).toLocaleDateString(),
+      status: 'draft',
     }));
 
   // Convert API templates to display format
@@ -90,32 +95,31 @@ function LeaguesContent() {
     const league = apiLeagues.find((l) => l.id === leagueId);
     if (!league) return;
 
-    // Build form data from draft_data if available, otherwise from league fields
-    const draftData = league.draft_data || {};
+    // Build form data from league fields
     const formData: AddLeagueFormData = {
-      sport_id: draftData.sport_id,
-      sport_name: draftData.sport_name || league.sport || '',
-      venue_id: draftData.venue_id,
-      venue_name: draftData.venue_name || league.venue || '',
-      venue_address: draftData.venue_address || '',
-      venue_lat: draftData.venue_lat,
-      venue_lng: draftData.venue_lng,
-      league_name: draftData.league_name || league.name || '',
-      division: draftData.division || '',
-      gender: draftData.gender || league.gender || '',
-      registration_deadline: draftData.registration_deadline || '',
-      season_start_date: draftData.season_start_date || league.startDate || '',
-      season_end_date: draftData.season_end_date || '',
-      season_details: draftData.season_details || '',
-      game_occurrences: draftData.game_occurrences || [],
-      pricing_strategy: draftData.pricing_strategy || 'per_person',
-      pricing_amount: draftData.pricing_amount,
-      per_game_fee: draftData.per_game_fee,
-      minimum_team_players: draftData.minimum_team_players,
-      registration_url: draftData.registration_url || '',
-      duration: draftData.duration,
+      sport_id: league.sport_id,
+      sport_name: '',
+      venue_id: league.venue_id,
+      venue_name: '',
+      venue_address: '',
+      venue_lat: undefined,
+      venue_lng: undefined,
+      league_name: league.league_name,
+      division: league.division,
+      gender: league.gender as "male" | "female" | "co-ed",
+      registration_deadline: league.registration_deadline,
+      season_start_date: league.season_start_date,
+      season_end_date: league.season_end_date || '',
+      season_details: league.season_details || '',
+      game_occurrences: league.game_occurrences,
+      pricing_strategy: league.pricing_strategy as any,
+      pricing_amount: league.pricing_amount,
+      per_game_fee: league.per_game_fee || undefined,
+      minimum_team_players: league.minimum_team_players,
+      registration_url: league.registration_url,
+      duration: league.duration,
       org_id: orgId,
-      organization_name: draftData.organization_name || '',
+      organization_name: '',
     };
 
     setPrePopulatedFormData(formData);

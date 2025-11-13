@@ -3,50 +3,25 @@ import { useUser } from "@clerk/nextjs";
 import { Suspense, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { ClerkUser } from "@/types/clerk";
+import type { League, Draft } from "@/types/leagues";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { ActionButtons } from "@/components/forms/ActionButtons";
 import { LeagueTable } from "@/components/admin/LeagueTable";
 import { DraftLeagueTable } from "@/components/admin/DraftLeagueTable";
-import { usePendingLeagues, useAdminLeagueOperations } from "@/dashboard/hooks/useAdminLeagues";
-import { useDrafts } from "@/dashboard/hooks/useDrafts";
-
-interface League {
-  id: number;
-  name: string;
-  organizationName: string;
-  sport: string;
-  ageGroup: string;
-  gender: string;
-  startDate: string;
-  venue: string;
-  dateSubmitted: string;
-  status: string;
-}
-
-interface Draft {
-  id: number;
-  name: string;
-  sport: string;
-  ageGroup: string;
-  gender: string;
-  startDate: string;
-  venue: string;
-  dateSubmitted: string;
-  status: string;
-}
+import { usePendingLeagues, useAdminLeagueOperations } from "@/hooks/useAdminLeagues";
 
 function DashboardContent() {
   const { user, isLoaded } = useUser() as { user: ClerkUser | null; isLoaded: boolean };
-  const { organizationName } = user?.publicMetadata || {};
 
   // Fetch pending leagues for admin review
   const { pendingLeagues, isLoading: isLoadingPending, mutate: mutatePendingLeagues } = usePendingLeagues()
 
-  // Fetch all drafts (admin sees all organization drafts)
-  const orgId = user?.organizationId || ''
-  const { drafts, isLoading: isLoadingDrafts, mutate: mutateDrafts } = useDrafts(orgId)
+  // For now, we'll skip fetching drafts from a specific org
+  // TODO: Implement global draft fetching for admin view or remove drafts tab
+  const isLoadingDrafts = false
+  const draftList: Draft[] = []
 
   // Admin operations
   const { approveLeague, rejectLeague } = useAdminLeagueOperations()
@@ -59,7 +34,6 @@ function DashboardContent() {
     name: league.league_name,
     organizationName: league.org_id,
     sport: league.sport_id?.toString() || 'Unknown',
-    ageGroup: 'N/A', // Not in API yet
     gender: league.gender || 'N/A',
     startDate: new Date(league.season_start_date).toLocaleDateString(),
     venue: league.venue_id?.toString() || 'Unknown',
@@ -67,17 +41,6 @@ function DashboardContent() {
     status: league.status,
   }))
 
-  const draftList: Draft[] = drafts.map(draft => ({
-    id: draft.id,
-    name: draft.name || `Draft #${draft.id}`,
-    sport: draft.draft_data?.sport_name || 'N/A',
-    ageGroup: 'N/A',
-    gender: draft.draft_data?.gender || 'N/A',
-    startDate: draft.draft_data?.season_start_date ? new Date(draft.draft_data.season_start_date).toLocaleDateString() : 'N/A',
-    venue: draft.draft_data?.venue_name || 'N/A',
-    dateSubmitted: new Date(draft.created_at).toLocaleDateString(),
-    status: 'draft',
-  }))
 
   const handleViewLeague = (leagueId: number) => {
     console.log('View league:', leagueId)
@@ -143,7 +106,7 @@ function DashboardContent() {
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-light">
-      <Header organizationName={organizationName} />
+      <Header organizationName="" />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12">
         <Tabs defaultValue="submitted">

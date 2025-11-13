@@ -41,8 +41,9 @@ export const addLeagueSchema = z.object({
   league_name: z.string()
     .min(1, "League name is required")
     .max(255, "League name must be at most 255 characters"),
-  division: z.enum(["beginner", "intermediate", "expert"])
-    .refine(val => val, "Please select a skill level"),
+  division: z.string()
+    .min(1, "Skill level is required")
+    .max(255, "Skill level must be at most 255 characters"),
   gender: z.enum(["male", "female", "co-ed"])
     .refine(val => val, "Please select a gender"),
   registration_deadline: z.string()

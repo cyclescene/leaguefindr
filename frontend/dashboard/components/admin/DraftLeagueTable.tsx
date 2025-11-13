@@ -5,7 +5,6 @@ interface Draft {
   id: number;
   name: string;
   sport: string;
-  ageGroup: string;
   gender: string;
   startDate: string;
   venue: string;
@@ -29,7 +28,6 @@ export function DraftLeagueTable({ drafts, onView, onEdit, onDelete, onSubmit }:
         <TableRow>
           <TableHead>League Name</TableHead>
           <TableHead>Sport</TableHead>
-          <TableHead>Age Group</TableHead>
           <TableHead>Gender</TableHead>
           <TableHead>Start Date</TableHead>
           <TableHead>Venue</TableHead>

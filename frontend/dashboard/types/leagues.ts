@@ -3,7 +3,6 @@ export interface League {
   name: string;
   organizationName: string;
   sport: string;
-  ageGroup: string;
   gender: string;
   startDate: string;
   venue: string;
@@ -16,7 +15,6 @@ export interface Template {
   id: number;
   name: string;
   sport: string;
-  ageGroup: string;
   gender: string;
   dateCreated: string;
 }
@@ -24,5 +22,10 @@ export interface Template {
 export interface Draft {
   id: number;
   name: string;
-  dateCreated: string;
+  sport: string;
+  gender: string;
+  startDate: string;
+  venue: string;
+  dateSubmitted: string;
+  status: string;
 }

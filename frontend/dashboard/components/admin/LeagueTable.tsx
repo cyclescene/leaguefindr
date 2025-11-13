@@ -6,7 +6,6 @@ interface League {
   name: string;
   organizationName: string;
   sport: string;
-  ageGroup: string;
   gender: string;
   startDate: string;
   venue: string;
@@ -30,7 +29,6 @@ export function LeagueTable({ leagues, onView, onApprove, onReject }: LeagueTabl
           <TableHead>League Name</TableHead>
           <TableHead>League Org Name</TableHead>
           <TableHead>Sport</TableHead>
-          <TableHead>Age Group</TableHead>
           <TableHead>Gender</TableHead>
           <TableHead>Start Date</TableHead>
           <TableHead>Venue</TableHead>

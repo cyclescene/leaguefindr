@@ -6,7 +6,6 @@ interface Draft {
   id: number;
   name: string;
   sport: string;
-  ageGroup: string;
   gender: string;
   startDate: string;
   venue: string;
@@ -27,7 +26,6 @@ export function DraftLeagueTableRow({ draft, onView, onEdit, onDelete, onSubmit 
     <TableRow>
       <TableCell>{draft.name}</TableCell>
       <TableCell>{draft.sport}</TableCell>
-      <TableCell>{draft.ageGroup}</TableCell>
       <TableCell>{draft.gender}</TableCell>
       <TableCell>{draft.startDate}</TableCell>
       <TableCell>{draft.venue}</TableCell>

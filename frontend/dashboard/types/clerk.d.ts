@@ -5,13 +5,11 @@ declare global {
   interface CustomJwtSessionClaims extends JwtPayload {
     role?: "admin" | "user";
     emailVerified?: boolean;
-    organizationName?: string;
   }
 
   namespace Clerk {
     interface UserPublicMetadata {
       role?: "admin" | "user";
-      organizationName?: string;
     }
 
   }
