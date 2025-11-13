@@ -9,6 +9,8 @@ import { Footer } from "@/components/common/Footer";
 import { ActionButtons } from "@/components/forms/ActionButtons";
 import { LeagueTable } from "@/components/admin/LeagueTable";
 import { DraftLeagueTable } from "@/components/admin/DraftLeagueTable";
+import { usePendingLeagues, useAdminLeagueOperations } from "@/dashboard/hooks/useAdminLeagues";
+import { useDrafts } from "@/dashboard/hooks/useDrafts";
 
 interface League {
   id: number;
@@ -39,47 +41,94 @@ function DashboardContent() {
   const { user, isLoaded } = useUser() as { user: ClerkUser | null; isLoaded: boolean };
   const { organizationName } = user?.publicMetadata || {};
 
-  const [leagues, setLeagues] = useState<League[]>([
-    { id: 1, name: 'Test League', organizationName: 'Test Org', sport: 'Football', ageGroup: '12-16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'pending_review' },
-    { id: 2, name: 'Test League', organizationName: 'Test Org', sport: 'Football', ageGroup: '12-16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'approved' },
-    { id: 3, name: 'Test League', organizationName: 'Test Org', sport: 'Football', ageGroup: '12-16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'rejected' },
-    { id: 4, name: 'Test League', organizationName: 'Test Org', sport: 'Football', ageGroup: '12-16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'pending_review' },
-  ])
+  // Fetch pending leagues for admin review
+  const { pendingLeagues, isLoading: isLoadingPending, mutate: mutatePendingLeagues } = usePendingLeagues()
 
+  // Fetch all drafts (admin sees all organization drafts)
+  const orgId = user?.organizationId || ''
+  const { drafts, isLoading: isLoadingDrafts, mutate: mutateDrafts } = useDrafts(orgId)
 
-  const [drafts, setDrafts] = useState<Draft[]>([
-    { id: 1, name: 'Test League', sport: 'Football', ageGroup: '12-16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'draft' },
-    { id: 2, name: 'Test League', sport: 'Football', ageGroup: '12 - 16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'draft' },
-    { id: 3, name: 'Test League', sport: 'Football', ageGroup: '12-16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'draft' },
-    { id: 4, name: 'Test League', sport: 'Football', ageGroup: '12-16', gender: 'Male', startDate: '2023-01-01', venue: 'Test Venue', dateSubmitted: '2023-01-01', status: 'draft' },
-  ])
+  // Admin operations
+  const { approveLeague, rejectLeague } = useAdminLeagueOperations()
+  const [isApproving, setIsApproving] = useState<number | null>(null)
+  const [isRejecting, setIsRejecting] = useState<number | null>(null)
 
-  const handleStatusChange = (leagueId: number, status: string) => {
-    setLeagues(leagues.map(l => l.id === leagueId ? { ...l, status } : l))
-    console.log('handleStatusChange', leagueId, status)
-  }
+  // Transform API data to table format
+  const leagues: League[] = pendingLeagues.map(league => ({
+    id: league.id,
+    name: league.league_name,
+    organizationName: league.org_id,
+    sport: league.sport_id?.toString() || 'Unknown',
+    ageGroup: 'N/A', // Not in API yet
+    gender: league.gender || 'N/A',
+    startDate: new Date(league.season_start_date).toLocaleDateString(),
+    venue: league.venue_id?.toString() || 'Unknown',
+    dateSubmitted: new Date(league.created_at).toLocaleDateString(),
+    status: league.status,
+  }))
+
+  const draftList: Draft[] = drafts.map(draft => ({
+    id: draft.id,
+    name: draft.name || `Draft #${draft.id}`,
+    sport: draft.draft_data?.sport_name || 'N/A',
+    ageGroup: 'N/A',
+    gender: draft.draft_data?.gender || 'N/A',
+    startDate: draft.draft_data?.season_start_date ? new Date(draft.draft_data.season_start_date).toLocaleDateString() : 'N/A',
+    venue: draft.draft_data?.venue_name || 'N/A',
+    dateSubmitted: new Date(draft.created_at).toLocaleDateString(),
+    status: 'draft',
+  }))
 
   const handleViewLeague = (leagueId: number) => {
     console.log('View league:', leagueId)
+    // TODO: Open league review modal with LeagueFormContext in 'admin-review' mode
   }
 
+  const handleApprove = async (leagueId: number) => {
+    try {
+      setIsApproving(leagueId)
+      await approveLeague(leagueId)
+      await mutatePendingLeagues()
+    } catch (error) {
+      console.error('Failed to approve league:', error)
+      alert('Failed to approve league')
+    } finally {
+      setIsApproving(null)
+    }
+  }
+
+  const handleReject = async (leagueId: number) => {
+    try {
+      setIsRejecting(leagueId)
+      const reason = window.prompt('Enter rejection reason:')
+      if (reason) {
+        await rejectLeague(leagueId, reason)
+        await mutatePendingLeagues()
+      }
+    } catch (error) {
+      console.error('Failed to reject league:', error)
+      alert('Failed to reject league')
+    } finally {
+      setIsRejecting(null)
+    }
+  }
 
   const handleEditDraft = (leagueId: number) => {
     console.log('Edit draft:', leagueId)
+    // TODO: Open draft edit modal
   }
 
   const handleDeleteDraft = (leagueId: number) => {
-    setDrafts(drafts.filter(l => l.id !== leagueId))
     console.log('Delete draft:', leagueId)
+    // TODO: Implement draft deletion API call
   }
 
   const handleSubmitDraft = (leagueId: number) => {
-    const draftLeague = drafts.find(l => l.id === leagueId)
-    if (draftLeague) {
-      setDrafts(drafts.filter(l => l.id !== leagueId))
-    }
     console.log('Submit draft:', leagueId)
+    // TODO: Implement draft submission from admin panel
   }
+
+  const isLoading = !isLoaded || isLoadingPending || isLoadingDrafts
 
   if (!isLoaded) {
     return (
@@ -100,27 +149,39 @@ function DashboardContent() {
         <Tabs defaultValue="submitted">
           <div className="flex flex-row w-full justify-between items-center mb-4">
             <TabsList>
-              <TabsTrigger value="submitted">Submitted Leagues</TabsTrigger>
-              <TabsTrigger value="drafts">Drafts</TabsTrigger>
+              <TabsTrigger value="submitted">Submitted Leagues ({leagues.length})</TabsTrigger>
+              <TabsTrigger value="drafts">Drafts ({draftList.length})</TabsTrigger>
             </TabsList>
             <ActionButtons />
           </div>
           <TabsContent value="submitted">
-            <LeagueTable
-              leagues={leagues}
-              onView={handleViewLeague}
-              onApprove={(id) => handleStatusChange(id, 'approved')}
-              onReject={(id) => handleStatusChange(id, 'rejected')}
-            />
+            {isLoadingPending ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="animate-spin text-brand-dark" size={40} />
+              </div>
+            ) : (
+              <LeagueTable
+                leagues={leagues}
+                onView={handleViewLeague}
+                onApprove={handleApprove}
+                onReject={handleReject}
+              />
+            )}
           </TabsContent>
           <TabsContent value="drafts">
-            <DraftLeagueTable
-              drafts={drafts}
-              onView={handleViewLeague}
-              onEdit={handleEditDraft}
-              onDelete={handleDeleteDraft}
-              onSubmit={handleSubmitDraft}
-            />
+            {isLoadingDrafts ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="animate-spin text-brand-dark" size={40} />
+              </div>
+            ) : (
+              <DraftLeagueTable
+                drafts={draftList}
+                onView={handleViewLeague}
+                onEdit={handleEditDraft}
+                onDelete={handleDeleteDraft}
+                onSubmit={handleSubmitDraft}
+              />
+            )}
           </TabsContent>
         </Tabs>
       </main>

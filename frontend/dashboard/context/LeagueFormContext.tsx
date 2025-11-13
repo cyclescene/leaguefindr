@@ -3,7 +3,7 @@
 import { createContext, useContext, ReactNode } from 'react';
 import type { AddLeagueFormData } from '@/lib/schemas/leagues';
 
-export type FormMode = 'new' | 'edit-draft' | 'edit-template' | 'view';
+export type FormMode = 'new' | 'edit-draft' | 'edit-template' | 'view' | 'admin-review';
 
 export interface LeagueFormContextType {
   // Mode
@@ -28,6 +28,13 @@ export interface LeagueFormContextType {
   mutateDrafts?: () => Promise<any>;
   mutateTemplates?: () => Promise<any>;
   mutateLeagues?: () => Promise<any>;
+
+  // Admin review mode
+  pendingLeagueId?: number;
+  rejectionReason?: string;
+  onRejectionReasonChange?: (reason: string) => void;
+  onApproveLeague?: () => Promise<void>;
+  onRejectLeague?: () => Promise<void>;
 }
 
 const LeagueFormContext = createContext<LeagueFormContextType | undefined>(undefined);
