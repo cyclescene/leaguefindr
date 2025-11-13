@@ -34,6 +34,7 @@ interface VenueAutocompleteProps {
   onVenueAddressChange: (featureCollection: any) => void
   venueError?: string
   isViewingLeague?: boolean
+  customVenueAddress?: string
 }
 
 export function VenueAutocomplete({
@@ -44,6 +45,7 @@ export function VenueAutocomplete({
   onVenueAddressChange,
   venueError,
   isViewingLeague = false,
+  customVenueAddress,
 }: VenueAutocompleteProps) {
   const { approvedVenues } = useVenueSearch()
   const [debouncedVenueName, setDebouncedVenueName] = useState('')
@@ -213,8 +215,8 @@ export function VenueAutocomplete({
         {venueError && <p className="text-sm text-red-600">{venueError}</p>}
       </div>
 
-      {/* Address field - hidden when venue is selected from dropdown */}
-      {!selectedVenue && (
+      {/* Address field - hidden when venue is selected from dropdown or custom address is prepopulated */}
+      {!selectedVenue && !customVenueAddress && (
         <div className="space-y-2">
           <Label htmlFor="venue_address">Search Address</Label>
           <p className="text-sm text-gray-600">Find address or enter custom location</p>
@@ -262,7 +264,17 @@ export function VenueAutocomplete({
         </div>
       )}
 
-      {!selectedVenue && addressInputRef.current?.value && (
+      {/* Display custom venue address when prepopulated (no selectedVenue but customVenueAddress exists) */}
+      {!selectedVenue && customVenueAddress && (
+        <div className="flex items-start bg-blue-50 p-3 rounded-md border border-blue-200">
+          <div className="flex-1">
+            <p className="text-sm text-blue-700 font-medium">{venueSearchInput}</p>
+            <p className="text-xs text-blue-600">{customVenueAddress}</p>
+          </div>
+        </div>
+      )}
+
+      {!selectedVenue && !customVenueAddress && addressInputRef.current?.value && (
         <p className="text-xs text-gray-500 italic">
           This venue will be created during admin approval if it doesn't exist
         </p>

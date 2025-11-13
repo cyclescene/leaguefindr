@@ -420,7 +420,18 @@ func (h *Handler) SaveDraft(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	draft, err := h.service.SaveDraft(orgID, userID, req.Name, req.DraftData)
+	var draft *LeagueDraft
+	var err error
+
+	// Check if updating existing draft or creating new one
+	if req.DraftID != nil && *req.DraftID > 0 {
+		// Update existing draft
+		draft, err = h.service.UpdateDraft(*req.DraftID, orgID, req.DraftData)
+	} else {
+		// Create new draft
+		draft, err = h.service.SaveDraft(orgID, userID, req.Name, req.DraftData)
+	}
+
 	if err != nil {
 		slog.Error("save draft error", "orgID", orgID, "userID", userID, "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

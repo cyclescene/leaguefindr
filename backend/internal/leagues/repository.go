@@ -29,6 +29,7 @@ type RepositoryInterface interface {
 
 	// Draft methods
 	GetDraftByOrgID(orgID string) (*LeagueDraft, error)
+	GetDraftByID(draftID int) (*LeagueDraft, error)
 	SaveDraft(draft *LeagueDraft) error
 	DeleteDraftByID(draftID int, orgID string) error
 	GetAllDrafts() ([]LeagueDraft, error)
@@ -596,6 +597,42 @@ func (r *Repository) GetDraftByOrgID(orgID string) (*LeagueDraft, error) {
 	return draft, nil
 }
 
+// GetDraftByID retrieves a draft by its ID
+func (r *Repository) GetDraftByID(draftID int) (*LeagueDraft, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	draft := &LeagueDraft{}
+	var draftDataJSON []byte
+
+	query := `
+		SELECT id, org_id, type, name, draft_data, created_at, updated_at, created_by
+		FROM leagues_drafts
+		WHERE id = $1
+	`
+
+	err := r.db.QueryRow(ctx, query, draftID).Scan(
+		&draft.ID,
+		&draft.OrgID,
+		&draft.Type,
+		&draft.Name,
+		&draftDataJSON,
+		&draft.CreatedAt,
+		&draft.UpdatedAt,
+		&draft.CreatedBy,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("draft not found")
+	}
+
+	if err := json.Unmarshal(draftDataJSON, &draft.DraftData); err != nil {
+		return nil, fmt.Errorf("failed to parse draft data: %w", err)
+	}
+
+	return draft, nil
+}
+
 // SaveDraft saves or updates a draft for an organization
 func (r *Repository) SaveDraft(draft *LeagueDraft) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -606,7 +643,28 @@ func (r *Repository) SaveDraft(draft *LeagueDraft) error {
 		return fmt.Errorf("failed to marshal draft data: %w", err)
 	}
 
-	// Always INSERT new drafts and templates (no UPSERT)
+	// If draft has an ID, update it; otherwise insert a new one
+	if draft.ID > 0 {
+		// Update existing draft
+		query := `
+			UPDATE leagues_drafts
+			SET draft_data = $1, updated_at = NOW()
+			WHERE id = $2 AND org_id = $3 AND type = 'draft'
+		`
+
+		result, err := r.db.Exec(ctx, query, draftDataJSON, draft.ID, draft.OrgID)
+		if err != nil {
+			return fmt.Errorf("failed to update draft: %w", err)
+		}
+
+		if result.RowsAffected() == 0 {
+			return fmt.Errorf("draft not found or access denied")
+		}
+
+		return nil
+	}
+
+	// Insert new draft
 	// Each save creates a new row, allowing users to have multiple drafts per organization
 	query := `
 		INSERT INTO leagues_drafts (org_id, type, name, draft_data, created_at, updated_at, created_by)

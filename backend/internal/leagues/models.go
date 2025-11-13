@@ -210,6 +210,7 @@ func (d DraftData) Value() (driver.Value, error) {
 
 // SaveLeagueDraftRequest represents the request to save a draft
 type SaveLeagueDraftRequest struct {
+	DraftID   *int      `json:"draft_id"` // Optional draft ID for updating existing draft
 	Name      *string   `json:"name" validate:"omitempty,max=255"` // Optional draft name
 	DraftData DraftData `json:"data" validate:"required"`
 }

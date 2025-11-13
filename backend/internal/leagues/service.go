@@ -323,6 +323,34 @@ func (s *Service) SaveDraft(orgID string, userID string, draftName *string, draf
 	return draft, nil
 }
 
+// UpdateDraft updates an existing draft with new data
+func (s *Service) UpdateDraft(draftID int, orgID string, draftData DraftData) (*LeagueDraft, error) {
+	if draftData == nil || len(draftData) == 0 {
+		return nil, fmt.Errorf("draft data cannot be empty")
+	}
+
+	// Fetch existing draft to preserve original fields
+	existing, err := s.repo.GetDraftByID(draftID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch draft: %w", err)
+	}
+
+	// Verify draft belongs to the organization
+	if existing.OrgID != orgID {
+		return nil, fmt.Errorf("draft does not belong to this organization")
+	}
+
+	// Update draft data while preserving other fields
+	existing.DraftData = draftData
+	existing.UpdatedAt = time.Now()
+
+	if err := s.repo.SaveDraft(existing); err != nil {
+		return nil, fmt.Errorf("failed to update draft: %w", err)
+	}
+
+	return existing, nil
+}
+
 // SaveTemplate saves a league configuration as a reusable template
 func (s *Service) SaveTemplate(orgID string, userID string, name string, draftData DraftData) (*LeagueDraft, error) {
 	if draftData == nil || len(draftData) == 0 {

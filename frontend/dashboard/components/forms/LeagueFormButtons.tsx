@@ -165,7 +165,8 @@ export function LeagueFormButtons({
 
       {/* Button Group */}
       <div className="flex gap-3">
-        {!isEditingDraft && !isEditingTemplate && (
+        {/* Save Draft button - shown for new drafts or when editing existing draft */}
+        {(isEditingDraft || (!isEditingDraft && !isEditingTemplate)) && (
           <Button
             type="button"
             onClick={onSaveDraft}
@@ -173,7 +174,7 @@ export function LeagueFormButtons({
             variant="outline"
             className="flex-1"
           >
-            {isSavingDraft ? 'Saving Draft...' : 'Save Draft'}
+            {isSavingDraft ? 'Saving Draft...' : isEditingDraft ? 'Save Changes' : 'Save Draft'}
           </Button>
         )}
         {!isEditingDraft && !isEditingTemplate && onSaveAsTemplate && (
@@ -193,7 +194,7 @@ export function LeagueFormButtons({
             disabled={isSubmitting || isSavingDraft}
             className="flex-1"
           >
-            {isSubmitting ? 'Submitting...' : 'Submit League'}
+            {isSubmitting ? 'Submitting...' : isEditingDraft ? 'Submit Draft' : 'Submit League'}
           </Button>
         )}
         {isEditingTemplate && (

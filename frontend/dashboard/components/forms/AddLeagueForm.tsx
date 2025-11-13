@@ -151,6 +151,12 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
           setValue(key as keyof AddLeagueFormData, value as any)
         }
       })
+
+      // Set venue name in state so VenueAutocomplete input displays it
+      const venueName = prePopulatedFormData.venue_name as string | undefined
+      if (venueName) {
+        setVenueSearchInput(venueName)
+      }
     }
   }, [prePopulatedFormData, setValue])
 
@@ -257,6 +263,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
         duration: watch('duration'),
       }
 
+      // Create or update draft via POST
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/drafts?org_id=${organizationId}`,
         {
@@ -267,6 +274,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
             'X-Clerk-User-ID': userId,
           },
           body: JSON.stringify({
+            draft_id: isEditingDraft ? editingDraftId : undefined, // Include draft_id if updating existing draft
             name: draftName || null,
             data: draftData,
           }),
@@ -710,6 +718,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
           onVenueAddressChange={handleVenueAddressChange}
           venueError={errors.venue_name?.message}
           isViewingLeague={isViewingLeague}
+          customVenueAddress={watch('venue_address')}
         />
 
         {/* Hidden venue fields */}
