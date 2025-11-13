@@ -12,7 +12,8 @@ import { DatePicker } from '@/components/ui/date-picker'
 import { format, parse } from 'date-fns'
 import { GameOccurrencesManager } from './GameOccurrencesManager'
 import { LeagueFormButtons } from './LeagueFormButtons'
-import { SportVenueAutocomplete } from './SportVenueAutocomplete'
+import { SportAutocomplete } from './SportAutocomplete'
+import { VenueAutocomplete } from './VenueAutocomplete'
 
 interface Sport {
   id: number
@@ -503,64 +504,35 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
         {...register('organization_name')}
       />
 
-      {/* Section: League Info */}
+      {/* Section: Sport & League Info */}
       <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">League Information</h3>
-
-        <div className="grid grid-cols-1 gap-6 mb-6">
-          {/* Sport and Venue Autocomplete */}
-          <SportVenueAutocomplete
-            selectedSport={selectedSport}
-            selectedVenue={selectedVenue}
-            sportSearchInput={sportSearchInput}
-            venueSearchInput={venueSearchInput}
-            onSportChange={(sport) => {
-              setSelectedSport(sport)
-              if (sport) {
-                setValue('sport_id', sport.id)
-                setValue('sport_name', sport.name)
-              } else {
-                setValue('sport_id', undefined)
-                setValue('sport_name', '')
-              }
-            }}
-            onVenueChange={(venue) => {
-              setSelectedVenue(venue)
-              if (venue) {
-                setValue('venue_id', venue.id)
-                setValue('venue_name', venue.name)
-                setValue('venue_address', venue.address)
-                setValue('venue_lat', venue.lat)
-                setValue('venue_lng', venue.lng)
-              } else {
-                setValue('venue_id', null as any)
-                setValue('venue_name', '')
-                setValue('venue_address', '')
-                setValue('venue_lat', null as any)
-                setValue('venue_lng', null as any)
-              }
-            }}
-            onSportSearchChange={(input) => {
-              setSportSearchInput(input)
-              setValue('sport_name', input)
-            }}
-            onVenueSearchChange={setVenueSearchInput}
-            onVenueAddressChange={handleVenueAddressChange}
-            sportError={errors.sport_name?.message}
-            venueError={errors.venue_name?.message}
-            isViewingLeague={isViewingLeague}
-          />
-
-          {/* Hidden sport_id and venue fields */}
-          <input type="hidden" {...register('sport_id', { valueAsNumber: true })} />
-          <input type="hidden" {...register('venue_id', { valueAsNumber: true })} />
-          <input type="hidden" {...register('venue_name')} />
-          <input type="hidden" {...register('venue_address')} />
-          <input type="hidden" {...register('venue_lat', { valueAsNumber: true })} />
-          <input type="hidden" {...register('venue_lng', { valueAsNumber: true })} />
-        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Sport & League Information</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Sport Autocomplete */}
+          <div>
+            <SportAutocomplete
+              selectedSport={selectedSport}
+              sportSearchInput={sportSearchInput}
+              onSportChange={(sport) => {
+                setSelectedSport(sport)
+                if (sport) {
+                  setValue('sport_id', sport.id)
+                  setValue('sport_name', sport.name)
+                } else {
+                  setValue('sport_id', undefined)
+                  setValue('sport_name', '')
+                }
+              }}
+              onSportSearchChange={(input) => {
+                setSportSearchInput(input)
+                setValue('sport_name', input)
+              }}
+              sportError={errors.sport_name?.message}
+              isViewingLeague={isViewingLeague}
+            />
+          </div>
+
           {/* League Name */}
           <div className="space-y-2">
             <Label htmlFor="league_name">League Name *</Label>
@@ -617,6 +589,9 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
             )}
           </div>
         </div>
+
+        {/* Hidden sport_id field */}
+        <input type="hidden" {...register('sport_id', { valueAsNumber: true })} />
       </div>
 
       {/* Section: Dates */}
@@ -700,6 +675,42 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Section: Venue */}
+      <div className="border-t pt-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Venue</h3>
+        <VenueAutocomplete
+          selectedVenue={selectedVenue}
+          venueSearchInput={venueSearchInput}
+          onVenueChange={(venue) => {
+            setSelectedVenue(venue)
+            if (venue) {
+              setValue('venue_id', venue.id)
+              setValue('venue_name', venue.name)
+              setValue('venue_address', venue.address)
+              setValue('venue_lat', venue.lat)
+              setValue('venue_lng', venue.lng)
+            } else {
+              setValue('venue_id', null as any)
+              setValue('venue_name', '')
+              setValue('venue_address', '')
+              setValue('venue_lat', null as any)
+              setValue('venue_lng', null as any)
+            }
+          }}
+          onVenueSearchChange={setVenueSearchInput}
+          onVenueAddressChange={handleVenueAddressChange}
+          venueError={errors.venue_name?.message}
+          isViewingLeague={isViewingLeague}
+        />
+
+        {/* Hidden venue fields */}
+        <input type="hidden" {...register('venue_id', { valueAsNumber: true })} />
+        <input type="hidden" {...register('venue_name')} />
+        <input type="hidden" {...register('venue_address')} />
+        <input type="hidden" {...register('venue_lat', { valueAsNumber: true })} />
+        <input type="hidden" {...register('venue_lng', { valueAsNumber: true })} />
       </div>
 
       {/* Section: Game Schedule */}
@@ -844,58 +855,6 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
           <p className="text-sm text-yellow-800">{draftError}</p>
         </div>
       )}
-
-      {/* Approval Notification - Shows what will be created */}
-      {(() => {
-        const sportId = watch('sport_id')
-        const sportName = watch('sport_name')
-        const venueId = watch('venue_id')
-        const venueName = watch('venue_name')
-        const venueAddress = watch('venue_address')
-
-        const willCreateSport = !sportId && sportName
-        const willCreateVenue = !venueId && (venueName || venueAddress)
-
-        if (willCreateSport || willCreateVenue) {
-          return (
-            <div className="border-l-4 border-blue-400 bg-blue-50 p-4 rounded">
-              <div className="flex">
-                <div className="shrink-0">
-                  <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-blue-700 font-medium">
-                    The following will be created when this league is approved:
-                  </p>
-                  <ul className="mt-2 text-sm text-blue-600 space-y-1">
-                    {willCreateSport && (
-                      <li className="flex items-center">
-                        <span className="mr-2">•</span>
-                        <span><strong>Sport:</strong> {sportName}</span>
-                      </li>
-                    )}
-                    {willCreateVenue && (
-                      <li className="flex items-center">
-                        <span className="mr-2">•</span>
-                        <span>
-                          <strong>Venue:</strong> {venueName || 'Custom Venue'}
-                          {venueAddress && ` (${venueAddress})`}
-                        </span>
-                      </li>
-                    )}
-                  </ul>
-                  <p className="mt-2 text-xs text-blue-600 italic">
-                    An admin will review and approve these before they become available for other leagues.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )
-        }
-        return null
-      })()}
 
       {/* Submit Error Message */}
       {submitError && (
