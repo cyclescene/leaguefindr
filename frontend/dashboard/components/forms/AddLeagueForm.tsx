@@ -120,6 +120,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
   const [draftSaveStatus, setDraftSaveStatus] = useState<string | null>(null)
   const [draftError, setDraftError] = useState<string | null>(null)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
+  const [draftName, setDraftName] = useState('')
 
   // Sport search state
   const { approvedSports } = useSportSearch()
@@ -427,6 +428,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
             'X-Clerk-User-ID': userId,
           },
           body: JSON.stringify({
+            name: draftName || null,
             data: draftData,
           }),
         }
@@ -785,8 +787,6 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       </div>
 
       {/* Section: Dates */}
-      {/* // TODO: We should not liking the dialog approach to the date pickers */}
-      {/* // they should just open up in the form */}
       <div className="border-t pt-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Season Dates</h3>
 
@@ -1230,7 +1230,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
           return (
             <div className="border-l-4 border-blue-400 bg-blue-50 p-4 rounded">
               <div className="flex">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2z" clipRule="evenodd" />
                   </svg>
@@ -1271,6 +1271,24 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       {submitError && (
         <div className="rounded-md bg-red-50 p-4">
           <p className="text-sm text-red-800">{submitError}</p>
+        </div>
+      )}
+
+      {/* Draft Name Input (only show when saving draft) */}
+      {!isEditingDraft && !isEditingTemplate && !isViewingLeague && (
+        <div className="space-y-2">
+          <Label htmlFor="draft_name">Draft Name (Optional)</Label>
+          <Input
+            id="draft_name"
+            type="text"
+            placeholder="e.g., Summer Basketball League"
+            value={draftName}
+            onChange={(e) => setDraftName(e.target.value)}
+            maxLength={255}
+          />
+          <p className="text-xs text-gray-500">
+            If left blank, the draft will be auto-named based on the league name.
+          </p>
         </div>
       )}
 

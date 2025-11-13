@@ -351,7 +351,7 @@ func (h *Handler) SaveDraft(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	draft, err := h.service.SaveDraft(orgID, userID, req.DraftData)
+	draft, err := h.service.SaveDraft(orgID, userID, req.Name, req.DraftData)
 	if err != nil {
 		slog.Error("save draft error", "orgID", orgID, "userID", userID, "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

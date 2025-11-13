@@ -279,14 +279,24 @@ func (s *Service) GetDraft(orgID string) (*LeagueDraft, error) {
 }
 
 // SaveDraft saves or updates a draft for an organization
-func (s *Service) SaveDraft(orgID string, userID string, draftData DraftData) (*LeagueDraft, error) {
+func (s *Service) SaveDraft(orgID string, userID string, draftName *string, draftData DraftData) (*LeagueDraft, error) {
 	if draftData == nil || len(draftData) == 0 {
 		return nil, fmt.Errorf("draft data cannot be empty")
+	}
+
+	// Auto-generate draft name from league_name if not provided
+	var name *string
+	if draftName != nil && *draftName != "" {
+		name = draftName
+	} else if leagueName, ok := draftData["league_name"].(string); ok && leagueName != "" {
+		generatedName := leagueName + " Draft"
+		name = &generatedName
 	}
 
 	draft := &LeagueDraft{
 		OrgID:     orgID,
 		Type:      DraftTypeDraft,
+		Name:      name,
 		DraftData: draftData,
 		CreatedBy: &userID,
 	}

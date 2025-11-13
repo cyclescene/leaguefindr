@@ -29,7 +29,7 @@ export function OrganizerDraftTableRow({
 }: OrganizerDraftTableRowProps) {
   return (
     <TableRow>
-      <TableCell>Draft #{draft.id}</TableCell>
+      <TableCell>{draft.name || `Draft #${draft.id}`}</TableCell>
       <TableCell>{draft.dateCreated}</TableCell>
       <TableCell>
         <DropdownMenu>
