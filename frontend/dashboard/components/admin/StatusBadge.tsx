@@ -6,7 +6,7 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status }: StatusBadgeProps) {
   switch (status) {
-    case 'pending_review':
+    case 'pending':
       return <Badge variant='pending' className="w-[130px] text-center">Pending Review</Badge>;
     case 'approved':
       return <Badge variant="approve" className="w-[130px] text-center">Approved</Badge>;

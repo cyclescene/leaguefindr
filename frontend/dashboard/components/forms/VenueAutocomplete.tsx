@@ -13,6 +13,9 @@ const AddressAutofill = dynamic(
   { ssr: false }
 ) as any
 
+// Global ref to track if Mapbox dropdown is open
+let isMapboxDropdownOpen = false
+
 interface Venue {
   id: number
   name: string
@@ -46,6 +49,76 @@ export function VenueAutocomplete({
   const [debouncedVenueName, setDebouncedVenueName] = useState('')
   const [showVenueAutocomplete, setShowVenueAutocomplete] = useState(false)
   const addressInputRef = useRef<HTMLInputElement>(null)
+
+  // Monitor Mapbox AddressAutofill dropdown and stop event propagation for clicks on it
+  useEffect(() => {
+    let debounceTimer: NodeJS.Timeout
+    let lastEventTime = 0
+    const debounceDelay = 50 // 50ms debounce to prevent excessive event handling
+
+    const handlePointerDown = (e: PointerEvent) => {
+      // Check if the click is on a Mapbox element (suggestions, dropdown items, etc)
+      const target = e.target as HTMLElement
+      const isMapboxElement = target.closest(
+        '[class*="mapbox"], [class*="search"], [role="option"], [class*="suggestions"], [class*="suggestion"]'
+      )
+
+      if (isMapboxElement) {
+        const now = Date.now()
+        if (now - lastEventTime < debounceDelay) {
+          return // Skip if too soon
+        }
+        lastEventTime = now
+
+        // Mark that Mapbox dropdown is open
+        isMapboxDropdownOpen = true
+        window.dispatchEvent(new CustomEvent('mapboxDropdownOpen'))
+
+        // Stop the event from propagating to the dialog
+        e.stopPropagation()
+        e.preventDefault()
+      }
+    }
+
+    const handlePointerUp = (e: PointerEvent) => {
+      // Also stop propagation for pointer up events on Mapbox elements
+      const target = e.target as HTMLElement
+      const isMapboxElement = target.closest(
+        '[class*="mapbox"], [class*="search"], [role="option"], [class*="suggestions"], [class*="suggestion"]'
+      )
+
+      if (isMapboxElement) {
+        const now = Date.now()
+        if (now - lastEventTime < debounceDelay) {
+          return // Skip if too soon
+        }
+        lastEventTime = now
+
+        e.stopPropagation()
+        e.preventDefault()
+      }
+
+      // Debounce the close check
+      clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        const mapboxSuggestions = document.querySelector('[class*="suggestions"]')
+        if (!mapboxSuggestions || window.getComputedStyle(mapboxSuggestions).display === 'none') {
+          isMapboxDropdownOpen = false
+          window.dispatchEvent(new CustomEvent('mapboxDropdownClose'))
+        }
+      }, 100)
+    }
+
+    // Use capture phase to intercept events before they bubble up
+    document.addEventListener('pointerdown', handlePointerDown, true)
+    document.addEventListener('pointerup', handlePointerUp, true)
+
+    return () => {
+      clearTimeout(debounceTimer)
+      document.removeEventListener('pointerdown', handlePointerDown, true)
+      document.removeEventListener('pointerup', handlePointerUp, true)
+    }
+  }, [])
 
   // Debounce venue search
   useEffect(() => {

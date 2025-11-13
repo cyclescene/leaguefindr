@@ -31,6 +31,12 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(auth.JWTMiddleware)
 
+			// Admin routes (must come before wildcard routes)
+			r.Group(func(r chi.Router) {
+				r.Use(auth.RequireAdmin(h.authService))
+				r.Get("/admin", h.GetAllOrganizations)
+			})
+
 			// Public user routes
 			r.Get("/user", h.GetUserOrganizations)
 			r.Get("/{orgId}", h.GetOrganization)
@@ -38,12 +44,6 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 			r.Post("/join", h.JoinOrganization)
 			r.Put("/{orgId}", h.UpdateOrganization)
 			r.Delete("/{orgId}", h.DeleteOrganization)
-
-			// Admin routes
-			r.Group(func(r chi.Router) {
-				r.Use(auth.RequireAdmin(h.authService))
-				r.Get("/", h.GetAllOrganizations)
-			})
 		})
 	})
 }

@@ -154,6 +154,12 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     }
   }, [prePopulatedFormData, setValue])
 
+  // Handle venue search input change - update both state and form value
+  const handleVenueSearchChange = (input: string) => {
+    setVenueSearchInput(input)
+    setValue('venue_name', input) // Update form value when user types
+  }
+
   // Handle venue address selection from Mapbox AddressAutofill
   const handleVenueAddressChange = (featureCollection: any) => {
     const feature = featureCollection?.features?.[0]
@@ -165,6 +171,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       // Mark venue as not selected since we're using a custom address
       setSelectedVenue(null)
       setValue('venue_id', null as any)
+      // venue_name is already updated via handleVenueSearchChange as user types
       setValue('venue_address', address)
       setValue('venue_lat', lat)
       setValue('venue_lng', lng)
@@ -699,7 +706,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
               setValue('venue_lng', null as any)
             }
           }}
-          onVenueSearchChange={setVenueSearchInput}
+          onVenueSearchChange={handleVenueSearchChange}
           onVenueAddressChange={handleVenueAddressChange}
           venueError={errors.venue_name?.message}
           isViewingLeague={isViewingLeague}

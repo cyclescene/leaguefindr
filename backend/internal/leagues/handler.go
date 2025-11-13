@@ -55,6 +55,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 				r.Use(auth.RequireAdmin(h.authService))
 				r.Get("/admin/all", h.GetAllLeagues)
 				r.Get("/admin/pending", h.GetPendingLeagues)
+				r.Get("/admin/{id}", h.GetLeagueByIDAdmin)
 				r.Get("/admin/drafts/all", h.GetAllDrafts)
 				r.Get("/admin/templates/all", h.GetAllTemplates)
 				r.Put("/{id}/approve", h.ApproveLeague)
@@ -99,6 +100,32 @@ func (h *Handler) GetLeagueByID(w http.ResponseWriter, r *http.Request) {
 	league, err := h.service.GetLeagueByID(id)
 	if err != nil {
 		slog.Error("get league by id error", "id", id, "err", err)
+		http.Error(w, "League not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(league)
+}
+
+// GetLeagueByIDAdmin returns a league by ID (admin only - allows viewing any status)
+func (h *Handler) GetLeagueByIDAdmin(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	if idStr == "" {
+		http.Error(w, "league ID is required", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid league ID", http.StatusBadRequest)
+		return
+	}
+
+	league, err := h.service.GetAllLeagueByID(id)
+	if err != nil {
+		slog.Error("get league by id admin error", "id", id, "err", err)
 		http.Error(w, "League not found", http.StatusNotFound)
 		return
 	}
@@ -179,7 +206,23 @@ func (h *Handler) GetLeaguesByOrgID(w http.ResponseWriter, r *http.Request) {
 
 // GetAllLeagues returns all leagues regardless of status (admin only)
 func (h *Handler) GetAllLeagues(w http.ResponseWriter, r *http.Request) {
-	leagues, err := h.service.GetAllLeagues()
+	// Parse pagination params from query string
+	limit := 20 // default limit
+	offset := 0 // default offset
+
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+			offset = o
+		}
+	}
+
+	leagues, total, err := h.service.GetAllLeaguesWithPagination(limit, offset)
 	if err != nil {
 		slog.Error("get all leagues error", "err", err)
 		http.Error(w, "Failed to fetch leagues", http.StatusInternalServerError)
@@ -192,7 +235,12 @@ func (h *Handler) GetAllLeagues(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(GetLeaguesResponse{Leagues: leagues})
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"leagues": leagues,
+		"total":   total,
+		"limit":   limit,
+		"offset":  offset,
+	})
 }
 
 // GetPendingLeagues returns all pending league submissions (admin only)

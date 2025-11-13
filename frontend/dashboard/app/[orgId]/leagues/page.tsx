@@ -77,7 +77,7 @@ function LeaguesContent() {
     startDate: league.season_start_date,
     venue: "", // Venue name would need to be fetched separately if needed
     dateSubmitted: new Date(league.created_at).toLocaleDateString(),
-    status: league.status === 'approved' ? 'approved' : league.status === 'pending' ? 'pending_review' : 'rejected',
+    status: league.status === 'approved' ? 'approved' : league.status === 'pending' ? 'pending' : 'rejected',
   }));
 
   const handleCloseDialog = () => {

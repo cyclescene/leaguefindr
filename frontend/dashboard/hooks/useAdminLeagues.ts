@@ -62,13 +62,45 @@ export function usePendingLeagues(limit: number = 20, offset: number = 0) {
 }
 
 /**
+ * Hook to fetch all leagues (all statuses) for admin view with pagination
+ */
+export function useAllLeagues(limit: number = 20, offset: number = 0) {
+  const { getToken } = useAuth()
+
+  const { data, error, isLoading, mutate } = useSWR(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/admin/all?limit=${limit}&offset=${offset}`,
+    async (url) => {
+      const token = await getToken()
+      if (!token) {
+        throw new Error('No authentication token available')
+      }
+      return fetcher(url, token)
+    },
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+    }
+  )
+
+  return {
+    allLeagues: (data?.leagues || []) as PendingLeague[],
+    total: data?.total || 0,
+    limit: data?.limit || limit,
+    offset: data?.offset || offset,
+    isLoading,
+    error,
+    mutate,
+  }
+}
+
+/**
  * Hook to fetch a specific league by ID
  */
 export function useLeague(leagueId: number | null) {
   const { getToken } = useAuth()
 
   const { data, error, isLoading, mutate } = useSWR(
-    leagueId ? `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/${leagueId}` : null,
+    leagueId ? `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/admin/${leagueId}` : null,
     async (url) => {
       const token = await getToken()
       if (!token) {

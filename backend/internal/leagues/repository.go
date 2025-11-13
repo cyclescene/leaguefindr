@@ -16,11 +16,13 @@ type RepositoryInterface interface {
 	GetAll() ([]League, error)
 	GetAllApproved() ([]League, error)
 	GetByID(id int) (*League, error)
+	GetByIDAll(id int) (*League, error)
 	GetByOrgID(orgID string) ([]League, error)
 	GetByOrgIDAndStatus(orgID string, status LeagueStatus) ([]League, error)
 	Create(league *League) error
 	GetPending() ([]League, error)
 	GetPendingWithPagination(limit, offset int) ([]League, int64, error)
+	GetAllWithPagination(limit, offset int) ([]League, int64, error)
 	UpdateStatus(id int, status LeagueStatus, rejectionReason *string) error
 	UpdateLeague(league *League) error
 	ApproveLeagueWithTransaction(id int, sportID *int, venueID *int) error
@@ -111,6 +113,78 @@ func (r *Repository) GetByID(id int) (*League, error) {
 
 	var draftDataJSON []byte
 	err := r.db.QueryRow(ctx, query, id, LeagueStatusApproved.String()).Scan(
+		&league.ID,
+		&league.OrgID,
+		&league.SportID,
+		&league.LeagueName,
+		&league.Division,
+		&league.RegistrationDeadline,
+		&league.SeasonStartDate,
+		&league.SeasonEndDate,
+		&gameOccurrencesJSON,
+		&league.PricingStrategy,
+		&league.PricingAmount,
+		&league.PricingPerPlayer,
+		&league.VenueID,
+		&league.Gender,
+		&league.SeasonDetails,
+		&league.RegistrationURL,
+		&league.Duration,
+		&league.MinimumTeamPlayers,
+		&league.PerGameFee,
+		&supplementalRequestsJSON,
+		&draftDataJSON,
+		&league.Status,
+		&league.CreatedAt,
+		&league.UpdatedAt,
+		&league.CreatedBy,
+		&league.RejectionReason,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("league not found")
+	}
+
+	if err := json.Unmarshal(gameOccurrencesJSON, &league.GameOccurrences); err != nil {
+		return nil, fmt.Errorf("failed to parse game occurrences: %w", err)
+	}
+
+	if len(supplementalRequestsJSON) > 0 {
+		if err := json.Unmarshal(supplementalRequestsJSON, &league.SupplementalRequests); err != nil {
+			return nil, fmt.Errorf("failed to parse supplemental requests: %w", err)
+		}
+	}
+
+	if len(draftDataJSON) > 0 {
+		if err := json.Unmarshal(draftDataJSON, &league.DraftData); err != nil {
+			return nil, fmt.Errorf("failed to parse draft data: %w", err)
+		}
+	}
+
+	return league, nil
+}
+
+// GetByIDAll retrieves a league by ID regardless of status (admin only)
+func (r *Repository) GetByIDAll(id int) (*League, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	league := &League{}
+	var gameOccurrencesJSON []byte
+	var supplementalRequestsJSON []byte
+
+	query := `
+		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
+		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
+		       venue_id, gender, season_details, registration_url, duration,
+		       minimum_team_players, per_game_fee, supplemental_requests, draft_data, status, created_at, updated_at, created_by,
+		       rejection_reason
+		FROM leagues
+		WHERE id = $1
+	`
+
+	var draftDataJSON []byte
+	err := r.db.QueryRow(ctx, query, id).Scan(
 		&league.ID,
 		&league.OrgID,
 		&league.SportID,
@@ -327,6 +401,44 @@ func (r *Repository) GetPendingWithPagination(limit, offset int) ([]League, int6
 	`
 
 	leagues, err := r.scanLeaguesWithParams(ctx, query, LeagueStatusPending.String(), limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return leagues, total, nil
+}
+
+// GetAllWithPagination retrieves all leagues regardless of status with limit and offset for pagination
+func (r *Repository) GetAllWithPagination(limit, offset int) ([]League, int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Get total count
+	countQuery := `SELECT COUNT(*) FROM leagues`
+	var total int64
+	if err := r.db.QueryRow(ctx, countQuery).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	// Get paginated results with status-based ordering
+	query := `
+		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
+		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
+		       venue_id, gender, season_details, registration_url, duration,
+		       minimum_team_players, per_game_fee, supplemental_requests, draft_data, status, created_at, updated_at, created_by,
+		       rejection_reason
+		FROM leagues
+		ORDER BY
+		  CASE
+		    WHEN status = 'pending' THEN 1
+		    WHEN status = 'approved' THEN 2
+		    WHEN status = 'rejected' THEN 3
+		  END,
+		  created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	leagues, err := r.scanLeaguesWithParams(ctx, query, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}

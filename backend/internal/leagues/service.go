@@ -59,6 +59,11 @@ func (s *Service) GetLeagueByID(id int) (*League, error) {
 	return s.repo.GetByID(id)
 }
 
+// GetAllLeagueByID retrieves a league by ID regardless of status (admin only)
+func (s *Service) GetAllLeagueByID(id int) (*League, error) {
+	return s.repo.GetByIDAll(id)
+}
+
 // GetPendingLeagues retrieves all pending league submissions (admin only)
 func (s *Service) GetPendingLeagues() ([]League, error) {
 	return s.repo.GetPending()
@@ -67,6 +72,11 @@ func (s *Service) GetPendingLeagues() ([]League, error) {
 // GetPendingLeaguesWithPagination retrieves pending leagues with pagination support
 func (s *Service) GetPendingLeaguesWithPagination(limit, offset int) ([]League, int64, error) {
 	return s.repo.GetPendingWithPagination(limit, offset)
+}
+
+// GetAllLeaguesWithPagination retrieves all leagues regardless of status with pagination support
+func (s *Service) GetAllLeaguesWithPagination(limit, offset int) ([]League, int64, error) {
+	return s.repo.GetAllWithPagination(limit, offset)
 }
 
 // CreateLeague creates a new league with validation and pricing calculation

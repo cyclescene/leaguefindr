@@ -7,16 +7,25 @@ import type { League, Draft } from "@/types/leagues";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
-import { ActionButtons } from "@/components/forms/ActionButtons";
+import { AdminActionButtons } from "@/components/admin/AdminActionButtons";
+import { AdminLeagueReviewModal } from "@/components/admin/AdminLeagueReviewModal";
 import { LeagueTable } from "@/components/admin/LeagueTable";
 import { DraftLeagueTable } from "@/components/admin/DraftLeagueTable";
-import { usePendingLeagues, useAdminLeagueOperations } from "@/hooks/useAdminLeagues";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { usePendingLeagues, useAllLeagues, useAdminLeagueOperations } from "@/hooks/useAdminLeagues";
+
+const ITEMS_PER_PAGE = 20
 
 function DashboardContent() {
   const { user, isLoaded } = useUser() as { user: ClerkUser | null; isLoaded: boolean };
 
-  // Fetch pending leagues for admin review
-  const { pendingLeagues, isLoading: isLoadingPending, mutate: mutatePendingLeagues } = usePendingLeagues()
+  // Pagination state
+  const [page, setPage] = useState(0)
+  const offset = page * ITEMS_PER_PAGE
+
+  // Fetch leagues by status with pagination
+  const { pendingLeagues, total: totalPending, isLoading: isLoadingPending, mutate: mutatePendingLeagues } = usePendingLeagues(ITEMS_PER_PAGE, offset)
+  const { allLeagues, total: totalAll, isLoading: isLoadingAll, mutate: mutateAllLeagues } = useAllLeagues(ITEMS_PER_PAGE, offset)
 
   // For now, we'll skip fetching drafts from a specific org
   // TODO: Implement global draft fetching for admin view or remove drafts tab
@@ -28,8 +37,12 @@ function DashboardContent() {
   const [isApproving, setIsApproving] = useState<number | null>(null)
   const [isRejecting, setIsRejecting] = useState<number | null>(null)
 
+  // Review modal state
+  const [reviewModalOpen, setReviewModalOpen] = useState(false)
+  const [reviewingLeagueId, setReviewingLeagueId] = useState<number | null>(null)
+
   // Transform API data to table format
-  const leagues: League[] = pendingLeagues.map(league => ({
+  const transformLeague = (league: any): League => ({
     id: league.id,
     name: league.league_name,
     organizationName: league.org_id,
@@ -39,19 +52,23 @@ function DashboardContent() {
     venue: league.venue_id?.toString() || 'Unknown',
     dateSubmitted: new Date(league.created_at).toLocaleDateString(),
     status: league.status,
-  }))
+  })
+
+  const pendingLeaguesTransformed: League[] = pendingLeagues.map(transformLeague)
+  const allLeaguesTransformed: League[] = allLeagues.map(transformLeague)
 
 
   const handleViewLeague = (leagueId: number) => {
-    console.log('View league:', leagueId)
-    // TODO: Open league review modal with LeagueFormContext in 'admin-review' mode
+    setReviewingLeagueId(leagueId)
+    setReviewModalOpen(true)
   }
 
   const handleApprove = async (leagueId: number) => {
     try {
       setIsApproving(leagueId)
       await approveLeague(leagueId)
-      await mutatePendingLeagues()
+      // Refresh both pending and all leagues
+      await Promise.all([mutatePendingLeagues(), mutateAllLeagues()])
     } catch (error) {
       console.error('Failed to approve league:', error)
       alert('Failed to approve league')
@@ -66,7 +83,8 @@ function DashboardContent() {
       const reason = window.prompt('Enter rejection reason:')
       if (reason) {
         await rejectLeague(leagueId, reason)
-        await mutatePendingLeagues()
+        // Refresh both pending and all leagues
+        await Promise.all([mutatePendingLeagues(), mutateAllLeagues()])
       }
     } catch (error) {
       console.error('Failed to reject league:', error)
@@ -104,33 +122,129 @@ function DashboardContent() {
     )
   }
 
+  // Calculate pagination info
+  const totalPagingPending = Math.ceil(totalPending / ITEMS_PER_PAGE)
+  const totalPagingAll = Math.ceil(totalAll / ITEMS_PER_PAGE)
+
+  // Generate page numbers for pagination component
+  const getPageNumbers = (currentPage: number, totalPages: number) => {
+    const pages = []
+    const maxPagesToShow = 5
+
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 0; i < totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      // Show first page, pages around current, and last page
+      pages.push(0)
+      const startPage = Math.max(1, currentPage - 1)
+      const endPage = Math.min(totalPages - 2, currentPage + 1)
+
+      if (startPage > 1) pages.push(-1) // ellipsis
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i)
+      }
+      if (endPage < totalPages - 2) pages.push(-1) // ellipsis
+      pages.push(totalPages - 1)
+    }
+
+    return pages
+  }
+
+  const renderPagination = (currentPage: number, totalPages: number, onPageChange: (p: number) => void) => {
+    const pageNumbers = getPageNumbers(currentPage, totalPages)
+
+    return (
+      <Pagination className="mt-6">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious
+              onClick={() => currentPage > 0 && onPageChange(currentPage - 1)}
+              className={currentPage === 0 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+            />
+          </PaginationItem>
+          {pageNumbers.map((pageNum, idx) => (
+            pageNum === -1 ? (
+              <PaginationItem key={`ellipsis-${idx}`}>
+                <PaginationEllipsis />
+              </PaginationItem>
+            ) : (
+              <PaginationItem key={pageNum}>
+                <PaginationLink
+                  onClick={() => onPageChange(pageNum)}
+                  isActive={currentPage === pageNum}
+                  className="cursor-pointer"
+                >
+                  {pageNum + 1}
+                </PaginationLink>
+              </PaginationItem>
+            )
+          ))}
+          <PaginationItem>
+            <PaginationNext
+              onClick={() => currentPage < totalPages - 1 && onPageChange(currentPage + 1)}
+              className={currentPage === totalPages - 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    )
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-neutral-light">
       <Header organizationName="" />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12">
-        <Tabs defaultValue="submitted">
+        <Tabs defaultValue="all" onValueChange={() => setPage(0)}>
           <div className="flex flex-row w-full justify-between items-center mb-4">
             <TabsList>
-              <TabsTrigger value="submitted">Submitted Leagues ({leagues.length})</TabsTrigger>
+              <TabsTrigger value="all">All Leagues ({totalAll})</TabsTrigger>
+              <TabsTrigger value="pending">Pending ({totalPending})</TabsTrigger>
               <TabsTrigger value="drafts">Drafts ({draftList.length})</TabsTrigger>
             </TabsList>
-            <ActionButtons />
+            <AdminActionButtons />
           </div>
-          <TabsContent value="submitted">
+
+          <TabsContent value="all">
+            {isLoadingAll ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="animate-spin text-brand-dark" size={40} />
+              </div>
+            ) : (
+              <>
+                {renderPagination(page, totalPagingAll, setPage)}
+                <LeagueTable
+                  leagues={allLeaguesTransformed}
+                  onView={handleViewLeague}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                />
+                {renderPagination(page, totalPagingAll, setPage)}
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="pending">
             {isLoadingPending ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="animate-spin text-brand-dark" size={40} />
               </div>
             ) : (
-              <LeagueTable
-                leagues={leagues}
-                onView={handleViewLeague}
-                onApprove={handleApprove}
-                onReject={handleReject}
-              />
+              <>
+                {renderPagination(page, totalPagingPending, setPage)}
+                <LeagueTable
+                  leagues={pendingLeaguesTransformed}
+                  onView={handleViewLeague}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                />
+                {renderPagination(page, totalPagingPending, setPage)}
+              </>
             )}
           </TabsContent>
+
           <TabsContent value="drafts">
             {isLoadingDrafts ? (
               <div className="flex items-center justify-center py-12">
@@ -148,6 +262,24 @@ function DashboardContent() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* League Review Modal */}
+      <AdminLeagueReviewModal
+        leagueId={reviewingLeagueId}
+        isOpen={reviewModalOpen}
+        onClose={() => {
+          setReviewModalOpen(false)
+          setReviewingLeagueId(null)
+        }}
+        onApproveSuccess={() => {
+          mutatePendingLeagues()
+          mutateAllLeagues()
+        }}
+        onRejectSuccess={() => {
+          mutatePendingLeagues()
+          mutateAllLeagues()
+        }}
+      />
 
       <Footer />
     </div>
