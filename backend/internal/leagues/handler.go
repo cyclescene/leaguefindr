@@ -402,9 +402,7 @@ func (h *Handler) SaveDraft(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req SaveLeagueDraftRequest
-	var err error
-
-	err = json.NewDecoder(r.Body).Decode(&req)
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		slog.Error("save draft error", "err", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -421,7 +419,6 @@ func (h *Handler) SaveDraft(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var draft *LeagueDraft
-	var err error
 
 	// Check if updating existing draft or creating new one
 	if req.DraftID != nil && *req.DraftID > 0 {
