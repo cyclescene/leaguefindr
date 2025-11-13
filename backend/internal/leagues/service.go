@@ -64,6 +64,11 @@ func (s *Service) GetPendingLeagues() ([]League, error) {
 	return s.repo.GetPending()
 }
 
+// GetPendingLeaguesWithPagination retrieves pending leagues with pagination support
+func (s *Service) GetPendingLeaguesWithPagination(limit, offset int) ([]League, int64, error) {
+	return s.repo.GetPendingWithPagination(limit, offset)
+}
+
 // CreateLeague creates a new league with validation and pricing calculation
 func (s *Service) CreateLeague(userID string, orgID string, request *CreateLeagueRequest) (*League, error) {
 	if request == nil {

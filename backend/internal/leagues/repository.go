@@ -20,6 +20,7 @@ type RepositoryInterface interface {
 	GetByOrgIDAndStatus(orgID string, status LeagueStatus) ([]League, error)
 	Create(league *League) error
 	GetPending() ([]League, error)
+	GetPendingWithPagination(limit, offset int) ([]League, int64, error)
 	UpdateStatus(id int, status LeagueStatus, rejectionReason *string) error
 	UpdateLeague(league *League) error
 	ApproveLeagueWithTransaction(id int, sportID *int, venueID *int) error
@@ -298,6 +299,39 @@ func (r *Repository) GetPending() ([]League, error) {
 	`
 
 	return r.scanLeaguesWithParams(ctx, query, LeagueStatusPending.String())
+}
+
+// GetPendingWithPagination retrieves pending leagues with limit and offset for pagination
+func (r *Repository) GetPendingWithPagination(limit, offset int) ([]League, int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Get total count
+	countQuery := `SELECT COUNT(*) FROM leagues WHERE status = $1`
+	var total int64
+	if err := r.db.QueryRow(ctx, countQuery, LeagueStatusPending.String()).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	// Get paginated results using the standard scanLeaguesWithParams helper
+	query := `
+		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
+		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
+		       venue_id, gender, season_details, registration_url, duration,
+		       minimum_team_players, per_game_fee, supplemental_requests, draft_data, status, created_at, updated_at, created_by,
+		       rejection_reason
+		FROM leagues
+		WHERE status = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	leagues, err := r.scanLeaguesWithParams(ctx, query, LeagueStatusPending.String(), limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return leagues, total, nil
 }
 
 // UpdateStatus updates the status of a league

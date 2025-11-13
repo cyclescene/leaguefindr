@@ -30,13 +30,13 @@ export interface PendingLeague {
 }
 
 /**
- * Hook to fetch pending leagues that need admin review
+ * Hook to fetch pending leagues that need admin review with pagination support
  */
-export function usePendingLeagues() {
+export function usePendingLeagues(limit: number = 20, offset: number = 0) {
   const { getToken } = useAuth()
 
   const { data, error, isLoading, mutate } = useSWR(
-    `${process.env.NEXT_PUBLIC_API_URL}/v1/admin/leagues/pending`,
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/admin/pending?limit=${limit}&offset=${offset}`,
     async (url) => {
       const token = await getToken()
       if (!token) {
@@ -52,6 +52,9 @@ export function usePendingLeagues() {
 
   return {
     pendingLeagues: (data?.leagues || []) as PendingLeague[],
+    total: data?.total || 0,
+    limit: data?.limit || limit,
+    offset: data?.offset || offset,
     isLoading,
     error,
     mutate,
@@ -59,13 +62,13 @@ export function usePendingLeagues() {
 }
 
 /**
- * Hook to fetch a specific pending league for review
+ * Hook to fetch a specific league by ID
  */
-export function usePendingLeague(leagueId: number | null) {
+export function useLeague(leagueId: number | null) {
   const { getToken } = useAuth()
 
   const { data, error, isLoading, mutate } = useSWR(
-    leagueId ? `${process.env.NEXT_PUBLIC_API_URL}/v1/admin/leagues/${leagueId}` : null,
+    leagueId ? `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/${leagueId}` : null,
     async (url) => {
       const token = await getToken()
       if (!token) {
@@ -80,7 +83,7 @@ export function usePendingLeague(leagueId: number | null) {
   )
 
   return {
-    league: data?.league as PendingLeague | undefined,
+    league: data as PendingLeague | undefined,
     isLoading,
     error,
     mutate,
@@ -100,9 +103,9 @@ export function useAdminLeagueOperations() {
     }
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/v1/admin/leagues/${leagueId}/approve`,
+      `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/${leagueId}/approve`,
       {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -125,9 +128,9 @@ export function useAdminLeagueOperations() {
     }
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/v1/admin/leagues/${leagueId}/reject`,
+      `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/${leagueId}/reject`,
       {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

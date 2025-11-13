@@ -197,7 +197,23 @@ func (h *Handler) GetAllLeagues(w http.ResponseWriter, r *http.Request) {
 
 // GetPendingLeagues returns all pending league submissions (admin only)
 func (h *Handler) GetPendingLeagues(w http.ResponseWriter, r *http.Request) {
-	leagues, err := h.service.GetPendingLeagues()
+	// Parse pagination params from query string
+	limit := 20 // default limit
+	offset := 0 // default offset
+
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+			offset = o
+		}
+	}
+
+	leagues, total, err := h.service.GetPendingLeaguesWithPagination(limit, offset)
 	if err != nil {
 		slog.Error("get pending leagues error", "err", err)
 		http.Error(w, "Failed to fetch pending leagues", http.StatusInternalServerError)
@@ -210,7 +226,12 @@ func (h *Handler) GetPendingLeagues(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(GetLeaguesResponse{Leagues: leagues})
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"leagues": leagues,
+		"total":   total,
+		"limit":   limit,
+		"offset":  offset,
+	})
 }
 
 // ApproveLeague approves a pending league submission (admin only)
