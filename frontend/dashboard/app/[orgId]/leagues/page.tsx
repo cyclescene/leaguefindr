@@ -42,6 +42,8 @@ function LeaguesContent() {
   const { drafts: apiDrafts, isLoading: draftsLoading, mutate: mutateDrafts } = useDrafts(orgId);
   const { templates: apiTemplates, isLoading: templatesLoading, mutate: mutateTemplates } = useTemplates(orgId);
 
+  console.log('LeaguesContent - apiLeagues:', apiLeagues)
+
   // Convert API drafts to display format
   const displayDrafts = apiDrafts
     .filter(d => d.type === 'draft')
@@ -95,34 +97,39 @@ function LeaguesContent() {
     const league = apiLeagues.find((l) => l.id === leagueId);
     if (!league) return;
 
-    // Build form data from league fields
-    const formData: AddLeagueFormData = {
-      sport_id: league.sport_id,
-      sport_name: '',
-      venue_id: league.venue_id,
-      venue_name: '',
-      venue_address: '',
-      venue_lat: undefined,
-      venue_lng: undefined,
-      league_name: league.league_name,
-      division: league.division,
-      gender: league.gender as "male" | "female" | "co-ed",
-      registration_deadline: league.registration_deadline,
-      season_start_date: league.season_start_date,
-      season_end_date: league.season_end_date || '',
-      season_details: league.season_details || '',
-      game_occurrences: league.game_occurrences,
-      pricing_strategy: league.pricing_strategy as any,
-      pricing_amount: league.pricing_amount,
-      per_game_fee: league.per_game_fee || undefined,
-      minimum_team_players: league.minimum_team_players,
-      registration_url: league.registration_url,
-      duration: league.duration,
-      org_id: orgId,
-      organization_name: '',
-    };
+    // Use draft_data if available, otherwise build from league fields
+    if (league.draft_data) {
+      setPrePopulatedFormData(league.draft_data as AddLeagueFormData);
+    } else {
+      // Fallback: Build form data from league fields (shouldn't normally happen)
+      const formData: AddLeagueFormData = {
+        sport_id: league.sport_id,
+        sport_name: '',
+        venue_id: league.venue_id,
+        venue_name: '',
+        venue_address: '',
+        venue_lat: undefined,
+        venue_lng: undefined,
+        league_name: league.league_name,
+        division: league.division,
+        gender: league.gender as "male" | "female" | "co-ed",
+        registration_deadline: league.registration_deadline,
+        season_start_date: league.season_start_date,
+        season_end_date: league.season_end_date || '',
+        season_details: league.season_details || '',
+        game_occurrences: league.game_occurrences,
+        pricing_strategy: league.pricing_strategy as any,
+        pricing_amount: league.pricing_amount,
+        per_game_fee: league.per_game_fee || undefined,
+        minimum_team_players: league.minimum_team_players,
+        registration_url: league.registration_url,
+        duration: league.duration,
+        org_id: orgId,
+        organization_name: '',
+      };
+      setPrePopulatedFormData(formData);
+    }
 
-    setPrePopulatedFormData(formData);
     setIsViewingLeague(true);
     setViewingLeagueId(leagueId);
     setOpenDialog("league");
