@@ -9,6 +9,7 @@ export interface League {
   dateSubmitted: string;
   status: string;
   draft_data?: Record<string, any>;
+  rejection_reason?: string | null;
 }
 
 export interface Template {

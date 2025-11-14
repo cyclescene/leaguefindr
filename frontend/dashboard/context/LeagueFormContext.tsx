@@ -14,6 +14,10 @@ export interface LeagueFormContextType {
   templateId?: number;
   leagueId?: number;
 
+  // League status and rejection
+  leagueStatus?: string;
+  leagueRejectionReason?: string | null;
+
   // Form data
   prePopulatedFormData?: AddLeagueFormData;
   organizationId?: string;

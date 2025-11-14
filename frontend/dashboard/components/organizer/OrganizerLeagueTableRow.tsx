@@ -13,6 +13,7 @@ interface League {
   venue: string;
   dateSubmitted: string;
   status: string;
+  rejection_reason?: string | null;
 }
 
 interface OrganizerLeagueTableRowProps {

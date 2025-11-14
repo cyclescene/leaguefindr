@@ -36,6 +36,8 @@ function LeaguesContent() {
   const [editingTemplateId, setEditingTemplateId] = useState<number | undefined>();
   const [isViewingLeague, setIsViewingLeague] = useState(false);
   const [viewingLeagueId, setViewingLeagueId] = useState<number | undefined>();
+  const [viewingLeagueStatus, setViewingLeagueStatus] = useState<string | undefined>();
+  const [viewingLeagueRejectionReason, setViewingLeagueRejectionReason] = useState<string | null | undefined>();
 
   // Fetch real leagues, drafts and templates from API
   const { leagues: apiLeagues, isLoading: leaguesLoading, mutate: mutateLeagues } = useLeagues(orgId);
@@ -80,6 +82,7 @@ function LeaguesContent() {
     venue: "", // Venue name would need to be fetched separately if needed
     dateSubmitted: new Date(league.created_at).toLocaleDateString(),
     status: league.status === 'approved' ? 'approved' : league.status === 'pending' ? 'pending' : 'rejected',
+    rejection_reason: league.rejection_reason,
   }));
 
   const handleCloseDialog = () => {
@@ -91,6 +94,8 @@ function LeaguesContent() {
     setEditingTemplateId(undefined);
     setIsViewingLeague(false);
     setViewingLeagueId(undefined);
+    setViewingLeagueStatus(undefined);
+    setViewingLeagueRejectionReason(undefined);
   };
 
   const handleViewLeague = (leagueId: number) => {
@@ -132,6 +137,8 @@ function LeaguesContent() {
 
     setIsViewingLeague(true);
     setViewingLeagueId(leagueId);
+    setViewingLeagueStatus(league.status);
+    setViewingLeagueRejectionReason(league.rejection_reason);
     setOpenDialog("league");
   };
 
@@ -273,6 +280,8 @@ function LeaguesContent() {
         editingTemplateId={editingTemplateId}
         isViewingLeague={isViewingLeague}
         viewingLeagueId={viewingLeagueId}
+        viewingLeagueStatus={viewingLeagueStatus}
+        viewingLeagueRejectionReason={viewingLeagueRejectionReason}
         onLeagueSubmitted={handleLeagueSubmitted}
         mutateDrafts={mutateDrafts}
         mutateTemplates={mutateTemplates}

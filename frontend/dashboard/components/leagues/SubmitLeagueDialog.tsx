@@ -22,6 +22,8 @@ interface SubmitLeagueDialogProps {
   editingTemplateId?: number;
   isViewingLeague?: boolean;
   viewingLeagueId?: number;
+  viewingLeagueStatus?: string;
+  viewingLeagueRejectionReason?: string | null;
   onLeagueSubmitted?: () => void;
   mutateDrafts?: () => Promise<any>;
   mutateTemplates?: () => Promise<any>;
@@ -41,6 +43,8 @@ export function SubmitLeagueDialog({
   editingTemplateId,
   isViewingLeague,
   viewingLeagueId,
+  viewingLeagueStatus,
+  viewingLeagueRejectionReason,
   onLeagueSubmitted,
   mutateDrafts,
   mutateTemplates,
@@ -65,6 +69,8 @@ export function SubmitLeagueDialog({
     draftId: editingDraftId,
     templateId: editingTemplateId,
     leagueId: viewingLeagueId,
+    leagueStatus: viewingLeagueStatus,
+    leagueRejectionReason: viewingLeagueRejectionReason,
     prePopulatedFormData,
     organizationId,
     organizationName,
