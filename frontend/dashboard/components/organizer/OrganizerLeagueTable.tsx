@@ -37,7 +37,6 @@ export function OrganizerLeagueTable({
         <TableRow>
           <TableHead>League Name</TableHead>
           <TableHead>Sport</TableHead>
-          <TableHead>Age Group</TableHead>
           <TableHead>Gender</TableHead>
           <TableHead>Start Date</TableHead>
           <TableHead>Venue</TableHead>

@@ -7,7 +7,6 @@ interface League {
   name: string;
   organizationName: string;
   sport: string;
-  ageGroup: string;
   gender: string;
   startDate: string;
   venue: string;
@@ -29,7 +28,6 @@ export function OrganizerLeagueTableRow({
     <TableRow>
       <TableCell>{league.name}</TableCell>
       <TableCell>{league.sport}</TableCell>
-      <TableCell>{league.ageGroup}</TableCell>
       <TableCell>{league.gender}</TableCell>
       <TableCell>{league.startDate}</TableCell>
       <TableCell>{league.venue}</TableCell>

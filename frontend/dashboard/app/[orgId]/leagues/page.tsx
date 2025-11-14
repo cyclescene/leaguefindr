@@ -75,11 +75,11 @@ function LeaguesContent() {
   const submittedLeagues: League[] = apiLeagues.map(league => ({
     id: league.id,
     name: league.league_name,
-    organizationName: "", // Will be populated from org context
-    sport: "", // Sport name would need to be fetched separately if needed
+    organizationName: league.draft_data?.organization_name || "", // Will be populated from org context
+    sport: league.draft_data?.sport_name || "Unknown",
     gender: league.gender || 'N/A',
-    startDate: league.season_start_date,
-    venue: "", // Venue name would need to be fetched separately if needed
+    startDate: new Date(league.season_start_date).toLocaleDateString(),
+    venue: league.draft_data?.venue_name || "Unknown",
     dateSubmitted: new Date(league.created_at).toLocaleDateString(),
     status: league.status === 'approved' ? 'approved' : league.status === 'pending' ? 'pending' : 'rejected',
     rejection_reason: league.rejection_reason,
