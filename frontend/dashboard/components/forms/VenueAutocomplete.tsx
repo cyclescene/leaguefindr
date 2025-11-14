@@ -224,8 +224,8 @@ export function VenueAutocomplete({
         </div>
       )}
 
-      {/* Address field - hidden when venue is selected from dropdown or custom address is prepopulated */}
-      {!selectedVenue && !customVenueAddress && (
+      {/* Address field - hidden when venue is selected from dropdown or custom address is prepopulated or in view mode */}
+      {!selectedVenue && !customVenueAddress && !isViewingLeague && (
         <div className="space-y-2">
           <Label htmlFor="venue_address">Search Address</Label>
           <p className="text-sm text-gray-600">Find address or enter custom location</p>
@@ -239,7 +239,6 @@ export function VenueAutocomplete({
                   type="text"
                   autoComplete="address-line1"
                   placeholder="Search address..."
-                  disabled={isViewingLeague}
                   aria-invalid={venueError ? 'true' : 'false'}
                 />
               </AddressAutofill>
@@ -249,7 +248,6 @@ export function VenueAutocomplete({
                 id="venue_address"
                 type="text"
                 placeholder="Enter address..."
-                disabled={isViewingLeague}
                 aria-invalid={venueError ? 'true' : 'false'}
               />
             )
@@ -283,7 +281,17 @@ export function VenueAutocomplete({
         </div>
       )}
 
-      {!selectedVenue && !customVenueAddress && addressInputRef.current?.value && (
+      {/* Display venue name only in view mode when there's no address */}
+      {!selectedVenue && !customVenueAddress && isViewingLeague && venueSearchInput && (
+        <div className="flex items-start bg-blue-50 p-3 rounded-md border border-blue-200">
+          <div className="flex-1">
+            <p className="text-sm text-blue-700 font-medium">{venueSearchInput}</p>
+            <p className="text-xs text-blue-600 italic">No address provided</p>
+          </div>
+        </div>
+      )}
+
+      {!selectedVenue && !customVenueAddress && !isViewingLeague && addressInputRef.current?.value && (
         <p className="text-xs text-gray-500 italic">
           This venue will be created during admin approval if it doesn't exist
         </p>
