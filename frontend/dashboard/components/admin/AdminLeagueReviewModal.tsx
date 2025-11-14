@@ -133,6 +133,13 @@ export function AdminLeagueReviewModal({
           <>
             {/* League form in view/review mode */}
             <div className="px-6 py-4">
+              {(() => {
+                console.log('=== AdminLeagueReviewModal ===')
+                console.log('Full league object:', league)
+                console.log('league.draft_data:', league.draft_data)
+                console.log('typeof league.draft_data:', typeof league.draft_data)
+                return null
+              })()}
               <LeagueFormProvider
                 value={{
                   mode: 'view',
