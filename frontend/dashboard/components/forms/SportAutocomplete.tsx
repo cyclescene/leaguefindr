@@ -78,7 +78,7 @@ export function SportAutocomplete({
             placeholder="e.g., Basketball, Football, Tennis"
             value={sportSearchInput}
             onChange={e => onSportSearchChange(e.target.value)}
-            onFocus={() => sportSearchInput.length >= 1 && !selectedSport && setShowSportAutocomplete(true)}
+            onFocus={() => sportSearchInput.length >= 1 && !selectedSport && !isViewingLeague && setShowSportAutocomplete(true)}
             onBlur={() => setTimeout(() => setShowSportAutocomplete(false), 150)}
             maxLength={255}
             autoComplete="off"
