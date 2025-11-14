@@ -52,16 +52,6 @@ export function VenueAutocomplete({
   const [showVenueAutocomplete, setShowVenueAutocomplete] = useState(false)
   const addressInputRef = useRef<HTMLInputElement>(null)
 
-  // Debug logging for view mode
-  if (isViewingLeague) {
-    console.log('VenueAutocomplete in view mode:', {
-      selectedVenue,
-      venueSearchInput,
-      customVenueAddress,
-      isViewingLeague
-    })
-  }
-
   // Monitor Mapbox AddressAutofill dropdown and stop event propagation for clicks on it
   useEffect(() => {
     let debounceTimer: NodeJS.Timeout

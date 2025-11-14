@@ -44,8 +44,6 @@ function LeaguesContent() {
   const { drafts: apiDrafts, isLoading: draftsLoading, mutate: mutateDrafts } = useDrafts(orgId);
   const { templates: apiTemplates, isLoading: templatesLoading, mutate: mutateTemplates } = useTemplates(orgId);
 
-  console.log('LeaguesContent - apiLeagues:', apiLeagues)
-
   // Convert API drafts to display format
   const displayDrafts = apiDrafts
     .filter(d => d.type === 'draft')

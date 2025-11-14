@@ -131,13 +131,6 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
   // Load pre-populated form data
   useEffect(() => {
     if (prePopulatedFormData) {
-      // Debug logging for view mode
-      console.log('AddLeagueForm prePopulatedFormData:', prePopulatedFormData)
-      console.log('AddLeagueForm isViewingLeague:', isViewingLeague)
-      console.log('AddLeagueForm prePopulatedFormData.venue_name:', prePopulatedFormData.venue_name)
-      console.log('AddLeagueForm prePopulatedFormData.venue_address:', prePopulatedFormData.venue_address)
-      console.log('AddLeagueForm prePopulatedFormData.sport_name:', prePopulatedFormData.sport_name)
-
       // Populate form fields
       Object.keys(prePopulatedFormData).forEach((key) => {
         const value = prePopulatedFormData[key as keyof AddLeagueFormData]
@@ -189,15 +182,6 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       const venueName = prePopulatedFormData.venue_name as string | undefined
       if (venueName) {
         setVenueSearchInput(venueName)
-      }
-
-      // Debug logging for venue data
-      if (isViewingLeague) {
-        console.log('Venue data set:', {
-          venueName,
-          venueAddress: prePopulatedFormData.venue_address,
-          sportName: prePopulatedFormData.sport_name
-        })
       }
     }
   }, [prePopulatedFormData, setValue, isViewingLeague])
