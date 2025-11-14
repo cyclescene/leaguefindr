@@ -550,14 +550,9 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 w-full">
       {/* Show rejection reason if league was rejected */}
       {isViewingLeague && leagueStatus === 'rejected' && leagueRejectionReason && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <Label className="text-red-800 font-semibold">Rejection Reason</Label>
-          <textarea
-            value={leagueRejectionReason}
-            disabled
-            className="mt-2 w-full p-3 border border-red-300 rounded-md bg-white text-red-900 resize-none"
-            rows={3}
-          />
+        <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-4">
+          <p className="text-red-800 font-semibold mb-2">Rejection Reason:</p>
+          <p className="text-red-900">{leagueRejectionReason}</p>
         </div>
       )}
 
