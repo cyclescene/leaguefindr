@@ -3,14 +3,14 @@ import { useUser } from "@clerk/nextjs";
 import { Suspense, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { ClerkUser } from "@/types/clerk";
-import type { League, Draft } from "@/types/leagues";
+import type { League } from "@/types/leagues";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { AdminActionButtons } from "@/components/admin/AdminActionButtons";
 import { AdminLeagueReviewModal } from "@/components/admin/AdminLeagueReviewModal";
+import { RejectLeagueDialog } from "@/components/admin/RejectLeagueDialog";
 import { LeagueTable } from "@/components/admin/LeagueTable";
-import { DraftLeagueTable } from "@/components/admin/DraftLeagueTable";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { usePendingLeagues, useAllLeagues, useAdminLeagueOperations } from "@/hooks/useAdminLeagues";
 
@@ -27,11 +27,6 @@ function DashboardContent() {
   const { pendingLeagues, total: totalPending, isLoading: isLoadingPending, mutate: mutatePendingLeagues } = usePendingLeagues(ITEMS_PER_PAGE, offset)
   const { allLeagues, total: totalAll, isLoading: isLoadingAll, mutate: mutateAllLeagues } = useAllLeagues(ITEMS_PER_PAGE, offset)
 
-  // For now, we'll skip fetching drafts from a specific org
-  // TODO: Implement global draft fetching for admin view or remove drafts tab
-  const isLoadingDrafts = false
-  const draftList: Draft[] = []
-
   // Admin operations
   const { approveLeague, rejectLeague } = useAdminLeagueOperations()
   const [isApproving, setIsApproving] = useState<number | null>(null)
@@ -41,15 +36,20 @@ function DashboardContent() {
   const [reviewModalOpen, setReviewModalOpen] = useState(false)
   const [reviewingLeagueId, setReviewingLeagueId] = useState<number | null>(null)
 
+  // Reject dialog state
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
+  const [rejectingLeagueId, setRejectingLeagueId] = useState<number | null>(null)
+  const [rejectingLeagueName, setRejectingLeagueName] = useState<string | undefined>(undefined)
+
   // Transform API data to table format
   const transformLeague = (league: any): League => ({
     id: league.id,
     name: league.league_name,
-    organizationName: league.org_id,
-    sport: league.sport_id?.toString() || 'Unknown',
+    organizationName: league.draft_data?.organization_name || league.org_id || 'Unknown',
+    sport: league.draft_data?.sport_name || league.sport_id?.toString() || 'Unknown',
     gender: league.gender || 'N/A',
     startDate: new Date(league.season_start_date).toLocaleDateString(),
-    venue: league.venue_id?.toString() || 'Unknown',
+    venue: league.draft_data?.venue_name || league.venue_id?.toString() || 'Unknown',
     dateSubmitted: new Date(league.created_at).toLocaleDateString(),
     status: league.status,
   })
@@ -77,39 +77,31 @@ function DashboardContent() {
     }
   }
 
-  const handleReject = async (leagueId: number) => {
+  const handleReject = (leagueId: number) => {
+    // Find the league to get its name
+    const league = [...pendingLeagues, ...allLeagues].find(l => l.id === leagueId)
+    setRejectingLeagueId(leagueId)
+    setRejectingLeagueName(league?.league_name || undefined)
+    setRejectDialogOpen(true)
+  }
+
+  const handleRejectConfirm = async (reason: string) => {
+    if (!rejectingLeagueId) return
+
     try {
-      setIsRejecting(leagueId)
-      const reason = window.prompt('Enter rejection reason:')
-      if (reason) {
-        await rejectLeague(leagueId, reason)
-        // Refresh both pending and all leagues
-        await Promise.all([mutatePendingLeagues(), mutateAllLeagues()])
-      }
+      setIsRejecting(rejectingLeagueId)
+      await rejectLeague(rejectingLeagueId, reason)
+      // Refresh both pending and all leagues
+      await Promise.all([mutatePendingLeagues(), mutateAllLeagues()])
     } catch (error) {
       console.error('Failed to reject league:', error)
-      alert('Failed to reject league')
+      throw error // Let the dialog handle the error display
     } finally {
       setIsRejecting(null)
     }
   }
 
-  const handleEditDraft = (leagueId: number) => {
-    console.log('Edit draft:', leagueId)
-    // TODO: Open draft edit modal
-  }
-
-  const handleDeleteDraft = (leagueId: number) => {
-    console.log('Delete draft:', leagueId)
-    // TODO: Implement draft deletion API call
-  }
-
-  const handleSubmitDraft = (leagueId: number) => {
-    console.log('Submit draft:', leagueId)
-    // TODO: Implement draft submission from admin panel
-  }
-
-  const isLoading = !isLoaded || isLoadingPending || isLoadingDrafts
+  const isLoading = !isLoaded || isLoadingPending
 
   if (!isLoaded) {
     return (
@@ -202,7 +194,6 @@ function DashboardContent() {
             <TabsList>
               <TabsTrigger value="all">All Leagues ({totalAll})</TabsTrigger>
               <TabsTrigger value="pending">Pending ({totalPending})</TabsTrigger>
-              <TabsTrigger value="drafts">Drafts ({draftList.length})</TabsTrigger>
             </TabsList>
             <AdminActionButtons />
           </div>
@@ -245,21 +236,6 @@ function DashboardContent() {
             )}
           </TabsContent>
 
-          <TabsContent value="drafts">
-            {isLoadingDrafts ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="animate-spin text-brand-dark" size={40} />
-              </div>
-            ) : (
-              <DraftLeagueTable
-                drafts={draftList}
-                onView={handleViewLeague}
-                onEdit={handleEditDraft}
-                onDelete={handleDeleteDraft}
-                onSubmit={handleSubmitDraft}
-              />
-            )}
-          </TabsContent>
         </Tabs>
       </main>
 
@@ -279,6 +255,18 @@ function DashboardContent() {
           mutatePendingLeagues()
           mutateAllLeagues()
         }}
+      />
+
+      {/* Reject League Dialog */}
+      <RejectLeagueDialog
+        isOpen={rejectDialogOpen}
+        leagueName={rejectingLeagueName}
+        onClose={() => {
+          setRejectDialogOpen(false)
+          setRejectingLeagueId(null)
+          setRejectingLeagueName(undefined)
+        }}
+        onReject={handleRejectConfirm}
       />
 
       <Footer />

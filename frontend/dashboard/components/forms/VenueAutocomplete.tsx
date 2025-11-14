@@ -162,58 +162,67 @@ export function VenueAutocomplete({
 
   return (
     <div className="space-y-4">
-      {/* Venue Search with Autocomplete */}
-      <div className="space-y-2">
-        <Label htmlFor="venue_search">Venue (Optional)</Label>
-        <p className="text-sm text-gray-600">Select from popular venues or add a new one</p>
-        <div className="relative">
+      {/* Venue Search with Autocomplete - hidden in view mode */}
+      {!isViewingLeague && (
+        <div className="space-y-2">
+          <Label htmlFor="venue_search">Venue (Optional)</Label>
+          <p className="text-sm text-gray-600">Select from popular venues or add a new one</p>
           <div className="relative">
-            <Input
-              id="venue_search"
-              placeholder="e.g., Central Park Courts"
-              value={venueSearchInput}
-              onChange={e => onVenueSearchChange(e.target.value)}
-              onFocus={() => venueSearchInput.length >= 1 && !selectedVenue && setShowVenueAutocomplete(true)}
-              onBlur={() => setTimeout(() => setShowVenueAutocomplete(false), 150)}
-              maxLength={255}
-              autoComplete="off"
-              disabled={isViewingLeague}
-              aria-invalid={venueError ? 'true' : 'false'}
-            />
-            {selectedVenue && !isViewingLeague && (
-              <button
-                type="button"
-                onClick={handleClearVenueSelection}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
+            <div className="relative">
+              <Input
+                id="venue_search"
+                placeholder="e.g., Central Park Courts"
+                value={venueSearchInput}
+                onChange={e => onVenueSearchChange(e.target.value)}
+                onFocus={() => venueSearchInput.length >= 1 && !selectedVenue && setShowVenueAutocomplete(true)}
+                onBlur={() => setTimeout(() => setShowVenueAutocomplete(false), 150)}
+                maxLength={255}
+                autoComplete="off"
+                disabled={isViewingLeague}
+                aria-invalid={venueError ? 'true' : 'false'}
+              />
+              {selectedVenue && !isViewingLeague && (
+                <button
+                  type="button"
+                  onClick={handleClearVenueSelection}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Venue Autocomplete Dropdown */}
+            {showVenueAutocomplete && filteredVenueSuggestions.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                {filteredVenueSuggestions.map(venue => (
+                  <button
+                    key={venue.id}
+                    type="button"
+                    onClick={() => {
+                      handleSelectVenue(venue)
+                      setShowVenueAutocomplete(false)
+                    }}
+                    className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b last:border-b-0"
+                  >
+                    <p className="text-sm font-medium text-gray-900">{venue.name}</p>
+                    <p className="text-xs text-gray-600">{venue.address}</p>
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
-          {/* Venue Autocomplete Dropdown */}
-          {showVenueAutocomplete && filteredVenueSuggestions.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-              {filteredVenueSuggestions.map(venue => (
-                <button
-                  key={venue.id}
-                  type="button"
-                  onClick={() => {
-                    handleSelectVenue(venue)
-                    setShowVenueAutocomplete(false)
-                  }}
-                  className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b last:border-b-0"
-                >
-                  <p className="text-sm font-medium text-gray-900">{venue.name}</p>
-                  <p className="text-xs text-gray-600">{venue.address}</p>
-                </button>
-              ))}
-            </div>
-          )}
+          {venueError && <p className="text-sm text-red-600">{venueError}</p>}
         </div>
+      )}
 
-        {venueError && <p className="text-sm text-red-600">{venueError}</p>}
-      </div>
+      {/* Show label in view mode */}
+      {isViewingLeague && (
+        <div className="space-y-2">
+          <Label>Venue</Label>
+        </div>
+      )}
 
       {/* Address field - hidden when venue is selected from dropdown or custom address is prepopulated */}
       {!selectedVenue && !customVenueAddress && (

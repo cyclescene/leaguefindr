@@ -54,14 +54,9 @@ func (s *Service) GetApprovedLeagues() ([]League, error) {
 	return s.repo.GetAllApproved()
 }
 
-// GetLeagueByID retrieves a single approved league by ID (public)
+// GetLeagueByID retrieves a league by ID (admin only - any status)
 func (s *Service) GetLeagueByID(id int) (*League, error) {
 	return s.repo.GetByID(id)
-}
-
-// GetAllLeagueByID retrieves a league by ID regardless of status (admin only)
-func (s *Service) GetAllLeagueByID(id int) (*League, error) {
-	return s.repo.GetByIDAll(id)
 }
 
 // GetPendingLeagues retrieves all pending league submissions (admin only)
@@ -151,10 +146,23 @@ func (s *Service) CreateLeague(userID string, orgID string, request *CreateLeagu
 	orgIDValue := orgID
 	createdByValue := userID
 
+	// Get organization name from request or fetch from database
+	orgName := ""
+	if request.OrganizationName != nil && *request.OrganizationName != "" {
+		orgName = *request.OrganizationName
+	} else {
+		// Fallback: query organization table if name not provided
+		org, err := s.orgService.GetOrganizationByID(orgID)
+		if err == nil && org != nil {
+			orgName = org.OrgName
+		}
+	}
+
 	// Convert request to map for draft_data
 	draftDataMap := map[string]interface{}{
 		"sport_id":              request.SportID,
 		"sport_name":            request.SportName,
+		"organization_name":     orgName,
 		"league_name":           request.LeagueName,
 		"division":              request.Division,
 		"registration_deadline": *request.RegistrationDeadline,
@@ -175,7 +183,6 @@ func (s *Service) CreateLeague(userID string, orgID string, request *CreateLeagu
 		"minimum_team_players":  request.MinimumTeamPlayers,
 		"per_game_fee":          request.PerGameFee,
 		"org_id":                orgID,
-		"organization_name":     "", // Will be populated from org context if needed
 	}
 
 	league := &League{

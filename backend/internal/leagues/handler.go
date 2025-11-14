@@ -30,7 +30,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Route("/leagues", func(r chi.Router) {
 		// Public routes (no auth required)
 		r.Get("/", h.GetApprovedLeagues)
-		r.Get("/{id}", h.GetLeagueByID)
+		r.Get("/approved/{id}", h.GetApprovedLeagueByID)
 
 		// Protected routes (JWT required)
 		r.Group(func(r chi.Router) {
@@ -50,14 +50,14 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 			r.Put("/templates/{templateId}", h.UpdateTemplate)
 			r.Delete("/templates/{templateId}", h.DeleteTemplate)
 
-			// Admin routes
-			r.Group(func(r chi.Router) {
+			// Admin routes - all under /admin prefix
+			r.Route("/admin", func(r chi.Router) {
 				r.Use(auth.RequireAdmin(h.authService))
-				r.Get("/admin/all", h.GetAllLeagues)
-				r.Get("/admin/pending", h.GetPendingLeagues)
-				r.Get("/admin/{id}", h.GetLeagueByIDAdmin)
-				r.Get("/admin/drafts/all", h.GetAllDrafts)
-				r.Get("/admin/templates/all", h.GetAllTemplates)
+				r.Get("/all", h.GetAllLeagues)
+				r.Get("/pending", h.GetPendingLeagues)
+				r.Get("/drafts/all", h.GetAllDrafts)
+				r.Get("/templates/all", h.GetAllTemplates)
+				r.Get("/{id}", h.GetLeagueByID)
 				r.Put("/{id}/approve", h.ApproveLeague)
 				r.Put("/{id}/reject", h.RejectLeague)
 			})
@@ -83,7 +83,39 @@ func (h *Handler) GetApprovedLeagues(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(GetLeaguesResponse{Leagues: leagues})
 }
 
-// GetLeagueByID returns a specific approved league by ID (public)
+// GetApprovedLeagueByID returns an approved league by ID (public)
+func (h *Handler) GetApprovedLeagueByID(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	if idStr == "" {
+		http.Error(w, "league ID is required", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid league ID", http.StatusBadRequest)
+		return
+	}
+
+	league, err := h.service.GetLeagueByID(id)
+	if err != nil {
+		slog.Error("get approved league by id error", "id", id, "err", err)
+		http.Error(w, "League not found", http.StatusNotFound)
+		return
+	}
+
+	// Only return if league is approved
+	if league.Status != LeagueStatusApproved {
+		http.Error(w, "League not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(league)
+}
+
+// GetLeagueByID returns a league by ID (admin only - any status)
 func (h *Handler) GetLeagueByID(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	if idStr == "" {
@@ -100,32 +132,6 @@ func (h *Handler) GetLeagueByID(w http.ResponseWriter, r *http.Request) {
 	league, err := h.service.GetLeagueByID(id)
 	if err != nil {
 		slog.Error("get league by id error", "id", id, "err", err)
-		http.Error(w, "League not found", http.StatusNotFound)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(league)
-}
-
-// GetLeagueByIDAdmin returns a league by ID (admin only - allows viewing any status)
-func (h *Handler) GetLeagueByIDAdmin(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	if idStr == "" {
-		http.Error(w, "league ID is required", http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid league ID", http.StatusBadRequest)
-		return
-	}
-
-	league, err := h.service.GetAllLeagueByID(id)
-	if err != nil {
-		slog.Error("get league by id admin error", "id", id, "err", err)
 		http.Error(w, "League not found", http.StatusNotFound)
 		return
 	}

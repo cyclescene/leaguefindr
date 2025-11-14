@@ -39,10 +39,11 @@ export function SportAutocomplete({
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSportName(sportSearchInput)
-      setShowSportAutocomplete(sportSearchInput.length >= 1)
+      // Don't show autocomplete in view mode
+      setShowSportAutocomplete(sportSearchInput.length >= 1 && !isViewingLeague)
     }, 300)
     return () => clearTimeout(timer)
-  }, [sportSearchInput])
+  }, [sportSearchInput, isViewingLeague])
 
   // Filter sports suggestions
   const hasExactSportMatch =

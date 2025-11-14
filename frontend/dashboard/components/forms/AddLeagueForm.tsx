@@ -133,17 +133,35 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       Object.keys(prePopulatedFormData).forEach((key) => {
         const value = prePopulatedFormData[key as keyof AddLeagueFormData]
         if (key === 'registration_deadline' && value) {
-          const parsedDate = parse(value as string, 'yyyy-MM-dd', new Date())
-          setRegistrationDeadline(parsedDate)
-          setValue('registration_deadline', value as string)
+          try {
+            const parsedDate = parse(value as string, 'yyyy-MM-dd', new Date())
+            if (!isNaN(parsedDate.getTime())) {
+              setRegistrationDeadline(parsedDate)
+              setValue('registration_deadline', value as string)
+            }
+          } catch (e) {
+            console.error('Failed to parse registration_deadline:', value)
+          }
         } else if (key === 'season_start_date' && value) {
-          const parsedDate = parse(value as string, 'yyyy-MM-dd', new Date())
-          setSeasonStartDate(parsedDate)
-          setValue('season_start_date', value as string)
+          try {
+            const parsedDate = parse(value as string, 'yyyy-MM-dd', new Date())
+            if (!isNaN(parsedDate.getTime())) {
+              setSeasonStartDate(parsedDate)
+              setValue('season_start_date', value as string)
+            }
+          } catch (e) {
+            console.error('Failed to parse season_start_date:', value)
+          }
         } else if (key === 'season_end_date' && value) {
-          const parsedDate = parse(value as string, 'yyyy-MM-dd', new Date())
-          setSeasonEndDate(parsedDate)
-          setValue('season_end_date', value as string)
+          try {
+            const parsedDate = parse(value as string, 'yyyy-MM-dd', new Date())
+            if (!isNaN(parsedDate.getTime())) {
+              setSeasonEndDate(parsedDate)
+              setValue('season_end_date', value as string)
+            }
+          } catch (e) {
+            console.error('Failed to parse season_end_date:', value)
+          }
         } else if (key === 'game_occurrences' && Array.isArray(value)) {
           setGameOccurrences(value as GameOccurrence[])
           setValue('game_occurrences', value as GameOccurrence[])
@@ -151,6 +169,12 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
           setValue(key as keyof AddLeagueFormData, value as any)
         }
       })
+
+      // Set sport name in state so SportAutocomplete input displays it
+      const sportName = prePopulatedFormData.sport_name as string | undefined
+      if (sportName) {
+        setSportSearchInput(sportName)
+      }
 
       // Set venue name in state so VenueAutocomplete input displays it
       const venueName = prePopulatedFormData.venue_name as string | undefined
@@ -442,8 +466,8 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
         throw new Error('Authentication required. Please sign in.')
       }
 
-      // Format the payload - remove org_id and organization_name from body
-      const { org_id, organization_name, ...payload } = data
+      // Format the payload - remove org_id from body but keep organization_name
+      const { org_id, ...payload } = data
 
       const url = organizationId
         ? `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues?org_id=${organizationId}`

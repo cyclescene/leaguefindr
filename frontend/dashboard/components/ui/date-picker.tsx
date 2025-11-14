@@ -54,7 +54,7 @@ export function DatePicker({
         onClick={() => !disabled && setOpen(!open)}
       >
         <CalendarIcon className="mr-2 h-4 w-4" />
-        {date ? format(date, "MMM d, yyyy") : placeholder}
+        {date && !isNaN(date.getTime()) ? format(date, "MMM d, yyyy") : placeholder}
       </Button>
 
       {open && (

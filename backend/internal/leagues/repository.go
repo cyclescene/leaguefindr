@@ -16,7 +16,6 @@ type RepositoryInterface interface {
 	GetAll() ([]League, error)
 	GetAllApproved() ([]League, error)
 	GetByID(id int) (*League, error)
-	GetByIDAll(id int) (*League, error)
 	GetByOrgID(orgID string) ([]League, error)
 	GetByOrgIDAndStatus(orgID string, status LeagueStatus) ([]League, error)
 	Create(league *League) error
@@ -93,80 +92,8 @@ func (r *Repository) GetAllApproved() ([]League, error) {
 	return r.scanLeaguesWithParams(ctx, query, LeagueStatusApproved.String())
 }
 
-// GetByID retrieves a league by ID (approved only)
+// GetByID retrieves a league by ID (any status - auth required at route level)
 func (r *Repository) GetByID(id int) (*League, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	league := &League{}
-	var gameOccurrencesJSON []byte
-	var supplementalRequestsJSON []byte
-
-	query := `
-		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
-		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
-		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, draft_data, status, created_at, updated_at, created_by,
-		       rejection_reason
-		FROM leagues
-		WHERE id = $1 AND status = $2
-	`
-
-	var draftDataJSON []byte
-	err := r.db.QueryRow(ctx, query, id, LeagueStatusApproved.String()).Scan(
-		&league.ID,
-		&league.OrgID,
-		&league.SportID,
-		&league.LeagueName,
-		&league.Division,
-		&league.RegistrationDeadline,
-		&league.SeasonStartDate,
-		&league.SeasonEndDate,
-		&gameOccurrencesJSON,
-		&league.PricingStrategy,
-		&league.PricingAmount,
-		&league.PricingPerPlayer,
-		&league.VenueID,
-		&league.Gender,
-		&league.SeasonDetails,
-		&league.RegistrationURL,
-		&league.Duration,
-		&league.MinimumTeamPlayers,
-		&league.PerGameFee,
-		&supplementalRequestsJSON,
-		&draftDataJSON,
-		&league.Status,
-		&league.CreatedAt,
-		&league.UpdatedAt,
-		&league.CreatedBy,
-		&league.RejectionReason,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("league not found")
-	}
-
-	if err := json.Unmarshal(gameOccurrencesJSON, &league.GameOccurrences); err != nil {
-		return nil, fmt.Errorf("failed to parse game occurrences: %w", err)
-	}
-
-	if len(supplementalRequestsJSON) > 0 {
-		if err := json.Unmarshal(supplementalRequestsJSON, &league.SupplementalRequests); err != nil {
-			return nil, fmt.Errorf("failed to parse supplemental requests: %w", err)
-		}
-	}
-
-	if len(draftDataJSON) > 0 {
-		if err := json.Unmarshal(draftDataJSON, &league.DraftData); err != nil {
-			return nil, fmt.Errorf("failed to parse draft data: %w", err)
-		}
-	}
-
-	return league, nil
-}
-
-// GetByIDAll retrieves a league by ID regardless of status (admin only)
-func (r *Repository) GetByIDAll(id int) (*League, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

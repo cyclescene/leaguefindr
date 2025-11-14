@@ -130,6 +130,7 @@ type League struct {
 type CreateLeagueRequest struct {
 	SportID              *int            `json:"sport_id"` // Optional if sport doesn't exist yet
 	SportName            string          `json:"sport_name" validate:"required,max=255"` // Sport name (always required)
+	OrganizationName     *string         `json:"organization_name" validate:"max=255"` // Organization name for draft_data
 	LeagueName           *string         `json:"league_name" validate:"max=255"`
 	Division             *string         `json:"division" validate:"required,max=255"`
 	RegistrationDeadline *string         `json:"registration_deadline" validate:"required"` // ISO 8601 date string

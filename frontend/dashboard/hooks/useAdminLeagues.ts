@@ -27,6 +27,12 @@ export interface PendingLeague {
   updated_at: string
   created_by?: string
   rejection_reason?: string | null
+  draft_data?: {
+    sport_name?: string
+    venue_name?: string
+    organization_name?: string
+    [key: string]: any
+  }
 }
 
 /**
@@ -135,7 +141,7 @@ export function useAdminLeagueOperations() {
     }
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/${leagueId}/approve`,
+      `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/admin/${leagueId}/approve`,
       {
         method: 'PUT',
         headers: {
@@ -160,7 +166,7 @@ export function useAdminLeagueOperations() {
     }
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/${leagueId}/reject`,
+      `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/admin/${leagueId}/reject`,
       {
         method: 'PUT',
         headers: {
@@ -182,5 +188,71 @@ export function useAdminLeagueOperations() {
   return {
     approveLeague,
     rejectLeague,
+  }
+}
+
+/**
+ * Hook to fetch all drafts across all organizations (admin only)
+ */
+export function useAllDrafts() {
+  const { getToken } = useAuth()
+
+  const { data, error, isLoading, mutate } = useSWR(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/admin/drafts/all`,
+    async (url) => {
+      const token = await getToken()
+      if (!token) {
+        throw new Error('No authentication token available')
+      }
+      return fetcher(url, token)
+    },
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+    }
+  )
+
+  return {
+    drafts: (data?.drafts || []) as any[], // TODO: Add proper Draft type
+    isLoading,
+    error,
+    mutate,
+  }
+}
+
+/**
+ * Hook providing admin operations for drafts
+ */
+export function useAdminDraftOperations() {
+  const { getToken } = useAuth()
+
+  const deleteDraft = async (draftId: number, orgId: string): Promise<void> => {
+    const token = await getToken()
+    if (!token) {
+      throw new Error('No authentication token available')
+    }
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/drafts/org/${orgId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ draft_id: draftId }),
+      }
+    )
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to delete draft')
+    }
+
+    return await response.json()
+  }
+
+  return {
+    deleteDraft,
   }
 }
