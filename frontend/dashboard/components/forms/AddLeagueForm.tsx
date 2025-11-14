@@ -130,9 +130,11 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
   useEffect(() => {
     if (prePopulatedFormData) {
       // Debug logging for view mode
-      if (isViewingLeague) {
-        console.log('AddLeagueForm prePopulatedFormData in view mode:', prePopulatedFormData)
-      }
+      console.log('AddLeagueForm prePopulatedFormData:', prePopulatedFormData)
+      console.log('AddLeagueForm isViewingLeague:', isViewingLeague)
+      console.log('AddLeagueForm prePopulatedFormData.venue_name:', prePopulatedFormData.venue_name)
+      console.log('AddLeagueForm prePopulatedFormData.venue_address:', prePopulatedFormData.venue_address)
+      console.log('AddLeagueForm prePopulatedFormData.sport_name:', prePopulatedFormData.sport_name)
 
       // Populate form fields
       Object.keys(prePopulatedFormData).forEach((key) => {
