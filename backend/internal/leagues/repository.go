@@ -56,9 +56,9 @@ func (r *Repository) GetAll() ([]League, error) {
 
 	query := `
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
-		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
+		       season_end_date, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		ORDER BY
@@ -80,9 +80,9 @@ func (r *Repository) GetAllApproved() ([]League, error) {
 
 	query := `
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
-		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
+		       season_end_date, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE status = $1
@@ -98,14 +98,12 @@ func (r *Repository) GetByID(id int) (*League, error) {
 	defer cancel()
 
 	league := &League{}
-	var gameOccurrencesJSON []byte
-	var supplementalRequestsJSON []byte
 
 	query := `
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
-		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
+		       season_end_date, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE id = $1
@@ -121,7 +119,6 @@ func (r *Repository) GetByID(id int) (*League, error) {
 		&league.RegistrationDeadline,
 		&league.SeasonStartDate,
 		&league.SeasonEndDate,
-		&gameOccurrencesJSON,
 		&league.PricingStrategy,
 		&league.PricingAmount,
 		&league.PricingPerPlayer,
@@ -132,7 +129,6 @@ func (r *Repository) GetByID(id int) (*League, error) {
 		&league.Duration,
 		&league.MinimumTeamPlayers,
 		&league.PerGameFee,
-		&supplementalRequestsJSON,
 		&formDataJSON,
 		&league.Status,
 		&league.CreatedAt,
@@ -143,16 +139,6 @@ func (r *Repository) GetByID(id int) (*League, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("league not found")
-	}
-
-	if err := json.Unmarshal(gameOccurrencesJSON, &league.GameOccurrences); err != nil {
-		return nil, fmt.Errorf("failed to parse game occurrences: %w", err)
-	}
-
-	if len(supplementalRequestsJSON) > 0 {
-		if err := json.Unmarshal(supplementalRequestsJSON, &league.SupplementalRequests); err != nil {
-			return nil, fmt.Errorf("failed to parse supplemental requests: %w", err)
-		}
 	}
 
 	if len(formDataJSON) > 0 {
@@ -171,9 +157,9 @@ func (r *Repository) GetByOrgID(orgID string) ([]League, error) {
 
 	query := `
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
-		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
+		       season_end_date, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE org_id = $1
@@ -196,9 +182,9 @@ func (r *Repository) GetByOrgIDAndStatus(orgID string, status LeagueStatus) ([]L
 
 	query := `
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
-		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
+		       season_end_date, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE org_id = $1 AND status = $2
@@ -238,9 +224,9 @@ func (r *Repository) Create(league *League) error {
 
 	query := `
 		INSERT INTO leagues (org_id, sport_id, league_name, division, registration_deadline, season_start_date,
-		                     season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
+		                     season_end_date, pricing_strategy, pricing_amount, pricing_per_player,
 		                     venue_id, gender, season_details, registration_url, duration,
-		                     minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by)
+		                     minimum_team_players, per_game_fee, form_data, status, created_at, updated_at, created_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
 		RETURNING id
 	`
@@ -291,9 +277,9 @@ func (r *Repository) GetPending() ([]League, error) {
 
 	query := `
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
-		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
+		       season_end_date, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE status = $1
@@ -318,9 +304,9 @@ func (r *Repository) GetPendingWithPagination(limit, offset int) ([]League, int6
 	// Get paginated results using the standard scanLeaguesWithParams helper
 	query := `
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
-		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
+		       season_end_date, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE status = $1
@@ -351,9 +337,9 @@ func (r *Repository) GetAllWithPagination(limit, offset int) ([]League, int64, e
 	// Get paginated results with status-based ordering
 	query := `
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
-		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
+		       season_end_date, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		ORDER BY
@@ -413,11 +399,11 @@ func (r *Repository) UpdateLeague(league *League) error {
 
 	query := `
 		UPDATE leagues
-		SET sport_id = $1, venue_id = $2, supplemental_requests = $3, updated_at = NOW()
-		WHERE id = $4
+		SET sport_id = $1, venue_id = $2, updated_at = NOW()
+		WHERE id = $3
 	`
 
-	result, err := r.db.Exec(ctx, query, league.SportID, league.VenueID, supplementalRequestsJSON, league.ID)
+	result, err := r.db.Exec(ctx, query, league.SportID, league.VenueID, league.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update league: %w", err)
 	}
@@ -931,8 +917,6 @@ func (r *Repository) scanLeagues(ctx context.Context, query string, args ...inte
 	var leagues []League
 	for rows.Next() {
 		var league League
-		var gameOccurrencesJSON []byte
-		var supplementalRequestsJSON []byte
 		var formDataJSON []byte
 
 		err := rows.Scan(
@@ -944,7 +928,6 @@ func (r *Repository) scanLeagues(ctx context.Context, query string, args ...inte
 			&league.RegistrationDeadline,
 			&league.SeasonStartDate,
 			&league.SeasonEndDate,
-			&gameOccurrencesJSON,
 			&league.PricingStrategy,
 			&league.PricingAmount,
 			&league.PricingPerPlayer,
@@ -955,7 +938,6 @@ func (r *Repository) scanLeagues(ctx context.Context, query string, args ...inte
 			&league.Duration,
 			&league.MinimumTeamPlayers,
 			&league.PerGameFee,
-			&supplementalRequestsJSON,
 			&formDataJSON,
 			&league.Status,
 			&league.CreatedAt,
@@ -965,16 +947,6 @@ func (r *Repository) scanLeagues(ctx context.Context, query string, args ...inte
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan league: %w", err)
-		}
-
-		if err := json.Unmarshal(gameOccurrencesJSON, &league.GameOccurrences); err != nil {
-			return nil, fmt.Errorf("failed to parse game occurrences: %w", err)
-		}
-
-		if len(supplementalRequestsJSON) > 0 {
-			if err := json.Unmarshal(supplementalRequestsJSON, &league.SupplementalRequests); err != nil {
-				return nil, fmt.Errorf("failed to parse supplemental requests: %w", err)
-			}
 		}
 
 		if len(formDataJSON) > 0 {
