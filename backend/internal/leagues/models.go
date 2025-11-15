@@ -60,6 +60,16 @@ type GameOccurrence struct {
 	EndTime   string `json:"endTime"`   // e.g., "21:00"
 }
 
+// GameOccurrenceRow represents a row in the game_occurrences table
+type GameOccurrenceRow struct {
+	ID        int       `db:"id"`
+	LeagueID  int       `db:"league_id"`
+	Day       string    `db:"day"`        // Monday, Tuesday, etc.
+	StartTime string    `db:"start_time"` // HH:MM format
+	EndTime   string    `db:"end_time"`   // HH:MM format
+	CreatedAt time.Time `db:"created_at"`
+}
+
 // GameOccurrences is a slice of GameOccurrence that implements sql.Scanner and driver.Valuer
 type GameOccurrences []GameOccurrence
 
@@ -118,7 +128,7 @@ type League struct {
 	MinimumTeamPlayers   *int                  `json:"minimum_team_players"`
 	PerGameFee           *float64              `json:"per_game_fee"`
 	SupplementalRequests *SupplementalRequests `json:"supplemental_requests"` // Sport/venue data for items not in DB
-	DraftData            DraftData             `json:"draft_data"` // Complete form submission data
+	FormData             FormData              `json:"form_data"` // Complete form submission data
 	Status               LeagueStatus          `json:"status"`
 	CreatedAt            time.Time             `json:"created_at"`
 	UpdatedAt            time.Time             `json:"updated_at"`
@@ -186,40 +196,40 @@ type LeagueDraft struct {
 	OrgID     string    `json:"org_id"` // UUID of the organization
 	Type      DraftType `json:"type"`   // "draft" or "template"
 	Name      *string   `json:"name"`   // Name for templates, null for drafts
-	DraftData DraftData `json:"draft_data"`
+	FormData  FormData  `json:"form_data"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	CreatedBy *string   `json:"created_by"`
 }
 
-// DraftData represents the actual draft data stored as JSONB
-type DraftData map[string]interface{}
+// FormData represents the actual form submission data stored as JSONB
+type FormData map[string]interface{}
 
-// Scan implements sql.Scanner for DraftData
-func (d *DraftData) Scan(value interface{}) error {
+// Scan implements sql.Scanner for FormData
+func (f *FormData) Scan(value interface{}) error {
 	bytes, ok := value.([]byte)
 	if !ok {
 		return nil
 	}
-	return json.Unmarshal(bytes, &d)
+	return json.Unmarshal(bytes, &f)
 }
 
-// Value implements driver.Valuer for DraftData
-func (d DraftData) Value() (driver.Value, error) {
-	return json.Marshal(d)
+// Value implements driver.Valuer for FormData
+func (f FormData) Value() (driver.Value, error) {
+	return json.Marshal(f)
 }
 
 // SaveLeagueDraftRequest represents the request to save a draft
 type SaveLeagueDraftRequest struct {
-	DraftID   *int      `json:"draft_id"` // Optional draft ID for updating existing draft
-	Name      *string   `json:"name" validate:"omitempty,max=255"` // Optional draft name
-	DraftData DraftData `json:"data" validate:"required"`
+	DraftID  *int     `json:"draft_id"` // Optional draft ID for updating existing draft
+	Name     *string  `json:"name" validate:"omitempty,max=255"` // Optional draft name
+	FormData FormData `json:"data" validate:"required"`
 }
 
 // SaveLeagueTemplateRequest represents the request to save a league as a template
 type SaveLeagueTemplateRequest struct {
-	Name      string    `json:"name" validate:"required,min=1,max=255"`
-	DraftData DraftData `json:"draft_data" validate:"required"`
+	Name     string   `json:"name" validate:"required,min=1,max=255"`
+	FormData FormData `json:"form_data" validate:"required"`
 }
 
 // GetLeagueDraftResponse represents the response when getting a draft
