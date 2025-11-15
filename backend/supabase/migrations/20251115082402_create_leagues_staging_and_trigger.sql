@@ -45,7 +45,8 @@ CREATE TABLE leagues_staging (
   season_details TEXT,
   registration_url TEXT,
   duration INT,
-  minimum_team_players INT
+  minimum_team_players INT,
+  CONSTRAINT leagues_staging_insert_fallback UNIQUE(id)
 );
 
 COMMENT ON TABLE leagues_staging IS 'Staging table for CSV imports of leagues data. Data is automatically transformed and inserted into leagues table via trigger. This is a fallback mechanism - primary flow is through the dashboard API.';
