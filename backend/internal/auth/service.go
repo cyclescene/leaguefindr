@@ -122,10 +122,14 @@ func (s *Service) UpdateUserRole(userID string, role Role) error {
 }
 
 // IsUserAdmin checks if a user has admin role
+// If user doesn't exist, returns false (not admin) instead of erroring
 func (s *Service) IsUserAdmin(userID string) (bool, error) {
 	user, err := s.repo.GetUserByID(userID)
 	if err != nil {
-		return false, err
+		// User doesn't exist - return false, don't error
+		// The user will need to call /auth/register to create their account
+		slog.Debug("IsUserAdmin: user not found in database", "userID", userID)
+		return false, nil
 	}
 	return user.Role == RoleAdmin, nil
 }
