@@ -1,44 +1,12 @@
 package venues
 
-import "time"
-
-// VenueStatus represents the approval status of a venue
-type VenueStatus string
-
-const (
-	VenueStatusPending  VenueStatus = "pending"
-	VenueStatusApproved VenueStatus = "approved"
-	VenueStatusRejected VenueStatus = "rejected"
-)
-
-// IsValid checks if the status is a valid venue status
-func (v VenueStatus) IsValid() bool {
-	switch v {
-	case VenueStatusPending, VenueStatusApproved, VenueStatusRejected:
-		return true
-	default:
-		return false
-	}
-}
-
-// String returns the string representation of the status
-func (v VenueStatus) String() string {
-	return string(v)
-}
-
-// Venue represents a venue/location in the system
+// Venue represents a venue/location in the system (reference data)
 type Venue struct {
-	ID              int         `json:"id"`
-	Name            string      `json:"name"`
-	Address         string      `json:"address"`
-	Lat             float64     `json:"lat"`
-	Lng             float64     `json:"lng"`
-	Status          VenueStatus `json:"status"`
-	CreatedAt       time.Time   `json:"created_at"`
-	UpdatedAt       time.Time   `json:"updated_at"`
-	CreatedBy       *string     `json:"created_by"` // UUID of the user who submitted it
-	RejectionReason *string     `json:"rejection_reason"` // Reason for rejection if applicable
-	RequestCount    int         `json:"request_count"` // Number of users who have requested this venue
+	ID      int     `json:"id"`
+	Name    string  `json:"name"`
+	Address string  `json:"address"`
+	Lat     float64 `json:"lat"`
+	Lng     float64 `json:"lng"`
 }
 
 // CreateVenueRequest represents the request to create/submit a new venue
@@ -47,16 +15,6 @@ type CreateVenueRequest struct {
 	Address string  `json:"address" validate:"required,min=1,max=500"`
 	Lat     float64 `json:"lat" validate:"required"`
 	Lng     float64 `json:"lng" validate:"required"`
-}
-
-// ApproveVenueRequest represents the request to approve a venue submission
-type ApproveVenueRequest struct {
-	// No body needed, just the ID in the path
-}
-
-// RejectVenueRequest represents the request to reject a venue submission
-type RejectVenueRequest struct {
-	RejectionReason string `json:"rejection_reason" validate:"required,min=1,max=500"`
 }
 
 // CreateVenueResponse represents the response when creating a venue
@@ -72,4 +30,9 @@ type GetVenuesResponse struct {
 // ErrorResponse represents an error response
 type ErrorResponse struct {
 	Error string `json:"error"`
+}
+
+// CheckVenueExistsResponse represents the response when checking if a venue exists
+type CheckVenueExistsResponse struct {
+	Exists bool `json:"exists"`
 }

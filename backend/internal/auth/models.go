@@ -29,15 +29,14 @@ func (r Role) String() string {
 }
 
 type User struct {
-	ID               string     `json:"id"`
-	Email            string     `json:"email"`
-	Role             Role       `json:"role"`
-	LastLogin        *time.Time `json:"last_login"`
-	LoginCount       int        `json:"login_count"`
-	IsActive         bool       `json:"is_active"`
-	CurrentlyLoggedIn bool      `json:"currently_logged_in"`
-	CreatedAt        time.Time  `json:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at"`
+	ID        string     `json:"id"`
+	Email     string     `json:"email"`
+	Role      Role       `json:"role"`
+	LastLogin *time.Time `json:"last_login"`
+	LoginCount int       `json:"login_count"`
+	IsActive  bool       `json:"is_active"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
 }
 
 // UserOrganization represents the relationship between a user and an organization

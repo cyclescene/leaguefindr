@@ -215,17 +215,21 @@ Please mark which columns should be **REMOVED** in the final schema:
 ### Users Table:
 - [ ] `last_login` - tracking last login timestamp
 - [ ] `login_count` - counting login attempts
-- [ ] `currently_logged_in` - tracking current session status
+- [x] `currently_logged_in` - tracking current session status
 
 ### Organizations Table:
 - All columns seem necessary
 
 ### Sports Table:
-- [ ] `created_by` - who created the sport
+- [x] `created_by` - who created the sport
 - [ ] `created_at` - when sport was created
+- [x] `rejection_reason` - reason for rejection
+- [x] `request_count` - counting sports requests
 
 ### Venues Table:
-- [ ] `request_count` - counting venue requests (mentioned as not needed)
+- [x] `request_count` - counting venue requests (mentioned as not needed)
+- [x] `rejection_reason` - reason for rejection
+- [x] `created_by` - who created the sport
 
 ### Leagues Table:
 - [ ] `league_name` - league name field

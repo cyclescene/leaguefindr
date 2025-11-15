@@ -52,13 +52,13 @@ func (r *Repository) GetUserByID(userID string) (*User, error) {
 	user := &User{}
 
 	query := `
-		SELECT id, email, role, is_active, login_count, created_at, updated_at, last_login, currently_logged_in
+		SELECT id, email, role, is_active, login_count, created_at, updated_at, last_login
 		FROM users
 		WHERE id = $1
 	`
 
 	err := r.db.QueryRow(ctx, query, userID).
-		Scan(&user.ID, &user.Email, &user.Role, &user.IsActive, &user.LoginCount, &user.CreatedAt, &user.UpdatedAt, &user.LastLogin, &user.CurrentlyLoggedIn)
+		Scan(&user.ID, &user.Email, &user.Role, &user.IsActive, &user.LoginCount, &user.CreatedAt, &user.UpdatedAt, &user.LastLogin)
 
 	if err != nil {
 		return nil, fmt.Errorf("user not found")
