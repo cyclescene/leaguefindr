@@ -429,7 +429,7 @@ func (r *Repository) UpdateLeague(league *League) error {
 	return nil
 }
 
-// ApproveLeagueWithTransaction atomically updates sport_id, venue_id, and status to approved
+// ApproveLeagueWithTransaction atomically updates sport_id, venue_id, status to approved, and creates game_occurrences
 // Wraps all updates in a single transaction to ensure consistency
 func (r *Repository) ApproveLeagueWithTransaction(id int, sportID *int, venueID *int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -443,6 +443,39 @@ func (r *Repository) ApproveLeagueWithTransaction(id int, sportID *int, venueID 
 
 	// Ensure transaction is rolled back if we return early with an error
 	defer tx.Rollback(ctx)
+
+	// Fetch the league to get game_occurrences
+	fetchQuery := `
+		SELECT game_occurrences
+		FROM leagues
+		WHERE id = $1
+	`
+	var gameOccurrencesJSON []byte
+	err = tx.QueryRow(ctx, fetchQuery, id).Scan(&gameOccurrencesJSON)
+	if err != nil {
+		return fmt.Errorf("failed to fetch league: %w", err)
+	}
+
+	// Parse game_occurrences from JSONB
+	var gameOccurrences GameOccurrences
+	if err := json.Unmarshal(gameOccurrencesJSON, &gameOccurrences); err != nil {
+		return fmt.Errorf("failed to parse game occurrences: %w", err)
+	}
+
+	// Insert game_occurrences into the separate table
+	for _, occurrence := range gameOccurrences {
+		insertQuery := `
+			INSERT INTO game_occurrences (league_id, day, start_time, end_time)
+			VALUES ($1, $2, $3, $4)
+			ON CONFLICT (league_id, day) DO UPDATE SET
+				start_time = EXCLUDED.start_time,
+				end_time = EXCLUDED.end_time
+		`
+		_, err := tx.Exec(ctx, insertQuery, id, occurrence.Day, occurrence.StartTime, occurrence.EndTime)
+		if err != nil {
+			return fmt.Errorf("failed to insert game occurrence: %w", err)
+		}
+	}
 
 	// Update sport_id and venue_id if they changed
 	if sportID != nil || venueID != nil {
