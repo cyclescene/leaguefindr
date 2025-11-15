@@ -58,7 +58,7 @@ func (r *Repository) GetAll() ([]League, error) {
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, draft_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		ORDER BY
@@ -82,7 +82,7 @@ func (r *Repository) GetAllApproved() ([]League, error) {
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, draft_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE status = $1
@@ -105,13 +105,13 @@ func (r *Repository) GetByID(id int) (*League, error) {
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, draft_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE id = $1
 	`
 
-	var draftDataJSON []byte
+	var formDataJSON []byte
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&league.ID,
 		&league.OrgID,
@@ -133,7 +133,7 @@ func (r *Repository) GetByID(id int) (*League, error) {
 		&league.MinimumTeamPlayers,
 		&league.PerGameFee,
 		&supplementalRequestsJSON,
-		&draftDataJSON,
+		&formDataJSON,
 		&league.Status,
 		&league.CreatedAt,
 		&league.UpdatedAt,
@@ -155,9 +155,9 @@ func (r *Repository) GetByID(id int) (*League, error) {
 		}
 	}
 
-	if len(draftDataJSON) > 0 {
-		if err := json.Unmarshal(draftDataJSON, &league.DraftData); err != nil {
-			return nil, fmt.Errorf("failed to parse draft data: %w", err)
+	if len(formDataJSON) > 0 {
+		if err := json.Unmarshal(formDataJSON, &league.FormData); err != nil {
+			return nil, fmt.Errorf("failed to parse form data: %w", err)
 		}
 	}
 
