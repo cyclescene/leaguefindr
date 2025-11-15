@@ -239,7 +239,7 @@ func (s *Service) ApproveLeague(userID string, id int) error {
 
 	// If sport_id is nil and supplemental requests has sport, create it
 	if league.SportID == nil && league.SupplementalRequests != nil && league.SupplementalRequests.Sport != nil {
-		newSport, err := s.sportsService.CreateSport(userID, &sports.CreateSportRequest{
+		newSport, err := s.sportsService.CreateSport(&sports.CreateSportRequest{
 			Name: league.SupplementalRequests.Sport.Name,
 		})
 		if err != nil {
@@ -264,7 +264,7 @@ func (s *Service) ApproveLeague(userID string, id int) error {
 			Lat:     lat,
 			Lng:     lng,
 		}
-		newVenue, err := s.venuesService.CreateVenue(userID, venueReq)
+		newVenue, err := s.venuesService.CreateVenue(venueReq)
 		if err != nil {
 			return fmt.Errorf("failed to create venue: %w", err)
 		}

@@ -388,15 +388,6 @@ func (r *Repository) UpdateLeague(league *League) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var supplementalRequestsJSON []byte
-	if league.SupplementalRequests != nil {
-		var err error
-		supplementalRequestsJSON, err = json.Marshal(league.SupplementalRequests)
-		if err != nil {
-			return fmt.Errorf("failed to marshal supplemental requests: %w", err)
-		}
-	}
-
 	query := `
 		UPDATE leagues
 		SET sport_id = $1, venue_id = $2, updated_at = NOW()

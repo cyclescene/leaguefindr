@@ -62,13 +62,13 @@ func newRouter(dbPool *pgxpool.Pool) *chi.Mux {
 
 	// Sports
 	sportsRepo := sports.NewRepository(dbPool)
-	sportsService := sports.NewService(sportsRepo, authRepo)
-	sportsHandler := sports.NewHandler(sportsService, authService)
+	sportsService := sports.NewService(sportsRepo)
+	sportsHandler := sports.NewHandler(sportsService)
 
 	// Venues
 	venuesRepo := venues.NewRepository(dbPool)
-	venuesService := venues.NewService(venuesRepo, authRepo)
-	venuesHandler := venues.NewHandler(venuesService, authService)
+	venuesService := venues.NewService(venuesRepo)
+	venuesHandler := venues.NewHandler(venuesService)
 
 	// Organizations
 	organizationsRepo := organizations.NewRepository(dbPool)
