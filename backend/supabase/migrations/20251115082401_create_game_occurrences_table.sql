@@ -8,7 +8,7 @@
 CREATE TABLE game_occurrences (
   id SERIAL PRIMARY KEY,
   league_id INT NOT NULL,
-  day VARCHAR(20) NOT NULL,                     -- e.g., "Monday", "Tuesday", "Wednesday"
+  day TEXT NOT NULL,                            -- e.g., "Monday", "Tuesday", "Wednesday" (TEXT for flexibility)
   start_time TIME NOT NULL,                     -- e.g., "19:00"
   end_time TIME NOT NULL,                       -- e.g., "22:00"
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

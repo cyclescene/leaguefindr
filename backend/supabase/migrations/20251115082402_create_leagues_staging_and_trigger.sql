@@ -45,8 +45,7 @@ CREATE TABLE leagues_staging (
   season_details TEXT,
   registration_url TEXT,
   duration INT,
-  minimum_team_players INT,
-  CONSTRAINT leagues_staging_insert_fallback UNIQUE(id)
+  minimum_team_players INT
 );
 
 COMMENT ON TABLE leagues_staging IS 'Staging table for CSV imports of leagues data. Data is automatically transformed and inserted into leagues table via trigger. This is a fallback mechanism - primary flow is through the dashboard API.';
@@ -59,27 +58,45 @@ CREATE OR REPLACE FUNCTION trigger_leagues_staging()
 RETURNS TRIGGER AS $$
 DECLARE
   v_org_uuid UUID;
+  v_org_name TEXT;
+  v_sport_name TEXT;
+  v_venue_name TEXT;
+  v_venue_address TEXT;
+  v_venue_lat NUMERIC;
+  v_venue_lng NUMERIC;
   v_game_days_array TEXT[];
   v_day TEXT;
   v_form_data JSONB;
 BEGIN
   -- Map the CSV org_id to the new UUID org_id using the mapping table
-  SELECT new_id INTO v_org_uuid FROM org_id_mapping WHERE old_id = NEW.org_id;
+  SELECT new_id, org_name INTO v_org_uuid, v_org_name FROM org_id_mapping WHERE old_id = NEW.org_id;
 
   -- If mapping not found, use the first organization or create a default
   IF v_org_uuid IS NULL THEN
-    SELECT id INTO v_org_uuid FROM organizations ORDER BY created_at LIMIT 1;
+    SELECT id, org_name INTO v_org_uuid, v_org_name FROM organizations ORDER BY created_at LIMIT 1;
 
     IF v_org_uuid IS NULL THEN
       -- Create a default organization if none exist
+      v_org_name := 'Imported Leagues Organization';
       INSERT INTO organizations (org_name, is_active)
-      VALUES ('Imported Leagues Organization', true)
+      VALUES (v_org_name, true)
       RETURNING id INTO v_org_uuid;
 
       -- Also create a mapping entry for this new organization
       INSERT INTO org_id_mapping (old_id, new_id, org_name)
-      VALUES (NEW.org_id, v_org_uuid, 'Imported Leagues Organization');
+      VALUES (NEW.org_id, v_org_uuid, v_org_name);
     END IF;
+  END IF;
+
+  -- Fetch sport name if sport_id is provided
+  IF NEW.sport_id IS NOT NULL THEN
+    SELECT name INTO v_sport_name FROM sports WHERE id = NEW.sport_id;
+  END IF;
+
+  -- Fetch venue details if venue_id is provided
+  IF NEW.venue_id IS NOT NULL THEN
+    SELECT name, address, lat, lng INTO v_venue_name, v_venue_address, v_venue_lat, v_venue_lng
+    FROM venues WHERE id = NEW.venue_id;
   END IF;
 
   -- Parse game_days array from PostgreSQL array format {Monday,Tuesday} to array
@@ -89,7 +106,7 @@ BEGIN
     ELSE ARRAY[]::TEXT[]
   END;
 
-  -- Build form_data JSONB for complete form submission data
+  -- Build form_data JSONB for complete form submission data with sport/venue/org names
   v_form_data := jsonb_build_object(
     'division', NEW.division,
     'registration_deadline', NEW.registration_deadline::text,
@@ -105,11 +122,18 @@ BEGIN
     'age_group', NEW.age_group,
     'game_days', NEW.game_days,
     'sport_id', NEW.sport_id,
+    'sport_name', v_sport_name,
     'venue_id', NEW.venue_id,
+    'venue_name', v_venue_name,
+    'venue_address', v_venue_address,
+    'venue_lat', v_venue_lat,
+    'venue_lng', v_venue_lng,
+    'organization_name', v_org_name,
     'import_source', 'csv'
   );
 
   -- Insert league with status = 'approved' (CSV imports are pre-vetted)
+  -- Use ON CONFLICT to handle re-imports of the same league IDs
   INSERT INTO leagues (
     id, org_id, sport_id, division,
     registration_deadline, season_start_date, season_end_date,
@@ -188,10 +212,53 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create trigger that fires BEFORE INSERT on leagues_staging
+-- Create trigger that fires BEFORE INSERT OR UPDATE on leagues_staging
+-- This allows re-importing the same league IDs without constraint violations
 CREATE TRIGGER trg_leagues_staging
-BEFORE INSERT ON leagues_staging
+BEFORE INSERT OR UPDATE ON leagues_staging
 FOR EACH ROW
 EXECUTE FUNCTION trigger_leagues_staging();
 
-COMMENT ON FUNCTION trigger_leagues_staging() IS 'Transforms leagues CSV staging data to new schema: uses org_id_mapping to resolve org_id, parses game_days array, converts season_fee to pricing_strategy, sets status to approved, creates game_occurrences entries.';
+COMMENT ON FUNCTION trigger_leagues_staging() IS 'Transforms leagues CSV staging data to new schema: uses org_id_mapping to resolve org_id, fetches and populates sport/venue/org names in form_data, parses game_days array, converts season_fee to pricing_strategy, sets status to approved, creates game_occurrences entries.';
+
+-- ============================================================================
+-- HELPER PROCEDURE FOR CLEARING STAGING TABLE BEFORE RE-IMPORTS
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION clear_leagues_staging()
+RETURNS TABLE (
+  deleted_count BIGINT,
+  message TEXT
+) AS $$
+DECLARE
+  v_deleted_count BIGINT;
+BEGIN
+  -- Delete all records from leagues_staging
+  DELETE FROM leagues_staging;
+  GET DIAGNOSTICS v_deleted_count = ROW_COUNT;
+
+  RETURN QUERY SELECT v_deleted_count, 'Cleared ' || v_deleted_count || ' records from leagues_staging. Ready for re-import.';
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION clear_leagues_staging() IS 'Clears all records from the leagues_staging table to prepare for a fresh CSV import. Call this before uploading a new CSV file if re-importing the same league IDs.';
+
+-- ============================================================================
+-- FIX TEXT COLUMN TYPES (remove any VARCHAR length restrictions)
+-- ============================================================================
+
+-- Ensure all TEXT columns are TEXT type (unlimited length) to handle long data
+-- This fixes issues where season_details or other fields exceed VARCHAR limits
+ALTER TABLE IF EXISTS leagues
+ALTER COLUMN season_details TYPE TEXT USING season_details::TEXT,
+ALTER COLUMN registration_url TYPE TEXT USING registration_url::TEXT,
+ALTER COLUMN division TYPE TEXT USING division::TEXT,
+ALTER COLUMN gender TYPE TEXT USING gender::TEXT;
+
+ALTER TABLE IF EXISTS leagues_staging
+ALTER COLUMN season_details TYPE TEXT USING season_details::TEXT,
+ALTER COLUMN registration_url TYPE TEXT USING registration_url::TEXT,
+ALTER COLUMN division TYPE TEXT USING division::TEXT,
+ALTER COLUMN gender TYPE TEXT USING gender::TEXT,
+ALTER COLUMN game_days TYPE TEXT USING game_days::TEXT,
+ALTER COLUMN age_group TYPE TEXT USING age_group::TEXT;
