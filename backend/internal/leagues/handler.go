@@ -429,10 +429,10 @@ func (h *Handler) SaveDraft(w http.ResponseWriter, r *http.Request) {
 	// Check if updating existing draft or creating new one
 	if req.DraftID != nil && *req.DraftID > 0 {
 		// Update existing draft
-		draft, err = h.service.UpdateDraft(*req.DraftID, orgID, req.DraftData)
+		draft, err = h.service.UpdateDraft(*req.DraftID, orgID, req.FormData)
 	} else {
 		// Create new draft
-		draft, err = h.service.SaveDraft(orgID, userID, req.Name, req.DraftData)
+		draft, err = h.service.SaveDraft(orgID, userID, req.Name, req.FormData)
 	}
 
 	if err != nil {
@@ -529,7 +529,7 @@ func (h *Handler) SaveTemplate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	template, err := h.service.SaveTemplate(orgID, userID, req.Name, req.DraftData)
+	template, err := h.service.SaveTemplate(orgID, userID, req.Name, req.FormData)
 	if err != nil {
 		slog.Error("save template error", "orgID", orgID, "userID", userID, "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -644,7 +644,7 @@ func (h *Handler) UpdateTemplate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	template, err := h.service.UpdateTemplate(templateID, orgID, req.Name, req.DraftData)
+	template, err := h.service.UpdateTemplate(templateID, orgID, req.Name, req.FormData)
 	if err != nil {
 		slog.Error("update template error", "templateID", templateID, "orgID", orgID, "err", err)
 		if err.Error() == "template not found or access denied" {

@@ -158,8 +158,8 @@ func (s *Service) CreateLeague(userID string, orgID string, request *CreateLeagu
 		}
 	}
 
-	// Convert request to map for draft_data
-	draftDataMap := map[string]interface{}{
+	// Convert request to map for form_data
+	formDataMap := map[string]interface{}{
 		"sport_id":              request.SportID,
 		"sport_name":            request.SportName,
 		"organization_name":     orgName,
@@ -205,7 +205,7 @@ func (s *Service) CreateLeague(userID string, orgID string, request *CreateLeagu
 		MinimumTeamPlayers:   request.MinimumTeamPlayers,
 		PerGameFee:           request.PerGameFee,
 		SupplementalRequests: supplementalRequests,
-		DraftData:            DraftData(draftDataMap),
+		FormData:             FormData(formDataMap),
 		Status:               LeagueStatusPending,
 		CreatedBy:            &createdByValue,
 	}
@@ -301,8 +301,8 @@ func (s *Service) GetDraft(orgID string) (*LeagueDraft, error) {
 }
 
 // SaveDraft saves or updates a draft for an organization
-func (s *Service) SaveDraft(orgID string, userID string, draftName *string, draftData DraftData) (*LeagueDraft, error) {
-	if draftData == nil || len(draftData) == 0 {
+func (s *Service) SaveDraft(orgID string, userID string, draftName *string, formData FormData) (*LeagueDraft, error) {
+	if formData == nil || len(formData) == 0 {
 		return nil, fmt.Errorf("draft data cannot be empty")
 	}
 
@@ -310,16 +310,16 @@ func (s *Service) SaveDraft(orgID string, userID string, draftName *string, draf
 	var name *string
 	if draftName != nil && *draftName != "" {
 		name = draftName
-	} else if leagueName, ok := draftData["league_name"].(string); ok && leagueName != "" {
+	} else if leagueName, ok := formData["league_name"].(string); ok && leagueName != "" {
 		generatedName := leagueName + " Draft"
 		name = &generatedName
 	}
 
 	draft := &LeagueDraft{
-		OrgID:     orgID,
-		Type:      DraftTypeDraft,
-		Name:      name,
-		DraftData: draftData,
+		OrgID:    orgID,
+		Type:     DraftTypeDraft,
+		Name:     name,
+		FormData: formData,
 		CreatedBy: &userID,
 	}
 
@@ -331,8 +331,8 @@ func (s *Service) SaveDraft(orgID string, userID string, draftName *string, draf
 }
 
 // UpdateDraft updates an existing draft with new data
-func (s *Service) UpdateDraft(draftID int, orgID string, draftData DraftData) (*LeagueDraft, error) {
-	if draftData == nil || len(draftData) == 0 {
+func (s *Service) UpdateDraft(draftID int, orgID string, formData FormData) (*LeagueDraft, error) {
+	if formData == nil || len(formData) == 0 {
 		return nil, fmt.Errorf("draft data cannot be empty")
 	}
 
@@ -348,7 +348,7 @@ func (s *Service) UpdateDraft(draftID int, orgID string, draftData DraftData) (*
 	}
 
 	// Update draft data while preserving other fields
-	existing.DraftData = draftData
+	existing.FormData = formData
 	existing.UpdatedAt = time.Now()
 
 	if err := s.repo.SaveDraft(existing); err != nil {
@@ -359,8 +359,8 @@ func (s *Service) UpdateDraft(draftID int, orgID string, draftData DraftData) (*
 }
 
 // SaveTemplate saves a league configuration as a reusable template
-func (s *Service) SaveTemplate(orgID string, userID string, name string, draftData DraftData) (*LeagueDraft, error) {
-	if draftData == nil || len(draftData) == 0 {
+func (s *Service) SaveTemplate(orgID string, userID string, name string, formData FormData) (*LeagueDraft, error) {
+	if formData == nil || len(formData) == 0 {
 		return nil, fmt.Errorf("draft data cannot be empty")
 	}
 
@@ -369,10 +369,10 @@ func (s *Service) SaveTemplate(orgID string, userID string, name string, draftDa
 	}
 
 	template := &LeagueDraft{
-		OrgID:     orgID,
-		Type:      DraftTypeTemplate,
-		Name:      &name,
-		DraftData: draftData,
+		OrgID:    orgID,
+		Type:     DraftTypeTemplate,
+		Name:     &name,
+		FormData: formData,
 		CreatedBy: &userID,
 	}
 
@@ -394,21 +394,21 @@ func (s *Service) GetDraftsByOrgID(orgID string) ([]LeagueDraft, error) {
 }
 
 // UpdateTemplate updates an existing template
-func (s *Service) UpdateTemplate(templateID int, orgID string, name string, draftData DraftData) (*LeagueDraft, error) {
+func (s *Service) UpdateTemplate(templateID int, orgID string, name string, formData FormData) (*LeagueDraft, error) {
 	if name == "" {
 		return nil, fmt.Errorf("template name is required")
 	}
 
-	if draftData == nil || len(draftData) == 0 {
+	if formData == nil || len(formData) == 0 {
 		return nil, fmt.Errorf("draft data cannot be empty")
 	}
 
 	template := &LeagueDraft{
-		ID:        templateID,
-		OrgID:     orgID,
-		Name:      &name,
-		DraftData: draftData,
-		Type:      DraftTypeTemplate,
+		ID:       templateID,
+		OrgID:    orgID,
+		Name:     &name,
+		FormData: formData,
+		Type:     DraftTypeTemplate,
 	}
 
 	if err := s.repo.UpdateTemplate(template); err != nil {
