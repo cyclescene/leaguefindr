@@ -66,6 +66,7 @@ DECLARE
   v_venue_lng NUMERIC;
   v_game_days_array TEXT[];
   v_day TEXT;
+  v_game_occurrences_array JSONB[];
   v_form_data JSONB;
 BEGIN
   -- Map the CSV org_id to the new UUID org_id using the mapping table
@@ -106,7 +107,24 @@ BEGIN
     ELSE ARRAY[]::TEXT[]
   END;
 
-  -- Build form_data JSONB for complete form submission data with sport/venue/org names
+  -- Build game_occurrences array with day, start_time, and end_time for form restoration
+  v_game_occurrences_array := ARRAY[]::JSONB[];
+  IF NEW.game_days IS NOT NULL AND array_length(v_game_days_array, 1) > 0 THEN
+    FOREACH v_day IN ARRAY v_game_days_array
+    LOOP
+      v_day := trim(v_day);
+      IF v_day != '' THEN
+        v_game_occurrences_array := v_game_occurrences_array ||
+          jsonb_build_object(
+            'day', v_day,
+            'start_time', COALESCE(NEW.game_start_time::text, '00:00'),
+            'end_time', COALESCE(NEW.game_end_time::text, '00:00')
+          )::JSONB;
+      END IF;
+    END LOOP;
+  END IF;
+
+  -- Build form_data JSONB for complete form submission data with sport/venue/org names and game occurrences
   v_form_data := jsonb_build_object(
     'division', NEW.division,
     'registration_deadline', NEW.registration_deadline::text,
@@ -121,6 +139,9 @@ BEGIN
     'season_fee', NEW.season_fee,
     'age_group', NEW.age_group,
     'game_days', NEW.game_days,
+    'game_start_time', COALESCE(NEW.game_start_time::text, '00:00'),
+    'game_end_time', COALESCE(NEW.game_end_time::text, '00:00'),
+    'game_occurrences', v_game_occurrences_array,
     'sport_id', NEW.sport_id,
     'sport_name', v_sport_name,
     'venue_id', NEW.venue_id,
@@ -219,7 +240,7 @@ BEFORE INSERT OR UPDATE ON leagues_staging
 FOR EACH ROW
 EXECUTE FUNCTION trigger_leagues_staging();
 
-COMMENT ON FUNCTION trigger_leagues_staging() IS 'Transforms leagues CSV staging data to new schema: uses org_id_mapping to resolve org_id, fetches and populates sport/venue/org names in form_data, parses game_days array, converts season_fee to pricing_strategy, sets status to approved, creates game_occurrences entries.';
+COMMENT ON FUNCTION trigger_leagues_staging() IS 'Transforms leagues CSV staging data to new schema: uses org_id_mapping to resolve org_id, fetches and populates sport/venue/org names in form_data, builds game_occurrences array with day/time data for form restoration, parses game_days array, converts season_fee to pricing_strategy, sets status to approved, creates game_occurrences table entries.';
 
 -- ============================================================================
 -- HELPER PROCEDURE FOR CLEARING STAGING TABLE BEFORE RE-IMPORTS
