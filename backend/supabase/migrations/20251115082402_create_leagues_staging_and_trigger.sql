@@ -170,7 +170,12 @@ BEGIN
       v_day := trim(v_day);  -- Remove whitespace
       IF v_day != '' THEN  -- Skip empty strings
         INSERT INTO game_occurrences (league_id, day, start_time, end_time)
-        VALUES (NEW.id, v_day, NEW.game_start_time, NEW.game_end_time)
+        VALUES (
+          NEW.id,
+          v_day,
+          COALESCE(NEW.game_start_time, '00:00'::TIME),  -- Default to 00:00 if NULL
+          COALESCE(NEW.game_end_time, '00:00'::TIME)     -- Default to 00:00 if NULL
+        )
         ON CONFLICT (league_id, day) DO UPDATE SET
           start_time = EXCLUDED.start_time,
           end_time = EXCLUDED.end_time;
