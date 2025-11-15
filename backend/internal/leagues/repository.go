@@ -173,7 +173,7 @@ func (r *Repository) GetByOrgID(orgID string) ([]League, error) {
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, draft_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE org_id = $1
@@ -198,7 +198,7 @@ func (r *Repository) GetByOrgIDAndStatus(orgID string, status LeagueStatus) ([]L
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, draft_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE org_id = $1 AND status = $2
@@ -226,13 +226,13 @@ func (r *Repository) Create(league *League) error {
 		}
 	}
 
-	// Marshal draft_data
-	var draftDataJSON []byte
-	if len(league.DraftData) > 0 {
+	// Marshal form_data
+	var formDataJSON []byte
+	if len(league.FormData) > 0 {
 		var err error
-		draftDataJSON, err = json.Marshal(league.DraftData)
+		formDataJSON, err = json.Marshal(league.FormData)
 		if err != nil {
-			return fmt.Errorf("failed to marshal draft data: %w", err)
+			return fmt.Errorf("failed to marshal form data: %w", err)
 		}
 	}
 
@@ -240,7 +240,7 @@ func (r *Repository) Create(league *League) error {
 		INSERT INTO leagues (org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		                     season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		                     venue_id, gender, season_details, registration_url, duration,
-		                     minimum_team_players, per_game_fee, supplemental_requests, draft_data, status, created_at, updated_at, created_by)
+		                     minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
 		RETURNING id
 	`
@@ -267,7 +267,7 @@ func (r *Repository) Create(league *League) error {
 		league.MinimumTeamPlayers,
 		league.PerGameFee,
 		supplementalRequestsJSON,
-		draftDataJSON,
+		formDataJSON,
 		league.Status,
 		time.Now(),
 		time.Now(),
@@ -293,7 +293,7 @@ func (r *Repository) GetPending() ([]League, error) {
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, draft_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE status = $1
@@ -320,7 +320,7 @@ func (r *Repository) GetPendingWithPagination(limit, offset int) ([]League, int6
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, draft_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		WHERE status = $1
@@ -353,7 +353,7 @@ func (r *Repository) GetAllWithPagination(limit, offset int) ([]League, int64, e
 		SELECT id, org_id, sport_id, league_name, division, registration_deadline, season_start_date,
 		       season_end_date, game_occurrences, pricing_strategy, pricing_amount, pricing_per_player,
 		       venue_id, gender, season_details, registration_url, duration,
-		       minimum_team_players, per_game_fee, supplemental_requests, draft_data, status, created_at, updated_at, created_by,
+		       minimum_team_players, per_game_fee, supplemental_requests, form_data, status, created_at, updated_at, created_by,
 		       rejection_reason
 		FROM leagues
 		ORDER BY
@@ -496,10 +496,10 @@ func (r *Repository) GetDraftByOrgID(orgID string) (*LeagueDraft, error) {
 	defer cancel()
 
 	draft := &LeagueDraft{}
-	var draftDataJSON []byte
+	var formDataJSON []byte
 
 	query := `
-		SELECT id, org_id, draft_data, created_at, updated_at, created_by
+		SELECT id, org_id, form_data, created_at, updated_at, created_by
 		FROM leagues_drafts
 		WHERE org_id = $1
 	`
@@ -507,7 +507,7 @@ func (r *Repository) GetDraftByOrgID(orgID string) (*LeagueDraft, error) {
 	err := r.db.QueryRow(ctx, query, orgID).Scan(
 		&draft.ID,
 		&draft.OrgID,
-		&draftDataJSON,
+		&formDataJSON,
 		&draft.CreatedAt,
 		&draft.UpdatedAt,
 		&draft.CreatedBy,
@@ -517,7 +517,7 @@ func (r *Repository) GetDraftByOrgID(orgID string) (*LeagueDraft, error) {
 		return nil, nil // Return nil if no draft found (not an error)
 	}
 
-	if err := json.Unmarshal(draftDataJSON, &draft.DraftData); err != nil {
+	if err := json.Unmarshal(formDataJSON, &draft.FormData); err != nil {
 		return nil, fmt.Errorf("failed to parse draft data: %w", err)
 	}
 
@@ -530,10 +530,10 @@ func (r *Repository) GetDraftByID(draftID int) (*LeagueDraft, error) {
 	defer cancel()
 
 	draft := &LeagueDraft{}
-	var draftDataJSON []byte
+	var formDataJSON []byte
 
 	query := `
-		SELECT id, org_id, type, name, draft_data, created_at, updated_at, created_by
+		SELECT id, org_id, type, name, form_data, created_at, updated_at, created_by
 		FROM leagues_drafts
 		WHERE id = $1
 	`
@@ -543,7 +543,7 @@ func (r *Repository) GetDraftByID(draftID int) (*LeagueDraft, error) {
 		&draft.OrgID,
 		&draft.Type,
 		&draft.Name,
-		&draftDataJSON,
+		&formDataJSON,
 		&draft.CreatedAt,
 		&draft.UpdatedAt,
 		&draft.CreatedBy,
@@ -553,7 +553,7 @@ func (r *Repository) GetDraftByID(draftID int) (*LeagueDraft, error) {
 		return nil, fmt.Errorf("draft not found")
 	}
 
-	if err := json.Unmarshal(draftDataJSON, &draft.DraftData); err != nil {
+	if err := json.Unmarshal(formDataJSON, &draft.FormData); err != nil {
 		return nil, fmt.Errorf("failed to parse draft data: %w", err)
 	}
 
@@ -565,7 +565,7 @@ func (r *Repository) SaveDraft(draft *LeagueDraft) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	draftDataJSON, err := json.Marshal(draft.DraftData)
+	formDataJSON, err := json.Marshal(draft.FormData)
 	if err != nil {
 		return fmt.Errorf("failed to marshal draft data: %w", err)
 	}
@@ -575,11 +575,11 @@ func (r *Repository) SaveDraft(draft *LeagueDraft) error {
 		// Update existing draft
 		query := `
 			UPDATE leagues_drafts
-			SET draft_data = $1, updated_at = NOW()
+			SET form_data = $1, updated_at = NOW()
 			WHERE id = $2 AND org_id = $3 AND type = 'draft'
 		`
 
-		result, err := r.db.Exec(ctx, query, draftDataJSON, draft.ID, draft.OrgID)
+		result, err := r.db.Exec(ctx, query, formDataJSON, draft.ID, draft.OrgID)
 		if err != nil {
 			return fmt.Errorf("failed to update draft: %w", err)
 		}
@@ -594,7 +594,7 @@ func (r *Repository) SaveDraft(draft *LeagueDraft) error {
 	// Insert new draft
 	// Each save creates a new row, allowing users to have multiple drafts per organization
 	query := `
-		INSERT INTO leagues_drafts (org_id, type, name, draft_data, created_at, updated_at, created_by)
+		INSERT INTO leagues_drafts (org_id, type, name, form_data, created_at, updated_at, created_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id
 	`
@@ -605,7 +605,7 @@ func (r *Repository) SaveDraft(draft *LeagueDraft) error {
 		draft.OrgID,
 		draft.Type,
 		draft.Name,
-		draftDataJSON,
+		formDataJSON,
 		time.Now(),
 		time.Now(),
 		draft.CreatedBy,
@@ -643,7 +643,7 @@ func (r *Repository) GetAllDrafts() ([]LeagueDraft, error) {
 	defer cancel()
 
 	query := `
-		SELECT id, org_id, draft_data, created_at, updated_at, created_by
+		SELECT id, org_id, form_data, created_at, updated_at, created_by
 		FROM leagues_drafts
 		ORDER BY updated_at DESC
 	`
@@ -657,12 +657,12 @@ func (r *Repository) GetAllDrafts() ([]LeagueDraft, error) {
 	var drafts []LeagueDraft
 	for rows.Next() {
 		var draft LeagueDraft
-		var draftDataJSON []byte
+		var formDataJSON []byte
 
 		err := rows.Scan(
 			&draft.ID,
 			&draft.OrgID,
-			&draftDataJSON,
+			&formDataJSON,
 			&draft.CreatedAt,
 			&draft.UpdatedAt,
 			&draft.CreatedBy,
@@ -671,7 +671,7 @@ func (r *Repository) GetAllDrafts() ([]LeagueDraft, error) {
 			return nil, fmt.Errorf("failed to scan draft: %w", err)
 		}
 
-		if err := json.Unmarshal(draftDataJSON, &draft.DraftData); err != nil {
+		if err := json.Unmarshal(formDataJSON, &draft.FormData); err != nil {
 			return nil, fmt.Errorf("failed to parse draft data: %w", err)
 		}
 
@@ -691,7 +691,7 @@ func (r *Repository) GetDraftsByOrgID(orgID string) ([]LeagueDraft, error) {
 	defer cancel()
 
 	query := `
-		SELECT id, org_id, type, name, draft_data, created_at, updated_at, created_by
+		SELECT id, org_id, type, name, form_data, created_at, updated_at, created_by
 		FROM leagues_drafts
 		WHERE org_id = $1 AND type = 'draft'
 		ORDER BY updated_at DESC
@@ -706,14 +706,14 @@ func (r *Repository) GetDraftsByOrgID(orgID string) ([]LeagueDraft, error) {
 	var drafts []LeagueDraft
 	for rows.Next() {
 		var draft LeagueDraft
-		var draftDataJSON []byte
+		var formDataJSON []byte
 
 		err := rows.Scan(
 			&draft.ID,
 			&draft.OrgID,
 			&draft.Type,
 			&draft.Name,
-			&draftDataJSON,
+			&formDataJSON,
 			&draft.CreatedAt,
 			&draft.UpdatedAt,
 			&draft.CreatedBy,
@@ -722,7 +722,7 @@ func (r *Repository) GetDraftsByOrgID(orgID string) ([]LeagueDraft, error) {
 			return nil, fmt.Errorf("failed to scan draft: %w", err)
 		}
 
-		if err := json.Unmarshal(draftDataJSON, &draft.DraftData); err != nil {
+		if err := json.Unmarshal(formDataJSON, &draft.FormData); err != nil {
 			return nil, fmt.Errorf("failed to parse draft data: %w", err)
 		}
 
@@ -742,7 +742,7 @@ func (r *Repository) GetTemplatesByOrgID(orgID string) ([]LeagueDraft, error) {
 	defer cancel()
 
 	query := `
-		SELECT id, org_id, type, name, draft_data, created_at, updated_at, created_by
+		SELECT id, org_id, type, name, form_data, created_at, updated_at, created_by
 		FROM leagues_drafts
 		WHERE org_id = $1 AND type = 'template'
 		ORDER BY updated_at DESC
@@ -757,14 +757,14 @@ func (r *Repository) GetTemplatesByOrgID(orgID string) ([]LeagueDraft, error) {
 	var templates []LeagueDraft
 	for rows.Next() {
 		var template LeagueDraft
-		var draftDataJSON []byte
+		var formDataJSON []byte
 
 		err := rows.Scan(
 			&template.ID,
 			&template.OrgID,
 			&template.Type,
 			&template.Name,
-			&draftDataJSON,
+			&formDataJSON,
 			&template.CreatedAt,
 			&template.UpdatedAt,
 			&template.CreatedBy,
@@ -773,7 +773,7 @@ func (r *Repository) GetTemplatesByOrgID(orgID string) ([]LeagueDraft, error) {
 			return nil, fmt.Errorf("failed to scan template: %w", err)
 		}
 
-		if err := json.Unmarshal(draftDataJSON, &template.DraftData); err != nil {
+		if err := json.Unmarshal(formDataJSON, &template.FormData); err != nil {
 			return nil, fmt.Errorf("failed to parse template data: %w", err)
 		}
 
@@ -793,7 +793,7 @@ func (r *Repository) GetAllTemplates() ([]LeagueDraft, error) {
 	defer cancel()
 
 	query := `
-		SELECT id, org_id, type, name, draft_data, created_at, updated_at, created_by
+		SELECT id, org_id, type, name, form_data, created_at, updated_at, created_by
 		FROM leagues_drafts
 		WHERE type = 'template'
 		ORDER BY updated_at DESC
@@ -808,14 +808,14 @@ func (r *Repository) GetAllTemplates() ([]LeagueDraft, error) {
 	var templates []LeagueDraft
 	for rows.Next() {
 		var template LeagueDraft
-		var draftDataJSON []byte
+		var formDataJSON []byte
 
 		err := rows.Scan(
 			&template.ID,
 			&template.OrgID,
 			&template.Type,
 			&template.Name,
-			&draftDataJSON,
+			&formDataJSON,
 			&template.CreatedAt,
 			&template.UpdatedAt,
 			&template.CreatedBy,
@@ -824,7 +824,7 @@ func (r *Repository) GetAllTemplates() ([]LeagueDraft, error) {
 			return nil, fmt.Errorf("failed to scan template: %w", err)
 		}
 
-		if err := json.Unmarshal(draftDataJSON, &template.DraftData); err != nil {
+		if err := json.Unmarshal(formDataJSON, &template.FormData); err != nil {
 			return nil, fmt.Errorf("failed to parse template data: %w", err)
 		}
 
@@ -843,18 +843,18 @@ func (r *Repository) UpdateTemplate(template *LeagueDraft) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	draftDataJSON, err := json.Marshal(template.DraftData)
+	formDataJSON, err := json.Marshal(template.FormData)
 	if err != nil {
 		return fmt.Errorf("failed to marshal draft data: %w", err)
 	}
 
 	query := `
 		UPDATE leagues_drafts
-		SET name = $1, draft_data = $2, updated_at = NOW()
+		SET name = $1, form_data = $2, updated_at = NOW()
 		WHERE id = $3 AND org_id = $4 AND type = 'template'
 	`
 
-	result, err := r.db.Exec(ctx, query, template.Name, draftDataJSON, template.ID, template.OrgID)
+	result, err := r.db.Exec(ctx, query, template.Name, formDataJSON, template.ID, template.OrgID)
 	if err != nil {
 		return fmt.Errorf("failed to update template: %w", err)
 	}
@@ -900,7 +900,7 @@ func (r *Repository) scanLeagues(ctx context.Context, query string, args ...inte
 		var league League
 		var gameOccurrencesJSON []byte
 		var supplementalRequestsJSON []byte
-		var draftDataJSON []byte
+		var formDataJSON []byte
 
 		err := rows.Scan(
 			&league.ID,
@@ -923,7 +923,7 @@ func (r *Repository) scanLeagues(ctx context.Context, query string, args ...inte
 			&league.MinimumTeamPlayers,
 			&league.PerGameFee,
 			&supplementalRequestsJSON,
-			&draftDataJSON,
+			&formDataJSON,
 			&league.Status,
 			&league.CreatedAt,
 			&league.UpdatedAt,
@@ -944,9 +944,9 @@ func (r *Repository) scanLeagues(ctx context.Context, query string, args ...inte
 			}
 		}
 
-		if len(draftDataJSON) > 0 {
-			if err := json.Unmarshal(draftDataJSON, &league.DraftData); err != nil {
-				return nil, fmt.Errorf("failed to parse draft data: %w", err)
+		if len(formDataJSON) > 0 {
+			if err := json.Unmarshal(formDataJSON, &league.FormData); err != nil {
+				return nil, fmt.Errorf("failed to parse form data: %w", err)
 			}
 		}
 
