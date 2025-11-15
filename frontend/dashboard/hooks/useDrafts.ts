@@ -7,7 +7,7 @@ export interface Draft {
   org_id: string
   type: 'draft' | 'template'
   name?: string
-  draft_data: Record<string, any>
+  form_data: Record<string, any>
   created_at: string
   updated_at: string
   created_by?: string

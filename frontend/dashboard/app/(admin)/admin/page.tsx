@@ -45,11 +45,11 @@ function DashboardContent() {
   const transformLeague = (league: any): League => ({
     id: league.id,
     name: league.league_name,
-    organizationName: league.draft_data?.organization_name || league.org_id || 'Unknown',
-    sport: league.draft_data?.sport_name || league.sport_id?.toString() || 'Unknown',
+    organizationName: league.form_data?.organization_name || league.org_id || 'Unknown',
+    sport: league.form_data?.sport_name || league.sport_id?.toString() || 'Unknown',
     gender: league.gender || 'N/A',
     startDate: new Date(league.season_start_date).toLocaleDateString(),
-    venue: league.draft_data?.venue_name || league.venue_id?.toString() || 'Unknown',
+    venue: league.form_data?.venue_name || league.venue_id?.toString() || 'Unknown',
     dateSubmitted: new Date(league.created_at).toLocaleDateString(),
     status: league.status,
   })

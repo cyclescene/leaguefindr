@@ -8,7 +8,7 @@ export interface League {
   venue: string;
   dateSubmitted: string;
   status: string;
-  draft_data?: Record<string, any>;
+  form_data?: Record<string, any>;
   rejection_reason?: string | null;
 }
 

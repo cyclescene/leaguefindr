@@ -94,7 +94,7 @@ export function CreateTemplateDialog({
           body: JSON.stringify({
             name: templateName,
             description: templateDescription || null,
-            draft_data: formData,
+            form_data: formData,
           }),
         }
       );

@@ -27,7 +27,7 @@ export interface PendingLeague {
   updated_at: string
   created_by?: string
   rejection_reason?: string | null
-  draft_data?: {
+  form_data?: {
     sport_name?: string
     venue_name?: string
     organization_name?: string

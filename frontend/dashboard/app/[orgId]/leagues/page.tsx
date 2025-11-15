@@ -50,10 +50,10 @@ function LeaguesContent() {
     .map(d => ({
       id: d.id,
       name: d.name || `Draft #${d.id}`,
-      sport: d.draft_data?.sport_name || 'Unknown',
-      gender: d.draft_data?.gender || 'N/A',
-      startDate: d.draft_data?.season_start_date ? new Date(d.draft_data.season_start_date).toLocaleDateString() : 'N/A',
-      venue: d.draft_data?.venue_name || 'N/A',
+      sport: d.form_data?.sport_name || 'Unknown',
+      gender: d.form_data?.gender || 'N/A',
+      startDate: d.form_data?.season_start_date ? new Date(d.form_data.season_start_date).toLocaleDateString() : 'N/A',
+      venue: d.form_data?.venue_name || 'N/A',
       dateSubmitted: new Date(d.created_at).toLocaleDateString(),
       status: 'draft',
     }));
@@ -64,8 +64,8 @@ function LeaguesContent() {
     .map(d => ({
       id: d.id,
       name: d.name || `Template #${d.id}`,
-      sport: d.draft_data?.sport_name || 'Unknown',
-      gender: d.draft_data?.gender || 'N/A',
+      sport: d.form_data?.sport_name || 'Unknown',
+      gender: d.form_data?.gender || 'N/A',
       dateCreated: new Date(d.created_at).toLocaleDateString(),
     }));
 
@@ -73,11 +73,11 @@ function LeaguesContent() {
   const submittedLeagues: League[] = apiLeagues.map(league => ({
     id: league.id,
     name: league.league_name,
-    organizationName: league.draft_data?.organization_name || "", // Will be populated from org context
-    sport: league.draft_data?.sport_name || "Unknown",
+    organizationName: league.form_data?.organization_name || "", // Will be populated from org context
+    sport: league.form_data?.sport_name || "Unknown",
     gender: league.gender || 'N/A',
     startDate: new Date(league.season_start_date).toLocaleDateString(),
-    venue: league.draft_data?.venue_name || "Unknown",
+    venue: league.form_data?.venue_name || "Unknown",
     dateSubmitted: new Date(league.created_at).toLocaleDateString(),
     status: league.status === 'approved' ? 'approved' : league.status === 'pending' ? 'pending' : 'rejected',
     rejection_reason: league.rejection_reason,
@@ -100,9 +100,9 @@ function LeaguesContent() {
     const league = apiLeagues.find((l) => l.id === leagueId);
     if (!league) return;
 
-    // Use draft_data if available, otherwise build from league fields
-    if (league.draft_data) {
-      setPrePopulatedFormData(league.draft_data as AddLeagueFormData);
+    // Use form_data if available, otherwise build from league fields
+    if (league.form_data) {
+      setPrePopulatedFormData(league.form_data as AddLeagueFormData);
     } else {
       // Fallback: Build form data from league fields (shouldn't normally happen)
       const formData: AddLeagueFormData = {
@@ -167,9 +167,9 @@ function LeaguesContent() {
 
   const handleEditDraft = (draftId: number) => {
     const draft = apiDrafts.find((d) => d.id === draftId);
-    if (draft && draft.draft_data) {
+    if (draft && draft.form_data) {
       // Load draft data and open form
-      setPrePopulatedFormData(draft.draft_data as AddLeagueFormData);
+      setPrePopulatedFormData(draft.form_data as AddLeagueFormData);
       setIsEditingDraft(true);
       setEditingDraftId(draftId);
       setOpenDialog("league");
@@ -199,9 +199,9 @@ function LeaguesContent() {
 
   const handleEditTemplate = (templateId: number) => {
     const template = apiTemplates.find((t) => t.id === templateId);
-    if (template && template.draft_data) {
+    if (template && template.form_data) {
       // Load template data and open form
-      setPrePopulatedFormData(template.draft_data as AddLeagueFormData);
+      setPrePopulatedFormData(template.form_data as AddLeagueFormData);
       setIsEditingTemplate(true);
       setEditingTemplateId(templateId);
       setOpenDialog("league");
@@ -210,9 +210,9 @@ function LeaguesContent() {
 
   const handleUseTemplate = (templateId: number) => {
     const template = apiTemplates.find((t) => t.id === templateId);
-    if (template && template.draft_data) {
+    if (template && template.form_data) {
       // Load template data and open form
-      setPrePopulatedFormData(template.draft_data as AddLeagueFormData);
+      setPrePopulatedFormData(template.form_data as AddLeagueFormData);
       setOpenDialog("league");
     }
   };

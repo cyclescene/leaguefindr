@@ -137,7 +137,7 @@ export function AdminLeagueReviewModal({
                 value={{
                   mode: 'view',
                   leagueId: league.id,
-                  prePopulatedFormData: league.draft_data as any,
+                  prePopulatedFormData: league.form_data as any,
                 }}
               >
                 <AddLeagueForm />
