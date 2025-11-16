@@ -1,6 +1,12 @@
 -- Supabase seed script
 -- This script runs after migrations to populate the database with test data
 -- NOTE: Users must be created in Clerk first, then referenced by their Clerk ID here
+-- Users are NOT seeded here because they must exist in Clerk first
+-- User-Organization relationships must also be set up manually via API after users exist
+-- RLS policies filter data based on:
+--   1. User role (admin vs user/organizer) from JWT token
+--   2. User-organization membership from user_organizations table
+--   3. League status and created_by field
 
 -- Insert test sports
 INSERT INTO sports (id, name)
