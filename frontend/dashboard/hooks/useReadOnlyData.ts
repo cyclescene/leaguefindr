@@ -138,7 +138,15 @@ export function useLeaguesReadOnly() {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('RLS Error fetching leagues:', error);
+        throw error;
+      }
+
+      console.log('RLS: Leagues query returned', {
+        count: data?.length,
+        statuses: data?.map(l => l.status),
+      });
 
       setState({
         data: data || [],

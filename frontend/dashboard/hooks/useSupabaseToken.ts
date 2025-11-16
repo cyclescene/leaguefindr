@@ -75,6 +75,17 @@ export const useSupabaseToken = () => {
         throw new Error('No Supabase token in response');
       }
 
+      // Decode token to log role claim (for RLS debugging)
+      try {
+        const parts = supabaseToken.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          console.log('RLS: User role claim =', payload.role);
+        }
+      } catch (e) {
+        // Silently fail if we can't decode for debugging
+      }
+
       // Set the token in Supabase client
       await setSupabaseToken(supabaseToken);
 
