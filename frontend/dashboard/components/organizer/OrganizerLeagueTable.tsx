@@ -7,19 +7,7 @@ import {
   TableBody,
 } from "@/components/ui/table";
 import { OrganizerLeagueTableRow } from "./OrganizerLeagueTableRow";
-
-interface League {
-  id: number;
-  name: string;
-  organizationName: string;
-  sport: string;
-  ageGroup: string;
-  gender: string;
-  startDate: string;
-  venue: string;
-  dateSubmitted: string;
-  status: string;
-}
+import type { League } from "@/types/leagues";
 
 interface OrganizerLeagueTableProps {
   leagues: League[];

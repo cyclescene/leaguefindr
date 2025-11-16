@@ -24,11 +24,11 @@ CREATE POLICY leagues_select_user ON leagues
     -- Published/approved leagues anyone can see
     status = 'approved'
     -- OR user can see their own submissions regardless of status
-    OR auth.uid() = created_by
+    OR created_by = (auth.jwt() ->> 'sub')
     -- OR user can see organizations they belong to
     OR org_id IN (
       SELECT org_id FROM user_organizations
-      WHERE user_id = auth.uid() AND is_active = true
+      WHERE user_id = (auth.jwt() ->> 'sub') AND is_active = true
     )
   );
 
@@ -55,7 +55,7 @@ CREATE POLICY organizations_select_user ON organizations
   USING (
     id IN (
       SELECT org_id FROM user_organizations
-      WHERE user_id = auth.uid() AND is_active = true
+      WHERE user_id = (auth.jwt() ->> 'sub') AND is_active = true
     )
   );
 
@@ -111,7 +111,7 @@ CREATE POLICY game_occurrences_select_all ON game_occurrences
         -- Users can see their own org's leagues
         OR org_id IN (
           SELECT org_id FROM user_organizations
-          WHERE user_id = auth.uid() AND is_active = true
+          WHERE user_id = (auth.jwt() ->> 'sub') AND is_active = true
         )
     )
   );
@@ -138,7 +138,7 @@ CREATE POLICY leagues_drafts_select_user ON leagues_drafts
   USING (
     org_id IN (
       SELECT org_id FROM user_organizations
-      WHERE user_id = auth.uid() AND is_active = true
+      WHERE user_id = (auth.jwt() ->> 'sub') AND is_active = true
     )
   );
 
@@ -148,13 +148,13 @@ CREATE POLICY leagues_drafts_update_user ON leagues_drafts
   USING (
     org_id IN (
       SELECT org_id FROM user_organizations
-      WHERE user_id = auth.uid() AND is_active = true
+      WHERE user_id = (auth.jwt() ->> 'sub') AND is_active = true
     )
   )
   WITH CHECK (
     org_id IN (
       SELECT org_id FROM user_organizations
-      WHERE user_id = auth.uid() AND is_active = true
+      WHERE user_id = (auth.jwt() ->> 'sub') AND is_active = true
     )
   );
 
@@ -191,7 +191,7 @@ CREATE POLICY user_organizations_select_admin ON user_organizations
 CREATE POLICY user_organizations_select_user ON user_organizations
   FOR SELECT
   USING (
-    user_id = auth.uid()
+    user_id = (auth.jwt() ->> 'sub')
   );
 
 COMMENT ON POLICY user_organizations_select_admin ON user_organizations IS 'Admins can view all user-organization relationships';

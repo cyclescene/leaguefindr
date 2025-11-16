@@ -7,15 +7,7 @@ import {
   TableBody,
 } from "@/components/ui/table";
 import { OrganizerTemplateTableRow } from "./OrganizerTemplateTableRow";
-
-interface Template {
-  id: number;
-  name: string;
-  sport: string;
-  ageGroup: string;
-  gender: string;
-  dateCreated: string;
-}
+import type { Template } from "@/types/leagues";
 
 interface OrganizerTemplateTableProps {
   templates: Template[];
@@ -37,7 +29,6 @@ export function OrganizerTemplateTable({
         <TableRow>
           <TableHead>Template Name</TableHead>
           <TableHead>Sport</TableHead>
-          <TableHead>Age Group</TableHead>
           <TableHead>Gender</TableHead>
           <TableHead>Created</TableHead>
           <TableHead>Actions</TableHead>

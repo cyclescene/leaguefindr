@@ -13,11 +13,20 @@ import { RejectLeagueDialog } from "@/components/admin/RejectLeagueDialog";
 import { LeagueTable } from "@/components/admin/LeagueTable";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { usePendingLeagues, useAllLeagues, useAdminLeagueOperations } from "@/hooks/useAdminLeagues";
+import { useSports, useLeaguesReadOnly } from "@/hooks/useReadOnlyData";
 
 const ITEMS_PER_PAGE = 20
 
 function DashboardContent() {
   const { user, isLoaded } = useUser() as { user: ClerkUser | null; isLoaded: boolean };
+
+  // Test Supabase hooks
+  const { sports, isLoading: isSportsLoading, error: sportsError } = useSports();
+  console.log('Sports data in admin page:', { sports, isSportsLoading, sportsError });
+
+  // Test leagues RLS policy
+  const { leagues, isLoading: isLeaguesLoading, error: leaguesError } = useLeaguesReadOnly();
+  console.log('Leagues data in admin page:', { leaguesCount: leagues.length, isLeaguesLoading, leaguesError });
 
   // Pagination state
   const [page, setPage] = useState(0)

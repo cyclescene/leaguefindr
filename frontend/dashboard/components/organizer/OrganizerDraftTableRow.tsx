@@ -9,12 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EllipsisVertical } from "lucide-react";
-
-interface Draft {
-  id: number;
-  name: string;
-  dateCreated: string;
-}
+import type { Draft } from "@/types/leagues";
 
 interface OrganizerDraftTableRowProps {
   draft: Draft;
@@ -30,7 +25,7 @@ export function OrganizerDraftTableRow({
   return (
     <TableRow>
       <TableCell>{draft.name || `Draft #${draft.id}`}</TableCell>
-      <TableCell>{draft.dateCreated}</TableCell>
+      <TableCell>{draft.dateSubmitted}</TableCell>
       <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

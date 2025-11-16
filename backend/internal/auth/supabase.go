@@ -17,9 +17,10 @@ type SupabaseTokenClaims struct {
 	jwt.RegisteredClaims
 
 	// Custom claims
-	Sub   string `json:"sub"`   // Subject (user ID)
-	Email string `json:"email"` // User email
-	Role  string `json:"role"`  // User role (user, admin)
+	UserID string `json:"user_id"` // Custom user_id claim for RLS policies
+	Email  string `json:"email"`   // User email
+	Role   string `json:"role"`    // User role (user, admin)
+	Sub    string `json:"sub"`     // Explicit sub claim (matches user_id)
 }
 
 // GenerateSupabaseToken generates a Supabase-compatible JWT token
@@ -72,15 +73,24 @@ func GenerateSupabaseToken(userID string, service *Service) (string, error) {
 	now := time.Now()
 	claims := SupabaseTokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   userID, // Set Subject in RegisteredClaims
 			ExpiresAt: jwt.NewNumericDate(now.Add(1 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(now),
 			Issuer:    "https://supabase.io/auth/v1",
 			Audience:  jwt.ClaimStrings{"authenticated"},
 		},
-		Sub:   userID,
-		Email: email,
-		Role:  user.Role.String(),
+		UserID: userID, // Custom claim for RLS policies
+		Sub:    userID, // Also set explicit sub claim
+		Email:  email,
+		Role:   user.Role.String(),
 	}
+
+	slog.Info("Creating Supabase token claims",
+		"userID", userID,
+		"subject", claims.Subject,
+		"email", claims.Email,
+		"role", claims.Role,
+	)
 
 	// Create token with HS256 algorithm
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -91,6 +101,15 @@ func GenerateSupabaseToken(userID string, service *Service) (string, error) {
 		slog.Error("failed to sign supabase token", "err", err)
 		return "", fmt.Errorf("failed to sign token: %w", err)
 	}
+
+	// Log token details for debugging
+	slog.Debug("Generated Supabase token",
+		"userID", userID,
+		"subject", claims.Subject,
+		"email", claims.Email,
+		"role", claims.Role,
+		"expiresAt", claims.ExpiresAt,
+	)
 
 	return tokenString, nil
 }

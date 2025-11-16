@@ -1,19 +1,7 @@
 import { TableRow, TableCell } from "@/components/ui/table";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { OrganizerLeagueActions } from "./OrganizerLeagueActions";
-
-interface League {
-  id: number;
-  name: string;
-  organizationName: string;
-  sport: string;
-  gender: string;
-  startDate: string;
-  venue: string;
-  dateSubmitted: string;
-  status: string;
-  rejection_reason?: string | null;
-}
+import type { League } from "@/types/leagues";
 
 interface OrganizerLeagueTableRowProps {
   league: League;

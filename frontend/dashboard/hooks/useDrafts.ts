@@ -90,6 +90,12 @@ export interface SubmittedLeague {
   updated_at: string
   created_by?: string
   rejection_reason?: string | null
+  form_data?: {
+    organization_name?: string
+    sport_name?: string
+    venue_name?: string
+    [key: string]: any
+  }
 }
 
 export function useLeagues(orgId: string) {
