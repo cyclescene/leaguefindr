@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leaguefindr/backend/internal/auth"
 	"github.com/leaguefindr/backend/internal/leagues"
+	"github.com/leaguefindr/backend/internal/notifications"
 	"github.com/leaguefindr/backend/internal/organizations"
 	"github.com/leaguefindr/backend/internal/sports"
 	"github.com/leaguefindr/backend/internal/venues"
@@ -75,9 +76,13 @@ func newRouter(dbPool *pgxpool.Pool) *chi.Mux {
 	organizationsService := organizations.NewService(organizationsRepo)
 	organizationsHandler := organizations.NewHandler(organizationsService, authService)
 
+	// Notifications
+	notificationsService := notifications.NewService(dbPool)
+	notificationsHandler := notifications.NewHandler(notificationsService)
+
 	// Leagues
 	leaguesRepo := leagues.NewRepository(dbPool)
-	leaguesService := leagues.NewService(leaguesRepo, organizationsService, authService, sportsService, venuesService)
+	leaguesService := leagues.NewService(leaguesRepo, organizationsService, authService, sportsService, venuesService, notificationsService)
 	leaguesHandler := leagues.NewHandler(leaguesService, authService)
 
 	r.Route("/v1", func(r chi.Router) {
@@ -86,6 +91,7 @@ func newRouter(dbPool *pgxpool.Pool) *chi.Mux {
 		sportsHandler.RegisterRoutes(r)
 		venuesHandler.RegisterRoutes(r)
 		leaguesHandler.RegisterRoutes(r)
+		notificationsHandler.RegisterRoutes(r)
 
 	})
 

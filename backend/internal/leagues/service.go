@@ -1,31 +1,36 @@
 package leagues
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"math"
 	"time"
 
 	"github.com/leaguefindr/backend/internal/auth"
+	"github.com/leaguefindr/backend/internal/notifications"
 	"github.com/leaguefindr/backend/internal/organizations"
 	"github.com/leaguefindr/backend/internal/sports"
 	"github.com/leaguefindr/backend/internal/venues"
 )
 
 type Service struct {
-	repo           RepositoryInterface
-	orgService     *organizations.Service
-	authService    *auth.Service
-	sportsService  *sports.Service
-	venuesService  *venues.Service
+	repo                  RepositoryInterface
+	orgService            *organizations.Service
+	authService           *auth.Service
+	sportsService         *sports.Service
+	venuesService         *venues.Service
+	notificationsService  *notifications.Service
 }
 
-func NewService(repo RepositoryInterface, orgService *organizations.Service, authService *auth.Service, sportsService *sports.Service, venuesService *venues.Service) *Service {
+func NewService(repo RepositoryInterface, orgService *organizations.Service, authService *auth.Service, sportsService *sports.Service, venuesService *venues.Service, notificationsService *notifications.Service) *Service {
 	return &Service{
-		repo:           repo,
-		orgService:     orgService,
-		authService:    authService,
-		sportsService:  sportsService,
-		venuesService:  venuesService,
+		repo:                  repo,
+		orgService:            orgService,
+		authService:           authService,
+		sportsService:         sportsService,
+		venuesService:         venuesService,
+		notificationsService:  notificationsService,
 	}
 }
 
@@ -273,7 +278,30 @@ func (s *Service) ApproveLeague(userID string, id int) error {
 
 	// Atomically update league IDs and status to approved in a single transaction
 	// This ensures both updates succeed or both fail together
-	return s.repo.ApproveLeagueWithTransaction(id, league.SportID, league.VenueID)
+	err = s.repo.ApproveLeagueWithTransaction(id, league.SportID, league.VenueID)
+	if err != nil {
+		return err
+	}
+
+	// Send notification to league creator that their league was approved
+	if league.CreatedBy != nil {
+		ctx := context.Background()
+		notificationErr := s.notificationsService.CreateNotification(
+			ctx,
+			*league.CreatedBy,
+			notifications.NotificationLeagueApproved.String(),
+			"League Approved",
+			fmt.Sprintf("Your league '%s' has been approved!", league.LeagueName),
+			&id,
+			nil,
+		)
+		if notificationErr != nil {
+			slog.Error("failed to send league approval notification", "leagueID", id, "userID", league.CreatedBy, "err", notificationErr)
+			// Don't return error - league was already approved, notification failure isn't critical
+		}
+	}
+
+	return nil
 }
 
 // RejectLeague rejects a pending league submission with a reason (admin only)
@@ -290,7 +318,38 @@ func (s *Service) RejectLeague(userID string, id int, rejectionReason string) er
 	if rejectionReason == "" {
 		return fmt.Errorf("rejection reason cannot be empty")
 	}
-	return s.repo.UpdateStatus(id, LeagueStatusRejected, &rejectionReason)
+
+	// Get the league to retrieve creator info
+	league, err := s.repo.GetByID(id)
+	if err != nil {
+		return fmt.Errorf("failed to fetch league: %w", err)
+	}
+
+	// Update the league status
+	err = s.repo.UpdateStatus(id, LeagueStatusRejected, &rejectionReason)
+	if err != nil {
+		return err
+	}
+
+	// Send notification to league creator that their league was rejected
+	if league.CreatedBy != nil {
+		ctx := context.Background()
+		notificationErr := s.notificationsService.CreateNotification(
+			ctx,
+			*league.CreatedBy,
+			notifications.NotificationLeagueRejected.String(),
+			"League Rejected",
+			fmt.Sprintf("Your league '%s' was rejected. Reason: %s", league.LeagueName, rejectionReason),
+			&id,
+			nil,
+		)
+		if notificationErr != nil {
+			slog.Error("failed to send league rejection notification", "leagueID", id, "userID", league.CreatedBy, "err", notificationErr)
+			// Don't return error - league was already rejected, notification failure isn't critical
+		}
+	}
+
+	return nil
 }
 
 // ============= DRAFT METHODS =============
