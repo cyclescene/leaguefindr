@@ -6,6 +6,9 @@ let currentToken: string | null = null;
 /**
  * Creates or returns the Supabase client instance
  * The client is initialized with a JWT token obtained from the backend
+ *
+ * Since we use Clerk for authentication (not Supabase auth), we pass user context
+ * via custom headers for RLS policies to evaluate
  */
 export const getSupabaseClient = (): SupabaseClient => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -17,8 +20,11 @@ export const getSupabaseClient = (): SupabaseClient => {
     );
   }
 
-  // Always recreate client to include the latest token in headers
-  // This ensures every request includes the current JWT
+  // Get user context from window (set by setSupabaseToken)
+  const userContext = (window as any).__supabaseUserContext || { userId: '', userRole: 'user' };
+
+  // Always recreate client to include the latest token and user context in headers
+  // This ensures every request includes the JWT and RLS-relevant headers
   supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: false, // We'll manage tokens manually via JWT from backend
@@ -26,6 +32,9 @@ export const getSupabaseClient = (): SupabaseClient => {
     global: {
       headers: {
         Authorization: currentToken ? `Bearer ${currentToken}` : `Bearer ${supabaseAnonKey}`,
+        // Custom headers for RLS policies (Clerk auth, not Supabase auth)
+        'X-User-ID': userContext.userId || '',
+        'X-User-Role': userContext.userRole || 'user',
       },
     },
   });
@@ -36,9 +45,11 @@ export const getSupabaseClient = (): SupabaseClient => {
 /**
  * Sets the authorization token for the Supabase client
  * Called after obtaining a new JWT token from the backend
+ *
+ * Since we use Clerk for auth, not Supabase auth, we pass user context
+ * via custom headers: x-user-id and x-user-role
  */
-export const setSupabaseToken = async (token: string): Promise<void> => {
-  const client = getSupabaseClient();
+export const setSupabaseToken = async (token: string, userId: string, userRole: string): Promise<void> => {
   currentToken = token;
 
   // Debug: Decode and log the token
@@ -46,19 +57,19 @@ export const setSupabaseToken = async (token: string): Promise<void> => {
     const parts = token.split('.');
     if (parts.length === 3) {
       const payload = JSON.parse(atob(parts[1]));
-      console.log('Setting Supabase token with claims:', payload);
+      console.log('RLS: Setting token with user:', { userId, userRole });
     }
   } catch (e) {
     console.error('Failed to decode token for logging:', e);
   }
 
-  // Update the Authorization header for all future requests
-  client.auth.setSession({
-    access_token: token,
-    refresh_token: '',
-  } as any);
+  // Store user context for RLS (sent via custom headers)
+  (window as any).__supabaseUserContext = {
+    userId,
+    userRole,
+  };
 
-  console.log('Supabase Authorization header set with token');
+  console.log('RLS: User context set for custom headers');
 };
 
 /**

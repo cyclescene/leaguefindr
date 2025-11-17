@@ -86,8 +86,20 @@ export const useSupabaseToken = () => {
         // Silently fail if we can't decode for debugging
       }
 
-      // Set the token in Supabase client
-      await setSupabaseToken(supabaseToken);
+      // Decode token to get user role for RLS custom headers
+      let userRole = 'user';
+      try {
+        const parts = supabaseToken.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          userRole = payload.role || 'user';
+        }
+      } catch (e) {
+        // Silently fail, default to 'user' role
+      }
+
+      // Set the token in Supabase client with user context for RLS
+      await setSupabaseToken(supabaseToken, userId, userRole);
 
       // Calculate expiration time
       const expiresAt = Date.now() + expiresIn * 1000;

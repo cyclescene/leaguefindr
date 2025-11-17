@@ -9,27 +9,30 @@
 -- Enable RLS on leagues table
 ALTER TABLE leagues ENABLE ROW LEVEL SECURITY;
 
+-- Since we use Clerk for auth (not Supabase auth), we need to use custom headers
+-- to pass user context to RLS policies
+
 -- Admins can read all leagues (all statuses)
 CREATE POLICY leagues_select_admin ON leagues
   FOR SELECT
   USING (
-    (auth.jwt() ->> 'role')::text = 'admin'
+    current_setting('request.headers', true)::json ->> 'x-user-role' = 'admin'
   );
 
 -- Regular users and organizers can read based on status and membership
 CREATE POLICY leagues_select_user ON leagues
   FOR SELECT
   USING (
-    -- Admins always have access (in case admin policy fails)
-    (auth.jwt() ->> 'role')::text = 'admin'
+    -- Admins always have access
+    current_setting('request.headers', true)::json ->> 'x-user-role' = 'admin'
     -- Published/approved leagues anyone can see
     OR status = 'approved'
     -- User can see their own submissions regardless of status
-    OR created_by = (auth.jwt() ->> 'sub')
+    OR created_by = current_setting('request.headers', true)::json ->> 'x-user-id'
     -- Organizers can see leagues from their organizations
     OR org_id IN (
       SELECT org_id FROM user_organizations
-      WHERE user_id = (auth.jwt() ->> 'sub') AND is_active = true
+      WHERE user_id = current_setting('request.headers', true)::json ->> 'x-user-id' AND is_active = true
     )
   );
 
@@ -47,7 +50,7 @@ ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY organizations_select_admin ON organizations
   FOR SELECT
   USING (
-    (auth.jwt() ->> 'role')::text = 'admin'
+    current_setting('request.headers', true)::json ->> 'x-user-role' = 'admin'
   );
 
 -- Regular users can read organizations they are members of
@@ -55,11 +58,11 @@ CREATE POLICY organizations_select_user ON organizations
   FOR SELECT
   USING (
     -- Admins always have access
-    (auth.jwt() ->> 'role')::text = 'admin'
+    current_setting('request.headers', true)::json ->> 'x-user-role' = 'admin'
     -- Users can see organizations they belong to
     OR id IN (
       SELECT org_id FROM user_organizations
-      WHERE user_id = (auth.jwt() ->> 'sub') AND is_active = true
+      WHERE user_id = current_setting('request.headers', true)::json ->> 'x-user-id' AND is_active = true
     )
   );
 
@@ -109,13 +112,13 @@ CREATE POLICY game_occurrences_select_all ON game_occurrences
       SELECT id FROM leagues
       WHERE
         -- Admins can see all
-        (auth.jwt() ->> 'role')::text = 'admin'
+        current_setting('request.headers', true)::json ->> 'x-user-role' = 'admin'
         -- Users can see approved leagues
         OR status = 'approved'
         -- Users can see their own org's leagues
         OR org_id IN (
           SELECT org_id FROM user_organizations
-          WHERE user_id = (auth.jwt() ->> 'sub') AND is_active = true
+          WHERE user_id = current_setting('request.headers', true)::json ->> 'x-user-id' AND is_active = true
         )
     )
   );
@@ -133,7 +136,7 @@ ALTER TABLE leagues_drafts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY leagues_drafts_select_admin ON leagues_drafts
   FOR SELECT
   USING (
-    (auth.jwt() ->> 'role')::text = 'admin'
+    current_setting('request.headers', true)::json ->> 'x-user-role' = 'admin'
   );
 
 -- Users can only read their own org's drafts
@@ -141,11 +144,11 @@ CREATE POLICY leagues_drafts_select_user ON leagues_drafts
   FOR SELECT
   USING (
     -- Admins always have access
-    (auth.jwt() ->> 'role')::text = 'admin'
+    current_setting('request.headers', true)::json ->> 'x-user-role' = 'admin'
     -- Users can see their org's drafts
     OR org_id IN (
       SELECT org_id FROM user_organizations
-      WHERE user_id = (auth.jwt() ->> 'sub') AND is_active = true
+      WHERE user_id = current_setting('request.headers', true)::json ->> 'x-user-id' AND is_active = true
     )
   );
 
@@ -155,13 +158,13 @@ CREATE POLICY leagues_drafts_update_user ON leagues_drafts
   USING (
     org_id IN (
       SELECT org_id FROM user_organizations
-      WHERE user_id = (auth.jwt() ->> 'sub') AND is_active = true
+      WHERE user_id = current_setting('request.headers', true)::json ->> 'x-user-id' AND is_active = true
     )
   )
   WITH CHECK (
     org_id IN (
       SELECT org_id FROM user_organizations
-      WHERE user_id = (auth.jwt() ->> 'sub') AND is_active = true
+      WHERE user_id = current_setting('request.headers', true)::json ->> 'x-user-id' AND is_active = true
     )
   );
 
@@ -169,10 +172,10 @@ CREATE POLICY leagues_drafts_update_user ON leagues_drafts
 CREATE POLICY leagues_drafts_update_admin ON leagues_drafts
   FOR UPDATE
   USING (
-    (auth.jwt() ->> 'role')::text = 'admin'
+    current_setting('request.headers', true)::json ->> 'x-user-role' = 'admin'
   )
   WITH CHECK (
-    (auth.jwt() ->> 'role')::text = 'admin'
+    current_setting('request.headers', true)::json ->> 'x-user-role' = 'admin'
   );
 
 COMMENT ON POLICY leagues_drafts_select_admin ON leagues_drafts IS 'Admins can view all drafts';
@@ -191,14 +194,14 @@ ALTER TABLE user_organizations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY user_organizations_select_admin ON user_organizations
   FOR SELECT
   USING (
-    (auth.jwt() ->> 'role')::text = 'admin'
+    current_setting('request.headers', true)::json ->> 'x-user-role' = 'admin'
   );
 
 -- Users can read their own relationships
 CREATE POLICY user_organizations_select_user ON user_organizations
   FOR SELECT
   USING (
-    user_id = (auth.jwt() ->> 'sub')
+    user_id = current_setting('request.headers', true)::json ->> 'x-user-id'
   );
 
 COMMENT ON POLICY user_organizations_select_admin ON user_organizations IS 'Admins can view all user-organization relationships';
