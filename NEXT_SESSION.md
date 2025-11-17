@@ -99,35 +99,27 @@ go run ./cmd/api
 
 ## 🔧 Technical Details
 
-### JWT Token Flow (What Should Happen)
+### JWT Token Flow (Official Clerk-Supabase Integration)
 ```
 1. User signs in via Clerk in browser
-2. Frontend calls: fetch('/v1/auth/supabase-token')
-   └─ Header: Authorization: Bearer {CLERK_JWT}
-3. Backend JWTMiddleware:
-   └─ Validates Clerk JWT with Clerk SDK
-   └─ Extracts user ID
-   └─ Sets X-Clerk-User-ID header
-4. Backend GetSupabaseToken handler:
-   └─ Gets user role from database
-   └─ Creates Supabase JWT with:
-      • role: "admin" (from database)
-      • sub: "user_35aLezBPrIKwG8UHGKU2Cy5g9Ba" (user ID)
-      • email: "test@test.com"
-   └─ Signs with SUPABASE_JWT_SECRET
-   └─ Returns token to frontend
-5. Frontend stores token and uses in Supabase client:
-   └─ All queries include: Authorization: Bearer {SUPABASE_JWT}
-6. Supabase Cloud validates JWT:
-   └─ Verifies signature with cloud JWT_SECRET
+2. SupabaseContext initializes with:
+   └─ NEXT_PUBLIC_SUPABASE_URL (cloud instance URL)
+   └─ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (anon key)
+   └─ Clerk token callback: () => session.getToken()
+3. All Supabase queries automatically include Clerk token:
+   └─ Authorization: Bearer {CLERK_JWT}
+4. Supabase Cloud validates Clerk token:
+   └─ Uses Clerk config: [auth.third_party.clerk] in Supabase
+   └─ Verifies signature using Clerk's public keys (JWK)
+   └─ Extracts user ID and claims from token
    └─ Grants access if valid
 ```
 
-### Critical: JWT Secret Must Match
-- Local `config.toml`: `jwt_secret = "super-secret-jwt-token-with-at-least-32-characters-long"`
-- Cloud: Find in Project Settings → JWT Secret
-- Backend env var: `SUPABASE_JWT_SECRET` must match cloud secret exactly
-- If they don't match → 401 Unauthorized errors
+**Why This Works:**
+- No backend token generation needed
+- Supabase is configured to accept Clerk tokens directly
+- Official Clerk-Supabase integration handles all auth
+- Simpler architecture, less moving parts
 
 ### Test User Details
 - **ID:** `user_35aLezBPrIKwG8UHGKU2Cy5g9Ba`
