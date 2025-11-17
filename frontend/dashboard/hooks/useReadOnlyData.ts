@@ -11,16 +11,51 @@ interface FetchState<T> {
 
 /**
  * Helper function to stringify error objects for better debugging
+ * Handles Supabase PostgrestError and other error types
  */
 function stringifyError(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
+
   if (typeof error === 'object' && error !== null) {
+    // Handle Supabase PostgrestError which has specific properties
+    const err = error as Record<string, unknown>;
+
+    // Check for Supabase error properties
+    if ('code' in err || 'message' in err || 'details' in err || 'hint' in err) {
+      return JSON.stringify({
+        code: err.code || null,
+        message: err.message || null,
+        details: err.details || null,
+        hint: err.hint || null,
+      }, null, 2);
+    }
+
+    // Try generic JSON stringify
     try {
-      return JSON.stringify(error, null, 2);
+      const serialized = JSON.stringify(error, null, 2);
+      if (serialized === '{}') {
+        // If result is empty object, extract properties manually
+        const keys = Object.keys(error);
+        const props: Record<string, unknown> = {};
+        for (const key of keys) {
+          try {
+            props[key] = (error as Record<string, unknown>)[key];
+          } catch {
+            props[key] = '[non-serializable]';
+          }
+        }
+        return JSON.stringify(props, null, 2);
+      }
+      return serialized;
     } catch {
-      return String(error);
+      // If JSON.stringify fails, try toString
+      try {
+        return String(error);
+      } catch {
+        return '[Unable to stringify error]';
+      }
     }
   }
   return String(error);
