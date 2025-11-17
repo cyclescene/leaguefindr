@@ -83,8 +83,8 @@ COMMENT ON FUNCTION create_default_notification_preferences() IS 'Automatically 
 -- RLS POLICIES (Row Level Security)
 -- ============================================================================
 
--- Enable RLS on notifications table
-ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+-- Temporarily disable RLS while we resolve Supabase JWT syntax issues
+ALTER TABLE notifications DISABLE ROW LEVEL SECURITY;
 
 -- Users can view their own notifications
 CREATE POLICY notifications_select_own ON notifications

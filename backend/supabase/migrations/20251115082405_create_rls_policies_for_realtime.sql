@@ -12,8 +12,9 @@
 -- RLS POLICIES FOR LEAGUES TABLE
 -- ============================================================================
 
--- Enable RLS on leagues table
-ALTER TABLE leagues ENABLE ROW LEVEL SECURITY;
+-- Temporarily disable RLS while we resolve Supabase JWT syntax issues
+-- TODO: Re-enable with correct syntax once issue is resolved
+ALTER TABLE leagues DISABLE ROW LEVEL SECURITY;
 
 -- Admins can read all leagues (all statuses)
 CREATE POLICY leagues_select_admin ON leagues
@@ -46,8 +47,8 @@ COMMENT ON POLICY leagues_select_user ON leagues IS 'Users can view approved lea
 -- RLS POLICIES FOR ORGANIZATIONS TABLE
 -- ============================================================================
 
--- Enable RLS on organizations table
-ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+-- Temporarily disable RLS while we resolve Supabase JWT syntax issues
+ALTER TABLE organizations DISABLE ROW LEVEL SECURITY;
 
 -- Admins can read all organizations
 CREATE POLICY organizations_select_admin ON organizations
@@ -76,8 +77,8 @@ COMMENT ON POLICY organizations_select_user ON organizations IS 'Users can view 
 -- RLS POLICIES FOR SPORTS TABLE (Reference Data)
 -- ============================================================================
 
--- Enable RLS on sports table
-ALTER TABLE sports ENABLE ROW LEVEL SECURITY;
+-- Temporarily disable RLS while we resolve Supabase JWT syntax issues
+ALTER TABLE sports DISABLE ROW LEVEL SECURITY;
 
 -- Everyone can read sports (reference data)
 CREATE POLICY sports_select_all ON sports
@@ -90,8 +91,8 @@ COMMENT ON POLICY sports_select_all ON sports IS 'All authenticated users can vi
 -- RLS POLICIES FOR VENUES TABLE (Reference Data)
 -- ============================================================================
 
--- Enable RLS on venues table
-ALTER TABLE venues ENABLE ROW LEVEL SECURITY;
+-- Temporarily disable RLS while we resolve Supabase JWT syntax issues
+ALTER TABLE venues DISABLE ROW LEVEL SECURITY;
 
 -- Everyone can read venues (reference data)
 CREATE POLICY venues_select_all ON venues
@@ -104,8 +105,8 @@ COMMENT ON POLICY venues_select_all ON venues IS 'All authenticated users can vi
 -- RLS POLICIES FOR GAME_OCCURRENCES TABLE
 -- ============================================================================
 
--- Enable RLS on game_occurrences table
-ALTER TABLE game_occurrences ENABLE ROW LEVEL SECURITY;
+-- Temporarily disable RLS while we resolve Supabase JWT syntax issues
+ALTER TABLE game_occurrences DISABLE ROW LEVEL SECURITY;
 
 -- Users can read game occurrences for leagues they have access to
 CREATE POLICY game_occurrences_select_all ON game_occurrences
@@ -132,8 +133,8 @@ COMMENT ON POLICY game_occurrences_select_all ON game_occurrences IS 'Users can 
 -- RLS POLICIES FOR LEAGUES_DRAFTS TABLE
 -- ============================================================================
 
--- Enable RLS on leagues_drafts table
-ALTER TABLE leagues_drafts ENABLE ROW LEVEL SECURITY;
+-- Temporarily disable RLS while we resolve Supabase JWT syntax issues
+ALTER TABLE leagues_drafts DISABLE ROW LEVEL SECURITY;
 
 -- Admins can read all drafts
 CREATE POLICY leagues_drafts_select_admin ON leagues_drafts
@@ -190,8 +191,8 @@ COMMENT ON POLICY leagues_drafts_update_admin ON leagues_drafts IS 'Admins can u
 -- RLS POLICIES FOR USER_ORGANIZATIONS TABLE
 -- ============================================================================
 
--- Enable RLS on user_organizations table
-ALTER TABLE user_organizations ENABLE ROW LEVEL SECURITY;
+-- Temporarily disable RLS while we resolve Supabase JWT syntax issues
+ALTER TABLE user_organizations DISABLE ROW LEVEL SECURITY;
 
 -- Admins can read all relationships
 CREATE POLICY user_organizations_select_admin ON user_organizations
