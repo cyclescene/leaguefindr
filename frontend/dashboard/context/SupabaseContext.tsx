@@ -9,6 +9,9 @@ type SupabaseContext = {
   isLoaded: boolean
 }
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+
 const Context = createContext<SupabaseContext>({
   supabase: null,
   isLoaded: false
@@ -27,8 +30,8 @@ export default function SupabaseProvider({ children }: Props) {
     if (!session) return
 
     const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_KEY!, {
+      supabaseUrl!,
+      supabaseKey!, {
       accessToken: () => session?.getToken()
     })
 

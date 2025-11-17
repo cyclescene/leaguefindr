@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { useSupabaseToken } from './useSupabaseToken';
-import { getSupabaseClient } from '@/lib/supabase';
+import { useSupabase } from '@/context/SupabaseContext';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface Notification {
@@ -31,7 +30,7 @@ interface NotificationSubscriptionState {
  */
 export const useNotificationSubscription = () => {
   const { userId, isLoaded } = useAuth();
-  const tokenState = useSupabaseToken();
+  const { supabase, isLoaded: supabaseLoaded } = useSupabase();
   const [state, setState] = useState<NotificationSubscriptionState>({
     notifications: [],
     isLoading: true,
@@ -41,12 +40,12 @@ export const useNotificationSubscription = () => {
   const [channel, setChannel] = useState<RealtimeChannel | null>(null);
 
   const subscribeToNotifications = useCallback(async (userId: string) => {
+    if (!supabase) return;
     try {
-      const client = getSupabaseClient();
 
       // First, load existing notifications
       try {
-        const { data, error } = await client
+        const { data, error } = await supabase
           .from('notifications')
           .select('*')
           .eq('user_id', userId)
@@ -72,7 +71,7 @@ export const useNotificationSubscription = () => {
       }
 
       // Subscribe to real-time updates for this user's notifications
-      const notificationsChannel = client
+      const notificationsChannel = supabase
         .channel(`notifications:${userId}`)
         .on(
           'postgres_changes',
@@ -125,19 +124,19 @@ export const useNotificationSubscription = () => {
         error: err,
       }));
     }
-  }, []);
+  }, [supabase]);
 
-  // Subscribe when both token and user are ready
+  // Subscribe when both Supabase and user are ready
   useEffect(() => {
     if (
-      tokenState.token &&
-      tokenState.loading === false &&
+      supabaseLoaded &&
+      supabase &&
       userId &&
       isLoaded
     ) {
       subscribeToNotifications(userId);
     }
-  }, [tokenState.token, tokenState.loading, userId, isLoaded, subscribeToNotifications]);
+  }, [supabaseLoaded, supabase, userId, isLoaded, subscribeToNotifications]);
 
   // Cleanup subscription on unmount
   useEffect(() => {
@@ -150,9 +149,9 @@ export const useNotificationSubscription = () => {
 
   const markAsRead = useCallback(
     async (notificationId: string) => {
+      if (!supabase) return;
       try {
-        const client = getSupabaseClient();
-        const { error } = await client
+        const { error } = await supabase
           .from('notifications')
           .update({ read: true })
           .eq('id', notificationId);
@@ -168,14 +167,14 @@ export const useNotificationSubscription = () => {
         }));
       }
     },
-    []
+    [supabase]
   );
 
   const deleteNotification = useCallback(
     async (notificationId: string) => {
+      if (!supabase) return;
       try {
-        const client = getSupabaseClient();
-        const { error } = await client
+        const { error } = await supabase
           .from('notifications')
           .delete()
           .eq('id', notificationId);
@@ -198,7 +197,7 @@ export const useNotificationSubscription = () => {
         }));
       }
     },
-    []
+    [supabase]
   );
 
   return {

@@ -3,7 +3,7 @@
  * Use these functions to test that Row-Level Security policies are working correctly
  */
 
-import { getSupabaseClient } from './supabase';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 interface RLSTestResult {
   testName: string;
@@ -37,9 +37,8 @@ export function decodeJWT(token: string) {
 /**
  * Test that current user's JWT contains expected claims
  */
-export async function testJWTClaims(): Promise<RLSTestResult> {
+export async function testJWTClaims(client: SupabaseClient): Promise<RLSTestResult> {
   try {
-    const client = getSupabaseClient();
     const session = await client.auth.getSession();
 
     if (!session.data.session?.access_token) {
@@ -96,9 +95,8 @@ export async function testJWTClaims(): Promise<RLSTestResult> {
 /**
  * Test that sports table returns data (everyone should have access)
  */
-export async function testSportsRLS(): Promise<RLSTestResult> {
+export async function testSportsRLS(client: SupabaseClient): Promise<RLSTestResult> {
   try {
-    const client = getSupabaseClient();
     const { data, error } = await client
       .from('sports')
       .select('*')
@@ -136,10 +134,9 @@ export async function testSportsRLS(): Promise<RLSTestResult> {
  * - Organizers: see approved + their org's + their own
  * - Users: see only approved + their own
  */
-export async function testLeaguesRLS(): Promise<RLSTestResult> {
+export async function testLeaguesRLS(client: SupabaseClient): Promise<RLSTestResult> {
   try {
-    const client = getSupabaseClient();
-    const jwtResult = await testJWTClaims();
+    const jwtResult = await testJWTClaims(client);
 
     if (!jwtResult.passed || !jwtResult.details?.fullClaims) {
       return {
@@ -211,9 +208,8 @@ export async function testLeaguesRLS(): Promise<RLSTestResult> {
 /**
  * Test user_organizations membership (used by RLS to filter org data)
  */
-export async function testUserOrganizations(): Promise<RLSTestResult> {
+export async function testUserOrganizations(client: SupabaseClient): Promise<RLSTestResult> {
   try {
-    const client = getSupabaseClient();
     const { data, error } = await client
       .from('user_organizations')
       .select('*')
@@ -251,13 +247,13 @@ export async function testUserOrganizations(): Promise<RLSTestResult> {
 /**
  * Run all RLS tests
  */
-export async function runAllRLSTests(): Promise<RLSTestResult[]> {
+export async function runAllRLSTests(client: SupabaseClient): Promise<RLSTestResult[]> {
   const results: RLSTestResult[] = [];
 
-  results.push(await testJWTClaims());
-  results.push(await testSportsRLS());
-  results.push(await testLeaguesRLS());
-  results.push(await testUserOrganizations());
+  results.push(await testJWTClaims(client));
+  results.push(await testSportsRLS(client));
+  results.push(await testLeaguesRLS(client));
+  results.push(await testUserOrganizations(client));
 
   return results;
 }

@@ -1,8 +1,7 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { useSupabaseToken } from '@/hooks/useSupabaseToken';
-import { getSupabaseClient } from '@/lib/supabase';
+import { useSupabase } from '@/context/SupabaseContext';
 import { useEffect, useState } from 'react';
 import { Loader2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,7 +25,7 @@ export interface NotificationPreference {
  */
 export function NotificationPreferences() {
   const { userId } = useAuth();
-  const tokenState = useSupabaseToken();
+  const { supabase, isLoaded } = useSupabase();
   const { success, error: showError } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -34,29 +33,17 @@ export function NotificationPreferences() {
     null
   );
 
-  // Debug: Log user IDs for RLS troubleshooting
-  useEffect(() => {
-    console.log('NotificationPreferences component:', {
-      clerkUserId: userId,
-      tokenState: {
-        token: tokenState.token ? `${tokenState.token.substring(0, 50)}...` : null,
-        loading: tokenState.loading,
-        error: tokenState.error?.message,
-      },
-    });
-  }, [userId, tokenState]);
-
   // Load preferences on component mount
   useEffect(() => {
-    if (tokenState.token && userId) {
+    if (isLoaded && supabase && userId) {
       loadPreferences();
     }
-  }, [tokenState.token, userId]);
+  }, [isLoaded, supabase, userId]);
 
   const loadPreferences = async () => {
+    if (!supabase) return;
     try {
-      const client = getSupabaseClient();
-      const { data, error } = await client
+      const { data, error } = await supabase
         .from('notification_preferences')
         .select('*')
         .eq('user_id', userId)
@@ -80,7 +67,7 @@ export function NotificationPreferences() {
         };
         console.log('Insert payload:', insertData);
 
-        const { data: newPref, error: createError } = await client
+        const { data: newPref, error: createError } = await supabase
           .from('notification_preferences')
           .insert(insertData)
           .select()
@@ -121,12 +108,11 @@ export function NotificationPreferences() {
   };
 
   const handleSave = async () => {
-    if (!preferences) return;
+    if (!preferences || !supabase) return;
 
     setIsSaving(true);
     try {
-      const client = getSupabaseClient();
-      const { error } = await client
+      const { error } = await supabase
         .from('notification_preferences')
         .update({
           league_approved: preferences.league_approved,

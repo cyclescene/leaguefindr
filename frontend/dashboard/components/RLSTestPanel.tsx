@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSupabase } from '@/context/SupabaseContext';
 import { Button } from '@/components/ui/button';
 import {
   runAllRLSTests,
@@ -8,17 +9,21 @@ import {
   testJWTClaims,
   decodeJWT,
 } from '@/lib/rlsTest';
-import { getSupabaseClient } from '@/lib/supabase';
 
 export function RLSTestPanel() {
+  const { supabase, isLoaded } = useSupabase();
   const [testResults, setTestResults] = useState<string>('');
   const [isRunning, setIsRunning] = useState(false);
   const [jwtInfo, setJwtInfo] = useState<string>('');
 
   const handleRunTests = async () => {
+    if (!supabase || !isLoaded) {
+      setTestResults('Supabase client not initialized');
+      return;
+    }
     setIsRunning(true);
     try {
-      const results = await runAllRLSTests();
+      const results = await runAllRLSTests(supabase);
       const formatted = formatRLSTestResults(results);
       setTestResults(formatted);
       console.log('RLS Test Results:', results);
@@ -30,8 +35,12 @@ export function RLSTestPanel() {
   };
 
   const handleShowJWT = async () => {
+    if (!supabase || !isLoaded) {
+      setJwtInfo('Supabase client not initialized');
+      return;
+    }
     try {
-      const result = await testJWTClaims();
+      const result = await testJWTClaims(supabase);
       if (result.passed && result.details) {
         setJwtInfo(JSON.stringify(result.details.fullClaims, null, 2));
       } else {
