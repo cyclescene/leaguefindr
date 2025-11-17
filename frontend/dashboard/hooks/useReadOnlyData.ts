@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useSession } from '@clerk/nextjs';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useSupabaseToken } from './useSupabaseToken';
 
@@ -6,6 +7,23 @@ interface FetchState<T> {
   data: T | null;
   isLoading: boolean;
   error: Error | null;
+}
+
+/**
+ * Helper function to stringify error objects for better debugging
+ */
+function stringifyError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'object' && error !== null) {
+    try {
+      return JSON.stringify(error, null, 2);
+    } catch {
+      return String(error);
+    }
+  }
+  return String(error);
 }
 
 
@@ -42,7 +60,9 @@ export function useSports() {
         error: null,
       });
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = stringifyError(error);
+      console.error('useSports - Error fetching sports:', errorMessage);
+      const err = new Error(errorMessage);
       setState({
         data: null,
         isLoading: false,
@@ -91,7 +111,9 @@ export function useVenues() {
         error: null,
       });
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = stringifyError(error);
+      console.error('useVenues - Error fetching venues:', errorMessage);
+      const err = new Error(errorMessage);
       setState({
         data: null,
         isLoading: false,
@@ -138,11 +160,12 @@ export function useLeaguesReadOnly() {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('RLS Error fetching leagues:', error);
+        const errorMessage = stringifyError(error);
+        console.error('useLeaguesReadOnly - Error fetching leagues:', errorMessage);
         throw error;
       }
 
-      console.log('RLS: Leagues query returned', {
+      console.log('useLeaguesReadOnly: Leagues query returned', {
         count: data?.length,
         statuses: data?.map(l => l.status),
       });
@@ -153,7 +176,9 @@ export function useLeaguesReadOnly() {
         error: null,
       });
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = stringifyError(error);
+      console.error('useLeaguesReadOnly - Caught error:', errorMessage);
+      const err = new Error(errorMessage);
       setState({
         data: null,
         isLoading: false,
@@ -203,7 +228,9 @@ export function useApprovedLeagues() {
         error: null,
       });
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = stringifyError(error);
+      console.error('useApprovedLeagues - Error fetching approved leagues:', errorMessage);
+      const err = new Error(errorMessage);
       setState({
         data: null,
         isLoading: false,
@@ -260,7 +287,9 @@ export function useLeagueById(leagueId: string | number | null) {
         error: null,
       });
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = stringifyError(error);
+      console.error('useLeagueById - Error fetching league:', errorMessage);
+      const err = new Error(errorMessage);
       setState({
         data: null,
         isLoading: false,
@@ -312,7 +341,9 @@ export function useUserOrganizations() {
         error: null,
       });
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = stringifyError(error);
+      console.error('useUserOrganizations - Error fetching organizations:', errorMessage);
+      const err = new Error(errorMessage);
       setState({
         data: null,
         isLoading: false,
@@ -369,7 +400,9 @@ export function useAllOrganizations() {
         error: null,
       });
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = stringifyError(error);
+      console.error('useAllOrganizations - Error fetching all organizations:', errorMessage);
+      const err = new Error(errorMessage);
       setState({
         data: null,
         isLoading: false,
@@ -422,7 +455,9 @@ export function useGameOccurrences(leagueId: string | number | null) {
         error: null,
       });
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = stringifyError(error);
+      console.error('useGameOccurrences - Error fetching game occurrences:', errorMessage);
+      const err = new Error(errorMessage);
       setState({
         data: null,
         isLoading: false,
@@ -475,7 +510,9 @@ export function useLeagueDrafts() {
         error: null,
       });
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = stringifyError(error);
+      console.error('useLeagueDrafts - Error fetching drafts:', errorMessage);
+      const err = new Error(errorMessage);
       setState({
         data: null,
         isLoading: false,
@@ -528,7 +565,9 @@ export function useLeagueTemplates() {
         error: null,
       });
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = stringifyError(error);
+      console.error('useLeagueTemplates - Error fetching templates:', errorMessage);
+      const err = new Error(errorMessage);
       setState({
         data: null,
         isLoading: false,
@@ -581,7 +620,9 @@ export function useDraftById(draftId: string | number | null) {
         error: null,
       });
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = stringifyError(error);
+      console.error('useDraftById - Error fetching draft:', errorMessage);
+      const err = new Error(errorMessage);
       setState({
         data: null,
         isLoading: false,
