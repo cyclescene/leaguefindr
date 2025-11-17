@@ -120,7 +120,20 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetSupabaseToken(w http.ResponseWriter, r *http.Request) {
 	authenticatedUserID := r.Header.Get("X-Clerk-User-ID")
 
+	authHeader := r.Header.Get("Authorization")
+	authHeaderPreview := authHeader
+	if len(authHeaderPreview) > 20 {
+		authHeaderPreview = authHeaderPreview[:20] + "..."
+	}
+
+	slog.Info("GetSupabaseToken: processing request",
+		"userID", authenticatedUserID,
+		"authHeaderPresent", authHeader != "",
+		"authHeaderPreview", authHeaderPreview,
+	)
+
 	if authenticatedUserID == "" {
+		slog.Error("GetSupabaseToken: missing X-Clerk-User-ID header")
 		http.Error(w, "User ID not found in token", http.StatusUnauthorized)
 		return
 	}

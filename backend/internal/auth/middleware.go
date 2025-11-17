@@ -37,10 +37,17 @@ func JWTMiddleware(next http.Handler) http.Handler {
 		// Verify token with Clerk SDK
 		claims, err := verifyClerkToken(r.Context(), token)
 		if err != nil {
-			slog.Error("JWTMiddleware: token verification failed", "error", err.Error())
+			slog.Error("JWTMiddleware: token verification failed",
+				"error", err.Error(),
+				"tokenLength", len(token),
+			)
 			http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
 			return
 		}
+
+		slog.Info("JWTMiddleware: token verified successfully",
+			"userID", claims.Sub,
+		)
 
 		// Store user ID in request header for downstream handlers
 		r.Header.Set("X-Clerk-User-ID", claims.Sub)
