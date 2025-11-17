@@ -2,6 +2,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 let supabaseClient: SupabaseClient | null = null;
 let currentToken: string | null = null;
+let lastTokenUsedForClient: string | null = null;
 
 /**
  * Creates or returns the Supabase client instance
@@ -9,6 +10,8 @@ let currentToken: string | null = null;
  *
  * For local development: The backend generates Supabase JWTs that Supabase can validate
  * For production: Clerk tokens are used directly with official Clerk-Supabase integration
+ *
+ * Returns cached client if token hasn't changed. Only recreates client when token is updated.
  */
 export const getSupabaseClient = (): SupabaseClient => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -18,6 +21,11 @@ export const getSupabaseClient = (): SupabaseClient => {
     throw new Error(
       'Missing Supabase configuration. Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are set.'
     );
+  }
+
+  // Return cached client if token hasn't changed
+  if (supabaseClient && lastTokenUsedForClient === currentToken) {
+    return supabaseClient;
   }
 
   // Log JWT details for debugging
@@ -44,7 +52,7 @@ export const getSupabaseClient = (): SupabaseClient => {
     console.log('No JWT token available for Supabase client');
   }
 
-  // Create client with current token if available
+  // Create new client with current token if available
   supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: false,
@@ -55,6 +63,9 @@ export const getSupabaseClient = (): SupabaseClient => {
       } : {},
     },
   });
+
+  // Track the token used for this client instance
+  lastTokenUsedForClient = currentToken;
 
   return supabaseClient;
 };
