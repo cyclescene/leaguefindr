@@ -84,31 +84,5 @@ COMMENT ON FUNCTION create_default_notification_preferences() IS 'Automatically 
 -- ============================================================================
 
 -- Temporarily disable RLS while we resolve Supabase JWT syntax issues
+-- All policies removed to avoid evaluation errors
 ALTER TABLE notifications DISABLE ROW LEVEL SECURITY;
-
--- Users can view their own notifications
-CREATE POLICY notifications_select_own ON notifications
-  FOR SELECT
-  USING (user_id = (select auth.jwt()->>'sub'));
-
--- Users can update their own notifications (mark as read)
-CREATE POLICY notifications_update_own ON notifications
-  FOR UPDATE
-  USING (user_id = (select auth.jwt()->>'sub'))
-  WITH CHECK (user_id = (select auth.jwt()->>'sub'));
-
--- System can insert notifications (backend service)
-CREATE POLICY notifications_insert_system ON notifications
-  FOR INSERT
-  WITH CHECK (true);  -- Backend will handle authorization
-
--- RLS disabled on notification_preferences table
--- Frontend component (NotificationPreferences.tsx) validates that users only access their own data
--- A proper RLS implementation would require backend endpoints to handle token context properly
--- This is a known limitation of using manually-set JWT sessions with Supabase's local instance
--- ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
-
-COMMENT ON POLICY notifications_select_own ON notifications IS 'Users can only see their own notifications';
-COMMENT ON POLICY notifications_update_own ON notifications IS 'Users can only update their own notifications (e.g., mark as read)';
--- COMMENT ON POLICY notification_preferences_select_own ON notification_preferences IS 'Users can only see their own notification preferences';
--- COMMENT ON POLICY notification_preferences_update_own ON notification_preferences IS 'Users can only update their own notification preferences';
