@@ -3,13 +3,14 @@ import type { JwtPayload } from "@clerk/types";
 
 declare global {
   interface CustomJwtSessionClaims extends JwtPayload {
-    role?: "admin" | "user";
+    appRole?: "admin" | "organizer" | "user";
+    role?: "authenticated";
     emailVerified?: boolean;
   }
 
   namespace Clerk {
     interface UserPublicMetadata {
-      role?: "admin" | "user";
+      role?: "admin" | "organizer" | "user";
     }
 
   }

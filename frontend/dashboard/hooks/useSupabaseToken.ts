@@ -98,8 +98,8 @@ export const useSupabaseToken = () => {
         // Silently fail, default to 'user' role
       }
 
-      // Set the token in Supabase client with user context for RLS
-      await setSupabaseToken(supabaseToken, userId, userRole);
+      // Set the token in Supabase client
+      await setSupabaseToken(supabaseToken);
 
       // Calculate expiration time
       const expiresAt = Date.now() + expiresIn * 1000;

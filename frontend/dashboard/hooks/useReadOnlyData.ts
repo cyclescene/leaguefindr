@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useSupabaseToken } from './useSupabaseToken';
 import { getSupabaseClient } from '@/lib/supabase';
+import { useSupabaseToken } from './useSupabaseToken';
 
 interface FetchState<T> {
   data: T | null;
   isLoading: boolean;
   error: Error | null;
 }
+
 
 /**
  * Hook to fetch sports (reference data - everyone can read)
@@ -54,7 +55,6 @@ export function useSports() {
     sports: state.data || [],
     isLoading: state.isLoading,
     error: state.error,
-    refetch: fetchSports,
   };
 }
 
@@ -104,7 +104,6 @@ export function useVenues() {
     venues: state.data || [],
     isLoading: state.isLoading,
     error: state.error,
-    refetch: fetchVenues,
   };
 }
 
@@ -167,7 +166,6 @@ export function useLeaguesReadOnly() {
     leagues: state.data || [],
     isLoading: state.isLoading,
     error: state.error,
-    refetch: fetchLeagues,
   };
 }
 
@@ -175,20 +173,16 @@ export function useLeaguesReadOnly() {
  * Hook to fetch approved leagues only (public list)
  */
 export function useApprovedLeagues() {
-  const tokenState = useSupabaseToken();
+  const { session } = useSession();
   const [state, setState] = useState<FetchState<any[]>>({
     data: null,
     isLoading: true,
     error: null,
   });
 
-  useEffect(() => {
-    if (tokenState.token && tokenState.loading === false) {
-      fetchApprovedLeagues();
-    }
-  }, [tokenState.token, tokenState.loading]);
+  const fetchApprovedLeagues = useCallback(async () => {
+    if (!session) return;
 
-  const fetchApprovedLeagues = async () => {
     try {
       const client = getSupabaseClient();
       const { data, error } = await client
@@ -216,7 +210,13 @@ export function useApprovedLeagues() {
         error: err,
       });
     }
-  };
+  }, [session]);
+
+  useEffect(() => {
+    if (session) {
+      fetchApprovedLeagues();
+    }
+  }, [session, fetchApprovedLeagues]);
 
   return {
     leagues: state.data || [],
@@ -230,21 +230,15 @@ export function useApprovedLeagues() {
  * Hook to fetch a single league by ID
  */
 export function useLeagueById(leagueId: string | number | null) {
-  const tokenState = useSupabaseToken();
+  const { session } = useSession();
   const [state, setState] = useState<FetchState<any>>({
     data: null,
     isLoading: true,
     error: null,
   });
 
-  useEffect(() => {
-    if (leagueId && tokenState.token && tokenState.loading === false) {
-      fetchLeague();
-    }
-  }, [leagueId, tokenState.token, tokenState.loading]);
-
-  const fetchLeague = async () => {
-    if (!leagueId) return;
+  const fetchLeague = useCallback(async () => {
+    if (!leagueId || !session) return;
 
     try {
       const client = getSupabaseClient();
@@ -273,7 +267,13 @@ export function useLeagueById(leagueId: string | number | null) {
         error: err,
       });
     }
-  };
+  }, [leagueId, session]);
+
+  useEffect(() => {
+    if (leagueId && session) {
+      fetchLeague();
+    }
+  }, [leagueId, session, fetchLeague]);
 
   return {
     league: state.data,
@@ -287,20 +287,16 @@ export function useLeagueById(leagueId: string | number | null) {
  * Hook to fetch user's organizations (based on membership)
  */
 export function useUserOrganizations() {
-  const tokenState = useSupabaseToken();
+  const { session } = useSession();
   const [state, setState] = useState<FetchState<any[]>>({
     data: null,
     isLoading: true,
     error: null,
   });
 
-  useEffect(() => {
-    if (tokenState.token && tokenState.loading === false) {
-      fetchOrganizations();
-    }
-  }, [tokenState.token, tokenState.loading]);
+  const fetchOrganizations = useCallback(async () => {
+    if (!session) return;
 
-  const fetchOrganizations = async () => {
     try {
       const client = getSupabaseClient();
       const { data, error } = await client
@@ -323,7 +319,13 @@ export function useUserOrganizations() {
         error: err,
       });
     }
-  };
+  }, [session]);
+
+  useEffect(() => {
+    if (session) {
+      fetchOrganizations();
+    }
+  }, [session, fetchOrganizations]);
 
   return {
     organizations: state.data || [],
@@ -338,20 +340,16 @@ export function useUserOrganizations() {
  * Regular users will get filtered results based on their membership
  */
 export function useAllOrganizations() {
-  const tokenState = useSupabaseToken();
+  const { session } = useSession();
   const [state, setState] = useState<FetchState<any[]>>({
     data: null,
     isLoading: true,
     error: null,
   });
 
-  useEffect(() => {
-    if (tokenState.token && tokenState.loading === false) {
-      fetchAllOrganizations();
-    }
-  }, [tokenState.token, tokenState.loading]);
+  const fetchAllOrganizations = useCallback(async () => {
+    if (!session) return;
 
-  const fetchAllOrganizations = async () => {
     try {
       const client = getSupabaseClient();
       // This will return all orgs for admins, filtered for regular users by RLS
@@ -378,7 +376,13 @@ export function useAllOrganizations() {
         error: err,
       });
     }
-  };
+  }, [session]);
+
+  useEffect(() => {
+    if (session) {
+      fetchAllOrganizations();
+    }
+  }, [session, fetchAllOrganizations]);
 
   return {
     organizations: state.data || [],
@@ -392,21 +396,15 @@ export function useAllOrganizations() {
  * Hook to fetch game occurrences for a specific league
  */
 export function useGameOccurrences(leagueId: string | number | null) {
-  const tokenState = useSupabaseToken();
+  const { session } = useSession();
   const [state, setState] = useState<FetchState<any[]>>({
     data: null,
     isLoading: true,
     error: null,
   });
 
-  useEffect(() => {
-    if (leagueId && tokenState.token && tokenState.loading === false) {
-      fetchGameOccurrences();
-    }
-  }, [leagueId, tokenState.token, tokenState.loading]);
-
-  const fetchGameOccurrences = async () => {
-    if (!leagueId) return;
+  const fetchGameOccurrences = useCallback(async () => {
+    if (!leagueId || !session) return;
 
     try {
       const client = getSupabaseClient();
@@ -431,7 +429,13 @@ export function useGameOccurrences(leagueId: string | number | null) {
         error: err,
       });
     }
-  };
+  }, [leagueId, session]);
+
+  useEffect(() => {
+    if (leagueId && session) {
+      fetchGameOccurrences();
+    }
+  }, [leagueId, session, fetchGameOccurrences]);
 
   return {
     gameOccurrences: state.data || [],
@@ -445,20 +449,16 @@ export function useGameOccurrences(leagueId: string | number | null) {
  * Hook to fetch user's league drafts
  */
 export function useLeagueDrafts() {
-  const tokenState = useSupabaseToken();
+  const { session } = useSession();
   const [state, setState] = useState<FetchState<any[]>>({
     data: null,
     isLoading: true,
     error: null,
   });
 
-  useEffect(() => {
-    if (tokenState.token && tokenState.loading === false) {
-      fetchDrafts();
-    }
-  }, [tokenState.token, tokenState.loading]);
+  const fetchDrafts = useCallback(async () => {
+    if (!session) return;
 
-  const fetchDrafts = async () => {
     try {
       const client = getSupabaseClient();
       const { data, error } = await client
@@ -482,7 +482,13 @@ export function useLeagueDrafts() {
         error: err,
       });
     }
-  };
+  }, [session]);
+
+  useEffect(() => {
+    if (session) {
+      fetchDrafts();
+    }
+  }, [session, fetchDrafts]);
 
   return {
     drafts: state.data || [],
@@ -496,20 +502,16 @@ export function useLeagueDrafts() {
  * Hook to fetch user's league templates
  */
 export function useLeagueTemplates() {
-  const tokenState = useSupabaseToken();
+  const { session } = useSession();
   const [state, setState] = useState<FetchState<any[]>>({
     data: null,
     isLoading: true,
     error: null,
   });
 
-  useEffect(() => {
-    if (tokenState.token && tokenState.loading === false) {
-      fetchTemplates();
-    }
-  }, [tokenState.token, tokenState.loading]);
+  const fetchTemplates = useCallback(async () => {
+    if (!session) return;
 
-  const fetchTemplates = async () => {
     try {
       const client = getSupabaseClient();
       const { data, error } = await client
@@ -533,7 +535,13 @@ export function useLeagueTemplates() {
         error: err,
       });
     }
-  };
+  }, [session]);
+
+  useEffect(() => {
+    if (session) {
+      fetchTemplates();
+    }
+  }, [session, fetchTemplates]);
 
   return {
     templates: state.data || [],
@@ -547,21 +555,15 @@ export function useLeagueTemplates() {
  * Hook to fetch a single draft or template by ID
  */
 export function useDraftById(draftId: string | number | null) {
-  const tokenState = useSupabaseToken();
+  const { session } = useSession();
   const [state, setState] = useState<FetchState<any>>({
     data: null,
     isLoading: true,
     error: null,
   });
 
-  useEffect(() => {
-    if (draftId && tokenState.token && tokenState.loading === false) {
-      fetchDraft();
-    }
-  }, [draftId, tokenState.token, tokenState.loading]);
-
-  const fetchDraft = async () => {
-    if (!draftId) return;
+  const fetchDraft = useCallback(async () => {
+    if (!draftId || !session) return;
 
     try {
       const client = getSupabaseClient();
@@ -586,7 +588,13 @@ export function useDraftById(draftId: string | number | null) {
         error: err,
       });
     }
-  };
+  }, [draftId, session]);
+
+  useEffect(() => {
+    if (draftId && session) {
+      fetchDraft();
+    }
+  }, [draftId, session, fetchDraft]);
 
   return {
     draft: state.data,
