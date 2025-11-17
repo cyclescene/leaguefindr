@@ -206,7 +206,7 @@ WITH CHECK (
   OR EXISTS (
     SELECT 1 FROM user_organizations
     WHERE user_id = (auth.jwt()->>'sub')::text
-    AND org_id = NEW.org_id
+    AND user_organizations.org_id = leagues.org_id
     AND is_active = true
   )
 );
