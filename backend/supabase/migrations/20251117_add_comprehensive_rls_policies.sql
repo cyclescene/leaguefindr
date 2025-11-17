@@ -203,9 +203,11 @@ CREATE POLICY "Org members and admins can create leagues"
 ON leagues FOR INSERT
 WITH CHECK (
   auth.jwt()->>'appRole' = 'admin'
-  OR (auth.jwt()->>'sub')::text IN (
-    SELECT user_id FROM user_organizations
-    WHERE org_id = NEW.org_id AND is_active = true
+  OR EXISTS (
+    SELECT 1 FROM user_organizations
+    WHERE user_id = (auth.jwt()->>'sub')::text
+    AND org_id = NEW.org_id
+    AND is_active = true
   )
 );
 
