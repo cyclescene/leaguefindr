@@ -20,6 +20,30 @@ export const getSupabaseClient = (): SupabaseClient => {
     );
   }
 
+  // Log JWT details for debugging
+  if (currentToken) {
+    try {
+      const parts = currentToken.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]));
+        console.log('Supabase JWT Claims:', {
+          role: payload.role,
+          sub: payload.sub,
+          user_id: payload.user_id,
+          email: payload.email,
+          iss: payload.iss,
+          aud: payload.aud,
+          exp: payload.exp,
+          expiresAt: new Date(payload.exp * 1000).toISOString(),
+        });
+      }
+    } catch (e) {
+      console.error('Failed to decode JWT for logging:', e);
+    }
+  } else {
+    console.log('No JWT token available for Supabase client');
+  }
+
   // Create client with current token if available
   supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
