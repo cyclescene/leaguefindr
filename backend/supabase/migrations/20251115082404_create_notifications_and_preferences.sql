@@ -89,13 +89,13 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 -- Users can view their own notifications
 CREATE POLICY notifications_select_own ON notifications
   FOR SELECT
-  USING (user_id = (auth.jwt() ->> 'sub'));
+  USING (user_id = (select auth.jwt()->>'sub'));
 
 -- Users can update their own notifications (mark as read)
 CREATE POLICY notifications_update_own ON notifications
   FOR UPDATE
-  USING (user_id = (auth.jwt() ->> 'sub'))
-  WITH CHECK (user_id = (auth.jwt() ->> 'sub'));
+  USING (user_id = (select auth.jwt()->>'sub'))
+  WITH CHECK (user_id = (select auth.jwt()->>'sub'));
 
 -- System can insert notifications (backend service)
 CREATE POLICY notifications_insert_system ON notifications
