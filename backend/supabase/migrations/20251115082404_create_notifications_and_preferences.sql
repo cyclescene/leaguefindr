@@ -86,3 +86,8 @@ COMMENT ON FUNCTION create_default_notification_preferences() IS 'Automatically 
 -- Temporarily disable RLS while we resolve Supabase JWT syntax issues
 -- All policies removed to avoid evaluation errors
 ALTER TABLE notifications DISABLE ROW LEVEL SECURITY;
+
+-- Drop any existing policies
+DROP POLICY IF EXISTS notifications_select_own ON notifications;
+DROP POLICY IF EXISTS notifications_update_own ON notifications;
+DROP POLICY IF EXISTS notifications_insert_system ON notifications;

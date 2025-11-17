@@ -1,12 +1,5 @@
 -- Create RLS policies for read-only tables accessed via Supabase client
--- These policies allow users and admins to access data based on their roles and relationships
--- Admins have access to all data, regular users have scoped access
---
--- Authentication: Clerk is configured as a third-party auth provider in Supabase
--- User context is available via auth.jwt() which contains:
--- - role: 'admin', 'organizer', or 'user'
--- - sub: Clerk user ID
--- - email: User email
+-- RLS is disabled on all tables while we resolve JWT syntax issues with Supabase
 
 -- ============================================================================
 -- RLS POLICIES FOR LEAGUES TABLE
@@ -17,6 +10,10 @@
 -- TODO: Re-create policies with correct JWT syntax once issue is resolved
 ALTER TABLE leagues DISABLE ROW LEVEL SECURITY;
 
+-- Drop any existing policies (in case they were created in previous migrations)
+DROP POLICY IF EXISTS leagues_select_admin ON leagues;
+DROP POLICY IF EXISTS leagues_select_user ON leagues;
+
 -- ============================================================================
 -- RLS POLICIES FOR ORGANIZATIONS TABLE
 -- ============================================================================
@@ -26,6 +23,10 @@ ALTER TABLE leagues DISABLE ROW LEVEL SECURITY;
 -- TODO: Re-create policies with correct JWT syntax once issue is resolved
 ALTER TABLE organizations DISABLE ROW LEVEL SECURITY;
 
+-- Drop any existing policies
+DROP POLICY IF EXISTS organizations_select_admin ON organizations;
+DROP POLICY IF EXISTS organizations_select_user ON organizations;
+
 -- ============================================================================
 -- RLS POLICIES FOR SPORTS TABLE (Reference Data)
 -- ============================================================================
@@ -33,6 +34,9 @@ ALTER TABLE organizations DISABLE ROW LEVEL SECURITY;
 -- Temporarily disable RLS while we resolve Supabase JWT syntax issues
 -- All policies removed to avoid evaluation errors
 ALTER TABLE sports DISABLE ROW LEVEL SECURITY;
+
+-- Drop any existing policies
+DROP POLICY IF EXISTS sports_select_all ON sports;
 
 -- ============================================================================
 -- RLS POLICIES FOR VENUES TABLE (Reference Data)
@@ -42,6 +46,9 @@ ALTER TABLE sports DISABLE ROW LEVEL SECURITY;
 -- All policies removed to avoid evaluation errors
 ALTER TABLE venues DISABLE ROW LEVEL SECURITY;
 
+-- Drop any existing policies
+DROP POLICY IF EXISTS venues_select_all ON venues;
+
 -- ============================================================================
 -- RLS POLICIES FOR GAME_OCCURRENCES TABLE
 -- ============================================================================
@@ -49,6 +56,9 @@ ALTER TABLE venues DISABLE ROW LEVEL SECURITY;
 -- Temporarily disable RLS while we resolve Supabase JWT syntax issues
 -- All policies removed to avoid evaluation errors
 ALTER TABLE game_occurrences DISABLE ROW LEVEL SECURITY;
+
+-- Drop any existing policies
+DROP POLICY IF EXISTS game_occurrences_select_all ON game_occurrences;
 
 -- ============================================================================
 -- RLS POLICIES FOR LEAGUES_DRAFTS TABLE
@@ -58,6 +68,12 @@ ALTER TABLE game_occurrences DISABLE ROW LEVEL SECURITY;
 -- All policies removed to avoid evaluation errors
 ALTER TABLE leagues_drafts DISABLE ROW LEVEL SECURITY;
 
+-- Drop any existing policies
+DROP POLICY IF EXISTS leagues_drafts_select_admin ON leagues_drafts;
+DROP POLICY IF EXISTS leagues_drafts_select_user ON leagues_drafts;
+DROP POLICY IF EXISTS leagues_drafts_update_user ON leagues_drafts;
+DROP POLICY IF EXISTS leagues_drafts_update_admin ON leagues_drafts;
+
 -- ============================================================================
 -- RLS POLICIES FOR USER_ORGANIZATIONS TABLE
 -- ============================================================================
@@ -65,3 +81,7 @@ ALTER TABLE leagues_drafts DISABLE ROW LEVEL SECURITY;
 -- Temporarily disable RLS while we resolve Supabase JWT syntax issues
 -- All policies removed to avoid evaluation errors
 ALTER TABLE user_organizations DISABLE ROW LEVEL SECURITY;
+
+-- Drop any existing policies
+DROP POLICY IF EXISTS user_organizations_select_admin ON user_organizations;
+DROP POLICY IF EXISTS user_organizations_select_user ON user_organizations;
