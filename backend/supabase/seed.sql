@@ -1,12 +1,13 @@
 -- Supabase seed script
 -- This script runs after migrations to populate the database with test data
--- NOTE: Users must be created in Clerk first, then referenced by their Clerk ID here
--- Users are NOT seeded here because they must exist in Clerk first
--- User-Organization relationships must also be set up manually via API after users exist
--- RLS policies filter data based on:
---   1. User role (admin vs user/organizer) from JWT token
---   2. User-organization membership from user_organizations table
---   3. League status and created_by field
+-- NOTE: Users referenced here by Clerk ID should already exist in Clerk
+-- Test user for development: user_35aLezBPrIKwG8UHGKU2Cy5g9Ba (admin role)
+
+-- Insert test user (admin)
+INSERT INTO users (id, email, role, is_active)
+VALUES
+  ('user_35aLezBPrIKwG8UHGKU2Cy5g9Ba', 'test@test.com', 'admin', true)
+ON CONFLICT (id) DO NOTHING;
 
 -- Insert test sports
 INSERT INTO sports (id, name)
@@ -85,3 +86,17 @@ SELECT
   '19:30',
   '21:30'
 WHERE NOT EXISTS (SELECT 1 FROM game_occurrences WHERE day = 'Thursday' AND start_time = '19:30');
+
+-- Add test user to organizations
+INSERT INTO user_organizations (user_id, org_id, is_active)
+VALUES
+  ('user_35aLezBPrIKwG8UHGKU2Cy5g9Ba', 'a0000000-0000-0000-0000-000000000001', true),
+  ('user_35aLezBPrIKwG8UHGKU2Cy5g9Ba', 'a0000000-0000-0000-0000-000000000002', true),
+  ('user_35aLezBPrIKwG8UHGKU2Cy5g9Ba', 'a0000000-0000-0000-0000-000000000003', true)
+ON CONFLICT DO NOTHING;
+
+-- Add notification preferences for test user
+INSERT INTO notification_preferences (user_id, league_approved, league_rejected, league_submitted, draft_saved, template_saved)
+VALUES
+  ('user_35aLezBPrIKwG8UHGKU2Cy5g9Ba', true, true, true, true, true)
+ON CONFLICT (user_id) DO NOTHING;
