@@ -32,7 +32,6 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(JWTMiddleware)
 			r.Get("/user/{userID}", h.GetUser)
-			r.Get("/supabase-token", h.GetSupabaseToken)
 
 			// Admin routes
 			r.Group(func(r chi.Router) {
@@ -113,45 +112,6 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(user)
-}
-
-// GetSupabaseToken generates a Supabase JWT token for real-time subscriptions
-// Requires JWT authentication - returns a token valid for 1 hour
-func (h *Handler) GetSupabaseToken(w http.ResponseWriter, r *http.Request) {
-	authenticatedUserID := r.Header.Get("X-Clerk-User-ID")
-
-	authHeader := r.Header.Get("Authorization")
-	authHeaderPreview := authHeader
-	if len(authHeaderPreview) > 20 {
-		authHeaderPreview = authHeaderPreview[:20] + "..."
-	}
-
-	slog.Info("GetSupabaseToken: processing request",
-		"userID", authenticatedUserID,
-		"authHeaderPresent", authHeader != "",
-		"authHeaderPreview", authHeaderPreview,
-	)
-
-	if authenticatedUserID == "" {
-		slog.Error("GetSupabaseToken: missing X-Clerk-User-ID header")
-		http.Error(w, "User ID not found in token", http.StatusUnauthorized)
-		return
-	}
-
-	// Generate Supabase token
-	supabaseToken, err := GenerateSupabaseToken(authenticatedUserID, h.service)
-	if err != nil {
-		slog.Error("failed to generate supabase token", "userID", authenticatedUserID, "err", err)
-		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(SupabaseTokenResponse{
-		SupabaseToken: supabaseToken,
-		ExpiresIn:     3600, // 1 hour
-	})
 }
 
 // RecordLogin records a user login
