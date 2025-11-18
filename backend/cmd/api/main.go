@@ -9,16 +9,17 @@ import (
 
 	"github.com/caarlos0/env/v10"
 	clerk "github.com/clerk/clerk-sdk-go/v2"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/supabase-community/postgrest-go"
 )
 
 type config struct {
-	DatabaseURL string `env:"DATABASE_URL,required"`
+	SupabaseURL     string `env:"SUPABASE_URL,required"`
+	SupabaseAnonKey string `env:"SUPABASE_ANON_KEY,required"`
 }
 
 var cfg config
-var dbPool *pgxpool.Pool
+var postgrestClient *postgrest.Client
 
 func init() {
 	var err error
@@ -53,27 +54,26 @@ func init() {
 		panic(err)
 	}
 
-	// Create a new pgx connection pool
-	dbPool, err = pgxpool.New(context.Background(), cfg.DatabaseURL)
+	// Create PostgREST client
+	// Note: JWT token will be added per-request via context in middleware
+	postgrestClient, err = postgrest.NewClient(
+		cfg.SupabaseURL+"/rest/v1",
+		&postgrest.ClientOptions{
+			Headers: map[string]string{
+				"apikey": cfg.SupabaseAnonKey,
+			},
+		},
+	)
 	if err != nil {
-		slog.Error("dbPool", "err", err)
+		slog.Error("postgrest client creation error", "err", err)
 		panic(err)
 	}
 
-	// Test the connection
-	err = dbPool.Ping(context.Background())
-	if err != nil {
-		slog.Error("dbPool ping", "err", err)
-		panic(err)
-	}
-
-	slog.Info("Database connection established")
+	slog.Info("PostgREST client initialized", "url", cfg.SupabaseURL)
 }
 
 func main() {
-	defer dbPool.Close()
-
-	r := newRouter(dbPool)
+	r := newRouter(postgrestClient)
 
 	slog.Info("Starting server...", "port", "8080")
 	log.Fatal(http.ListenAndServe(":8080", r))

@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/supabase-community/postgrest-go"
 	"github.com/leaguefindr/backend/internal/auth"
 	"github.com/leaguefindr/backend/internal/leagues"
 	"github.com/leaguefindr/backend/internal/notifications"
@@ -25,7 +25,7 @@ func isAllowedOrigin(db *http.Request, origin string) bool {
 	return slices.Contains(allowedDomains, origin)
 }
 
-func newRouter(dbPool *pgxpool.Pool) *chi.Mux {
+func newRouter(postgrestClient *postgrest.Client) *chi.Mux {
 	r := chi.NewRouter()
 
 	var corsOptions cors.Options

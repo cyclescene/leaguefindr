@@ -52,6 +52,11 @@ func JWTMiddleware(next http.Handler) http.Handler {
 		// Store user ID in request header for downstream handlers
 		r.Header.Set("X-Clerk-User-ID", claims.Sub)
 
+		// Store JWT token in context for PostgREST client
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, "jwt_token", token)
+		r = r.WithContext(ctx)
+
 		next.ServeHTTP(w, r)
 	})
 }
