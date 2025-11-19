@@ -87,6 +87,7 @@ export function SubmitLeagueDialog({
     'edit-draft': 'Edit Draft',
     'edit-template': 'Edit Template',
     'view': 'View League Submission',
+    'admin-review': 'Review League Submission',
   }[formMode];
 
   const dialogDescription = {
@@ -94,6 +95,7 @@ export function SubmitLeagueDialog({
     'edit-draft': 'Continue editing your league draft.',
     'edit-template': 'Update the template configuration.',
     'view': 'Review the submitted league details.',
+    'admin-review': 'Review and approve/reject the submitted league.',
   }[formMode];
 
   return (

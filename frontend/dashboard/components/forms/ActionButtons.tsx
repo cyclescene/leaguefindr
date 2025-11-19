@@ -32,10 +32,7 @@ export function ActionButtons({
               Create a new league submission. Include details about the sport, venue, dates, schedule, and pricing. Sports and venues can be new or existing.
             </DialogDescription>
           </DialogHeader>
-          <AddLeagueForm
-            onSuccess={onLeagueAdded}
-            onClose={handleCloseDialog}
-          />
+          <AddLeagueForm />
         </DialogContent>
       </Dialog>
     </>

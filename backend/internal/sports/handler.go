@@ -41,7 +41,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 // GetAllSports returns all sports (public)
 func (h *Handler) GetAllSports(w http.ResponseWriter, r *http.Request) {
-	sports, err := h.service.GetAllSports()
+	sports, err := h.service.GetAllSports(r.Context())
 	if err != nil {
 		slog.Error("get all sports error", "err", err)
 		http.Error(w, "Failed to fetch sports", http.StatusInternalServerError)
@@ -71,7 +71,7 @@ func (h *Handler) GetSportByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sport, err := h.service.GetSportByID(id)
+	sport, err := h.service.GetSportByID(r.Context(), id)
 	if err != nil {
 		slog.Error("get sport by id error", "id", id, "err", err)
 		http.Error(w, "Sport not found", http.StatusNotFound)
@@ -103,7 +103,7 @@ func (h *Handler) CreateSport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sport, err := h.service.CreateSport(&req)
+	sport, err := h.service.CreateSport(r.Context(), &req)
 	if err != nil {
 		slog.Error("create sport error", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -123,7 +123,7 @@ func (h *Handler) CheckSportExists(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sport, err := h.service.CheckSportExists(name)
+	sport, err := h.service.CheckSportExists(r.Context(), name)
 	if err != nil {
 		slog.Error("check sport exists error", "name", name, "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

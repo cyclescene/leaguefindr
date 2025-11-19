@@ -94,6 +94,17 @@ function OrganizationDashboardContent() {
     );
   }
 
+  if (isLoading || !organization) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-neutral-light">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin text-brand-dark" size={40} />
+          <p className="text-brand-dark font-medium">Loading organization...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-neutral-light">
       <Header />

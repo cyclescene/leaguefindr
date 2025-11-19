@@ -43,7 +43,7 @@ export function usePendingLeagues(limit: number = 20, offset: number = 0) {
 
   const { data, error, isLoading, mutate } = useSWR(
     `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/admin/pending?limit=${limit}&offset=${offset}`,
-    async (url) => {
+    async (url: string) => {
       const token = await getToken()
       if (!token) {
         throw new Error('No authentication token available')
@@ -75,7 +75,7 @@ export function useAllLeagues(limit: number = 20, offset: number = 0) {
 
   const { data, error, isLoading, mutate } = useSWR(
     `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/admin/all?limit=${limit}&offset=${offset}`,
-    async (url) => {
+    async (url: string) => {
       const token = await getToken()
       if (!token) {
         throw new Error('No authentication token available')

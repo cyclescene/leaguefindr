@@ -752,7 +752,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
           onVenueAddressChange={handleVenueAddressChange}
           venueError={errors.venue_name?.message}
           isViewingLeague={isViewingLeague}
-          customVenueAddress={watch('venue_address')}
+          customVenueAddress={watch('venue_address') || undefined}
         />
 
         {/* Hidden venue fields */}

@@ -3,121 +3,103 @@ package venues
 import (
 	"context"
 	"fmt"
-	"time"
+	"strconv"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/supabase-community/postgrest-go"
 )
 
 // RepositoryInterface defines the contract for repository implementations
 type RepositoryInterface interface {
-	GetAll() ([]Venue, error)
-	GetByID(id int) (*Venue, error)
-	GetByAddress(address string) (*Venue, error)
-	Create(venue *Venue) (*Venue, error)
+	GetAll(ctx context.Context) ([]Venue, error)
+	GetByID(ctx context.Context, id int) (*Venue, error)
+	GetByAddress(ctx context.Context, address string) (*Venue, error)
+	Create(ctx context.Context, venue *Venue) (*Venue, error)
 }
 
 type Repository struct {
-	db *pgxpool.Pool
+	client *postgrest.Client
 }
 
-func NewRepository(db *pgxpool.Pool) *Repository {
-	return &Repository{db: db}
+func NewRepository(client *postgrest.Client) *Repository {
+	return &Repository{client: client}
 }
 
 // GetAll retrieves all venues
-func (r *Repository) GetAll() ([]Venue, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	query := `
-		SELECT id, name, address, lat, lng
-		FROM venues
-		ORDER BY name ASC
-	`
-
-	rows, err := r.db.Query(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query all venues: %w", err)
-	}
-	defer rows.Close()
-
+func (r *Repository) GetAll(ctx context.Context) ([]Venue, error) {
 	var venues []Venue
-	for rows.Next() {
-		var venue Venue
-		err := rows.Scan(&venue.ID, &venue.Name, &venue.Address, &venue.Lat, &venue.Lng)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan venue: %w", err)
-		}
-		venues = append(venues, venue)
+	_, err := r.client.From("venues").
+		Select("*", "", false).
+		ExecuteToWithContext(ctx, &venues)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to query venues: %w", err)
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error reading rows: %w", err)
+	if venues == nil {
+		venues = []Venue{}
 	}
 
 	return venues, nil
 }
 
 // GetByID retrieves a venue by ID
-func (r *Repository) GetByID(id int) (*Venue, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+func (r *Repository) GetByID(ctx context.Context, id int) (*Venue, error) {
+	var venues []Venue
+	_, err := r.client.From("venues").
+		Select("*", "", false).
+		Eq("id", strconv.Itoa(id)).
+		ExecuteToWithContext(ctx, &venues)
 
-	venue := &Venue{}
-
-	query := `
-		SELECT id, name, address, lat, lng
-		FROM venues
-		WHERE id = $1
-	`
-
-	err := r.db.QueryRow(ctx, query, id).Scan(&venue.ID, &venue.Name, &venue.Address, &venue.Lat, &venue.Lng)
-
-	if err != nil {
+	if err != nil || len(venues) == 0 {
 		return nil, fmt.Errorf("venue not found")
 	}
 
-	return venue, nil
+	return &venues[0], nil
 }
 
 // GetByAddress retrieves a venue by address (case-insensitive)
-func (r *Repository) GetByAddress(address string) (*Venue, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+func (r *Repository) GetByAddress(ctx context.Context, address string) (*Venue, error) {
+	var venues []Venue
+	_, err := r.client.From("venues").
+		Select("*", "", false).
+		Ilike("address", address).
+		ExecuteToWithContext(ctx, &venues)
 
-	venue := &Venue{}
-
-	query := `
-		SELECT id, name, address, lat, lng
-		FROM venues
-		WHERE LOWER(address) = LOWER($1)
-		LIMIT 1
-	`
-
-	err := r.db.QueryRow(ctx, query, address).Scan(&venue.ID, &venue.Name, &venue.Address, &venue.Lat, &venue.Lng)
-
-	if err != nil {
-		return nil, nil // Return nil if no venue found (not an error)
+	if err != nil || len(venues) == 0 {
+		return nil, nil // Return nil if not found (not an error)
 	}
 
-	return venue, nil
+	return &venues[0], nil
 }
 
 // Create creates a new venue in the database
-func (r *Repository) Create(venue *Venue) (*Venue, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+func (r *Repository) Create(ctx context.Context, venue *Venue) (*Venue, error) {
+	insertData := map[string]interface{}{
+		"name":    venue.Name,
+		"address": venue.Address,
+		"lat":     venue.Lat,
+		"lng":     venue.Lng,
+	}
 
-	query := `
-		INSERT INTO venues (name, address, lat, lng)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id
-	`
-
-	err := r.db.QueryRow(ctx, query, venue.Name, venue.Address, venue.Lat, venue.Lng).Scan(&venue.ID)
+	var result []map[string]interface{}
+	_, err := r.client.From("venues").
+		Insert(insertData, true, "", "", "").
+		ExecuteToWithContext(ctx, &result)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create venue: %w", err)
+	}
+
+	venue.Name = venue.Name
+	venue.Address = venue.Address
+	venue.Lat = venue.Lat
+	venue.Lng = venue.Lng
+
+	// Extract ID from result if available
+	if len(result) > 0 && result[0]["id"] != nil {
+		if id, ok := result[0]["id"].(float64); ok {
+			venue.ID = int(id)
+		}
 	}
 
 	return venue, nil

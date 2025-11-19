@@ -37,13 +37,25 @@ func JWTMiddleware(next http.Handler) http.Handler {
 		// Verify token with Clerk SDK
 		claims, err := verifyClerkToken(r.Context(), token)
 		if err != nil {
-			slog.Error("JWTMiddleware: token verification failed", "error", err.Error())
+			slog.Error("JWTMiddleware: token verification failed",
+				"error", err.Error(),
+				"tokenLength", len(token),
+			)
 			http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
 			return
 		}
 
+		slog.Info("JWTMiddleware: token verified successfully",
+			"userID", claims.Sub,
+		)
+
 		// Store user ID in request header for downstream handlers
 		r.Header.Set("X-Clerk-User-ID", claims.Sub)
+
+		// Store JWT token in context for PostgREST client
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, "jwt_token", token)
+		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
 	})
@@ -123,7 +135,7 @@ func RequireAdmin(authService *Service) func(http.Handler) http.Handler {
 			}
 
 			// Check if user is admin
-			isAdmin, err := authService.IsUserAdmin(userID)
+			isAdmin, err := authService.IsUserAdmin(r.Context(), userID)
 			if err != nil || !isAdmin {
 				slog.Warn("RequireAdmin: admin check failed", "userID", userID, "err", err)
 				http.Error(w, "Forbidden: admin access required", http.StatusForbidden)

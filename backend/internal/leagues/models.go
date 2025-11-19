@@ -4,7 +4,13 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"time"
+
+	"github.com/leaguefindr/backend/internal/shared"
 )
+
+// Import shared custom types for backwards compatibility
+type Date = shared.Date
+type Timestamp = shared.Timestamp
 
 // LeagueStatus represents the approval status of a league
 type LeagueStatus string
@@ -113,9 +119,9 @@ type League struct {
 	SportID              *int                  `json:"sport_id"` // Nullable if sport doesn't exist yet
 	LeagueName           *string               `json:"league_name"`
 	Division             *string               `json:"division"`
-	RegistrationDeadline *time.Time            `json:"registration_deadline"`
-	SeasonStartDate      *time.Time            `json:"season_start_date"`
-	SeasonEndDate        *time.Time            `json:"season_end_date"`
+	RegistrationDeadline *Date                 `json:"registration_deadline"` // DATE column - uses custom Date type
+	SeasonStartDate      *Date                 `json:"season_start_date"`      // DATE column - uses custom Date type
+	SeasonEndDate        *Date                 `json:"season_end_date"`        // DATE column - uses custom Date type
 	GameOccurrences      GameOccurrences       `json:"game_occurrences"`
 	PricingStrategy      PricingStrategy       `json:"pricing_strategy"`
 	PricingAmount        *float64              `json:"pricing_amount"`
@@ -130,8 +136,8 @@ type League struct {
 	SupplementalRequests *SupplementalRequests `json:"supplemental_requests"` // Sport/venue data for items not in DB
 	FormData             FormData              `json:"form_data"` // Complete form submission data
 	Status               LeagueStatus          `json:"status"`
-	CreatedAt            time.Time             `json:"created_at"`
-	UpdatedAt            time.Time             `json:"updated_at"`
+	CreatedAt            Timestamp             `json:"created_at"`   // TIMESTAMP column - uses custom Timestamp type
+	UpdatedAt            Timestamp             `json:"updated_at"`   // TIMESTAMP column - uses custom Timestamp type
 	CreatedBy            *string               `json:"created_by"` // UUID of the user who submitted it
 	RejectionReason      *string               `json:"rejection_reason"` // Reason for rejection if applicable
 }
@@ -180,6 +186,7 @@ type CreateLeagueResponse struct {
 // GetLeaguesResponse represents the response when getting multiple leagues
 type GetLeaguesResponse struct {
 	Leagues []League `json:"leagues"`
+	Count   int64    `json:"count"`
 }
 
 // DraftType represents the type of draft (draft or template)
@@ -197,8 +204,8 @@ type LeagueDraft struct {
 	Type      DraftType `json:"type"`   // "draft" or "template"
 	Name      *string   `json:"name"`   // Name for templates, null for drafts
 	FormData  FormData  `json:"form_data"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt Timestamp `json:"created_at"` // TIMESTAMP column - uses custom Timestamp type
+	UpdatedAt Timestamp `json:"updated_at"` // TIMESTAMP column - uses custom Timestamp type
 	CreatedBy *string   `json:"created_by"`
 }
 

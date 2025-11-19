@@ -100,23 +100,19 @@ COMMENT ON COLUMN sports.name IS 'Sport name - must be unique';
 -- VENUES TABLE
 -- ============================================================================
 
--- Enable PostGIS for spatial queries
-CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions;
-
 CREATE TABLE venues (
   id INT PRIMARY KEY,
   name TEXT NOT NULL,
   address TEXT,
   lng NUMERIC(9, 6),
-  lat NUMERIC(9, 6),
-  location geography(Point, 4326)               -- PostGIS spatial column
+  lat NUMERIC(9, 6)
 );
 
 CREATE INDEX idx_venues_name ON venues(name);
-CREATE INDEX idx_venues_location ON venues USING GIST (location);
 
 COMMENT ON TABLE venues IS 'Reference data: Sports venues/locations';
-COMMENT ON COLUMN venues.location IS 'PostGIS geography point for spatial queries (find venues within X miles)';
+COMMENT ON COLUMN venues.lng IS 'Longitude for venue location';
+COMMENT ON COLUMN venues.lat IS 'Latitude for venue location';
 
 -- ============================================================================
 -- LEAGUES TABLE

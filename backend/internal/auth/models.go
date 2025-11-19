@@ -3,20 +3,23 @@ package auth
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/leaguefindr/backend/internal/shared"
 )
 
 // Role represents user roles in the system
 type Role string
 
 const (
-	RoleUser  Role = "user"
-	RoleAdmin Role = "admin"
+	RoleUser      Role = "user"
+	RoleAdmin     Role = "admin"
+	RoleOrganizer Role = "organizer"
 )
 
 // IsValid checks if the role is a valid role
 func (r Role) IsValid() bool {
 	switch r {
-	case RoleUser, RoleAdmin:
+	case RoleUser, RoleAdmin, RoleOrganizer:
 		return true
 	default:
 		return false
@@ -29,14 +32,14 @@ func (r Role) String() string {
 }
 
 type User struct {
-	ID        string     `json:"id"`
-	Email     string     `json:"email"`
-	Role      Role       `json:"role"`
-	LastLogin *time.Time `json:"last_login"`
-	LoginCount int       `json:"login_count"`
-	IsActive  bool       `json:"is_active"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	ID        string             `json:"id"`
+	Email     string             `json:"email"`
+	Role      Role               `json:"role"`
+	LastLogin *shared.Timestamp  `json:"last_login"`
+	LoginCount int               `json:"login_count"`
+	IsActive  bool               `json:"is_active"`
+	CreatedAt shared.Timestamp   `json:"created_at"`
+	UpdatedAt shared.Timestamp   `json:"updated_at"`
 }
 
 // UserOrganization represents the relationship between a user and an organization

@@ -9,15 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EllipsisVertical } from "lucide-react";
-
-interface Template {
-  id: number;
-  name: string;
-  sport: string;
-  ageGroup: string;
-  gender: string;
-  dateCreated: string;
-}
+import type { Template } from "@/types/leagues";
 
 interface OrganizerTemplateTableRowProps {
   template: Template;
@@ -36,7 +28,6 @@ export function OrganizerTemplateTableRow({
     <TableRow>
       <TableCell>{template.name}</TableCell>
       <TableCell>{template.sport}</TableCell>
-      <TableCell>{template.ageGroup}</TableCell>
       <TableCell>{template.gender}</TableCell>
       <TableCell>{template.dateCreated}</TableCell>
       <TableCell>

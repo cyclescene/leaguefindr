@@ -1,25 +1,41 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
 	"strings"
+
+	"github.com/supabase-community/postgrest-go"
 )
 
 type Service struct {
-	repo RepositoryInterface
+	baseClient    *postgrest.Client
+	serviceClient *postgrest.Client
 }
 
-func NewService(repo RepositoryInterface) *Service {
-	return &Service{repo: repo}
+func NewService(baseClient *postgrest.Client, serviceClient *postgrest.Client) *Service {
+	return &Service{
+		baseClient:    baseClient,
+		serviceClient: serviceClient,
+	}
+}
+
+// getClientWithAuth creates a new PostgREST client
+func (s *Service) getClientWithAuth(ctx context.Context) *postgrest.Client {
+	// For auth, we use the base client as-is
+	return s.baseClient
 }
 
 // RegisterUser creates a new user account (no organization assignment)
 // User will create or join an organization during onboarding via frontend
-func (s *Service) RegisterUser(clerkID, email string) error {
+func (s *Service) RegisterUser(ctx context.Context, clerkID, email string) error {
+	// Use service client for all operations
+	repo := NewRepository(s.serviceClient)
+
 	// Check if user already exists
-	exists, err := s.repo.UserExists(clerkID)
+	exists, err := repo.UserExists(ctx, clerkID)
 	if err != nil {
 		return fmt.Errorf("failed to check user existence: %w", err)
 	}
@@ -31,7 +47,7 @@ func (s *Service) RegisterUser(clerkID, email string) error {
 
 	// Determine role: first user is admin, others are regular users
 	role := RoleUser
-	adminExists, err := s.repo.AdminExists()
+	adminExists, err := repo.AdminExists(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to check admin existence: %w", err)
 	}
@@ -39,8 +55,8 @@ func (s *Service) RegisterUser(clerkID, email string) error {
 		role = RoleAdmin
 	}
 
-	// Create new user with determined role (no organization yet)
-	err = s.repo.CreateUser(clerkID, email, role)
+	// Create new user
+	err = repo.CreateUser(ctx, clerkID, email, role)
 	if err != nil {
 		return err
 	}
@@ -70,8 +86,10 @@ func (s *Service) RegisterUser(clerkID, email string) error {
 }
 
 // GetUser retrieves user information by ID
-func (s *Service) GetUser(userID string) (*User, error) {
-	user, err := s.repo.GetUserByID(userID)
+func (s *Service) GetUser(ctx context.Context, userID string) (*User, error) {
+	repo := NewRepository(s.serviceClient)
+
+	user, err := repo.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +98,10 @@ func (s *Service) GetUser(userID string) (*User, error) {
 }
 
 // ValidateUserRole checks if a user has a specific role
-func (s *Service) ValidateUserRole(userID string, requiredRole Role) (bool, error) {
-	user, err := s.repo.GetUserByID(userID)
+func (s *Service) ValidateUserRole(ctx context.Context, userID string, requiredRole Role) (bool, error) {
+	repo := NewRepository(s.serviceClient)
+
+	user, err := repo.GetUserByID(ctx, userID)
 	if err != nil {
 		return false, err
 	}
@@ -94,8 +114,10 @@ func (s *Service) ValidateUserRole(userID string, requiredRole Role) (bool, erro
 }
 
 // RecordLogin updates user's last login time and increments login count
-func (s *Service) RecordLogin(userID string) error {
-	err := s.repo.UpdateLastLogin(userID)
+func (s *Service) RecordLogin(ctx context.Context, userID string) error {
+	repo := NewRepository(s.serviceClient)
+
+	err := repo.UpdateLastLogin(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -104,8 +126,10 @@ func (s *Service) RecordLogin(userID string) error {
 }
 
 // UpdateUserRole updates a user's role (admin only)
-func (s *Service) UpdateUserRole(userID string, role Role) error {
-	err := s.repo.UpdateUserRole(userID, role)
+func (s *Service) UpdateUserRole(ctx context.Context, userID string, role Role) error {
+	repo := NewRepository(s.serviceClient)
+
+	err := repo.UpdateUserRole(ctx, userID, role)
 	if err != nil {
 		return err
 	}
@@ -123,8 +147,10 @@ func (s *Service) UpdateUserRole(userID string, role Role) error {
 
 // IsUserAdmin checks if a user has admin role
 // If user doesn't exist, returns false (not admin) instead of erroring
-func (s *Service) IsUserAdmin(userID string) (bool, error) {
-	user, err := s.repo.GetUserByID(userID)
+func (s *Service) IsUserAdmin(ctx context.Context, userID string) (bool, error) {
+	repo := NewRepository(s.serviceClient)
+
+	user, err := repo.GetUserByID(ctx, userID)
 	if err != nil {
 		// User doesn't exist - return false, don't error
 		// The user will need to call /auth/register to create their account

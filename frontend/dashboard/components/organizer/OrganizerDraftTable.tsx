@@ -7,12 +7,7 @@ import {
   TableBody,
 } from "@/components/ui/table";
 import { OrganizerDraftTableRow } from "./OrganizerDraftTableRow";
-
-interface Draft {
-  id: number;
-  name: string;
-  dateCreated: string;
-}
+import type { Draft } from "@/types/leagues";
 
 interface OrganizerDraftTableProps {
   drafts: Draft[];

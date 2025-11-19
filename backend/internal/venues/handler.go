@@ -41,7 +41,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 // GetAllVenues returns all venues (public)
 func (h *Handler) GetAllVenues(w http.ResponseWriter, r *http.Request) {
-	venues, err := h.service.GetAllVenues()
+	venues, err := h.service.GetAllVenues(r.Context())
 	if err != nil {
 		slog.Error("get all venues error", "err", err)
 		http.Error(w, "Failed to fetch venues", http.StatusInternalServerError)
@@ -71,7 +71,7 @@ func (h *Handler) GetVenueByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	venue, err := h.service.GetVenueByID(id)
+	venue, err := h.service.GetVenueByID(r.Context(), id)
 	if err != nil {
 		slog.Error("get venue by id error", "id", id, "err", err)
 		http.Error(w, "Venue not found", http.StatusNotFound)
@@ -103,7 +103,7 @@ func (h *Handler) CreateVenue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	venue, err := h.service.CreateVenue(&req)
+	venue, err := h.service.CreateVenue(r.Context(), &req)
 	if err != nil {
 		slog.Error("create venue error", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -123,7 +123,7 @@ func (h *Handler) CheckVenueExists(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	venue, err := h.service.CheckVenueExists(address)
+	venue, err := h.service.CheckVenueExists(r.Context(), address)
 	if err != nil {
 		slog.Error("check venue exists error", "address", address, "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

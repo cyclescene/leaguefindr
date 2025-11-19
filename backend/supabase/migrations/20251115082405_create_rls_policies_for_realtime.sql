@@ -1,0 +1,3 @@
+-- This file is deprecated - RLS policies have been consolidated into
+-- 20251117_add_comprehensive_rls_policies.sql
+-- Keeping this file for migration history purposes
