@@ -40,7 +40,7 @@ CREATE TABLE notifications (
   message TEXT NOT NULL,
   data JSONB,
   read BOOLEAN DEFAULT false,
-  related_league_id INT REFERENCES leagues(id) ON DELETE SET NULL,
+  related_league_id UUID REFERENCES leagues(id) ON DELETE SET NULL,
   related_org_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
