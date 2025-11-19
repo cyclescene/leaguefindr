@@ -112,7 +112,10 @@ func verifyClerkToken(ctx context.Context, token string) (*TokenClaims, error) {
 		return nil, fmt.Errorf("invalid token: missing user ID claim")
 	}
 
-	slog.Debug("verifyClerkToken: success", "userID", userID)
+	slog.Debug("verifyClerkToken: success",
+		"userID", userID,
+		"allClaims", verifiedClaims.Claims,
+	)
 	return &TokenClaims{Sub: userID}, nil
 }
 

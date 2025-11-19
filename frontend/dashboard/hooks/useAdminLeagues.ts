@@ -1,6 +1,7 @@
-import useSWR from 'swr'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '@clerk/nextjs'
-import { fetcher } from '@/lib/api'
+import { useSupabase } from '@/context/SupabaseContext'
+import { stringifyError } from '@/hooks/useReadOnlyData'
 
 export interface PendingLeague {
   id: number
@@ -39,31 +40,71 @@ export interface PendingLeague {
  * Hook to fetch pending leagues that need admin review with pagination support
  */
 export function usePendingLeagues(limit: number = 20, offset: number = 0) {
-  const { getToken } = useAuth()
+  const { supabase, isLoaded } = useSupabase()
+  const [state, setState] = useState({
+    data: null as PendingLeague[] | null,
+    total: 0,
+    isLoading: true,
+    error: null as Error | null,
+  })
 
-  const { data, error, isLoading, mutate } = useSWR(
-    `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/admin/pending?limit=${limit}&offset=${offset}`,
-    async (url: string) => {
-      const token = await getToken()
-      if (!token) {
-        throw new Error('No authentication token available')
+  const fetch = useCallback(async () => {
+    if (!supabase) return
+
+    try {
+      const { data, count, error } = await supabase
+        .from('leagues')
+        .select('*', { count: 'exact' })
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1)
+
+      if (error) {
+        // Handle 416 (Range Not Satisfiable) gracefully - just means no data at this offset
+        if (error.code === 'PGRST116') {
+          setState({
+            data: [],
+            total: 0,
+            isLoading: false,
+            error: null,
+          })
+          return
+        }
+        throw error
       }
-      return fetcher(url, token)
-    },
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
+
+      setState({
+        data: (data || []) as PendingLeague[],
+        total: count || 0,
+        isLoading: false,
+        error: null,
+      })
+    } catch (error) {
+      const errorMessage = stringifyError(error)
+      console.error('usePendingLeagues - Error:', errorMessage)
+      setState({
+        data: null,
+        total: 0,
+        isLoading: false,
+        error: new Error(errorMessage),
+      })
     }
-  )
+  }, [supabase, offset, limit])
+
+  useEffect(() => {
+    if (isLoaded && supabase) {
+      fetch()
+    }
+  }, [isLoaded, supabase, fetch])
 
   return {
-    pendingLeagues: (data?.leagues || []) as PendingLeague[],
-    total: data?.total || 0,
-    limit: data?.limit || limit,
-    offset: data?.offset || offset,
-    isLoading,
-    error,
-    mutate,
+    pendingLeagues: state.data || [],
+    total: state.total,
+    limit,
+    offset,
+    isLoading: state.isLoading,
+    error: state.error,
+    refetch: fetch,
   }
 }
 
@@ -71,31 +112,58 @@ export function usePendingLeagues(limit: number = 20, offset: number = 0) {
  * Hook to fetch all leagues (all statuses) for admin view with pagination
  */
 export function useAllLeagues(limit: number = 20, offset: number = 0) {
-  const { getToken } = useAuth()
+  const { supabase, isLoaded } = useSupabase()
+  const [state, setState] = useState({
+    data: null as PendingLeague[] | null,
+    total: 0,
+    isLoading: true,
+    error: null as Error | null,
+  })
 
-  const { data, error, isLoading, mutate } = useSWR(
-    `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/admin/all?limit=${limit}&offset=${offset}`,
-    async (url: string) => {
-      const token = await getToken()
-      if (!token) {
-        throw new Error('No authentication token available')
-      }
-      return fetcher(url, token)
-    },
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
+  const fetch = useCallback(async () => {
+    if (!supabase) return
+
+    try {
+      const { data, count, error } = await supabase
+        .from('leagues')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1)
+
+      if (error) throw error
+
+      setState({
+        data: (data || []) as PendingLeague[],
+        total: count || 0,
+        isLoading: false,
+        error: null,
+      })
+    } catch (error) {
+      const errorMessage = stringifyError(error)
+      console.error('useAllLeagues - Error:', errorMessage)
+      setState({
+        data: null,
+        total: 0,
+        isLoading: false,
+        error: new Error(errorMessage),
+      })
     }
-  )
+  }, [supabase, offset, limit])
+
+  useEffect(() => {
+    if (isLoaded && supabase) {
+      fetch()
+    }
+  }, [isLoaded, supabase, fetch])
 
   return {
-    allLeagues: (data?.leagues || []) as PendingLeague[],
-    total: data?.total || 0,
-    limit: data?.limit || limit,
-    offset: data?.offset || offset,
-    isLoading,
-    error,
-    mutate,
+    allLeagues: state.data || [],
+    total: state.total,
+    limit,
+    offset,
+    isLoading: state.isLoading,
+    error: state.error,
+    refetch: fetch,
   }
 }
 
@@ -103,28 +171,52 @@ export function useAllLeagues(limit: number = 20, offset: number = 0) {
  * Hook to fetch a specific league by ID
  */
 export function useLeague(leagueId: number | null) {
-  const { getToken } = useAuth()
+  const { supabase, isLoaded } = useSupabase()
+  const [state, setState] = useState({
+    data: null as PendingLeague | null,
+    isLoading: true,
+    error: null as Error | null,
+  })
 
-  const { data, error, isLoading, mutate } = useSWR(
-    leagueId ? `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/admin/${leagueId}` : null,
-    async (url) => {
-      const token = await getToken()
-      if (!token) {
-        throw new Error('No authentication token available')
-      }
-      return fetcher(url, token)
-    },
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
+  const fetch = useCallback(async () => {
+    if (!supabase || !leagueId) return
+
+    try {
+      const { data, error } = await supabase
+        .from('leagues')
+        .select('*')
+        .eq('id', leagueId)
+        .single()
+
+      if (error) throw error
+
+      setState({
+        data: (data || null) as PendingLeague | null,
+        isLoading: false,
+        error: null,
+      })
+    } catch (error) {
+      const errorMessage = stringifyError(error)
+      console.error('useLeague - Error:', errorMessage)
+      setState({
+        data: null,
+        isLoading: false,
+        error: new Error(errorMessage),
+      })
     }
-  )
+  }, [supabase, leagueId])
+
+  useEffect(() => {
+    if (isLoaded && supabase && leagueId) {
+      fetch()
+    }
+  }, [isLoaded, supabase, leagueId, fetch])
 
   return {
-    league: data as PendingLeague | undefined,
-    isLoading,
-    error,
-    mutate,
+    league: state.data,
+    isLoading: state.isLoading,
+    error: state.error,
+    refetch: fetch,
   }
 }
 
@@ -195,28 +287,52 @@ export function useAdminLeagueOperations() {
  * Hook to fetch all drafts across all organizations (admin only)
  */
 export function useAllDrafts() {
-  const { getToken } = useAuth()
+  const { supabase, isLoaded } = useSupabase()
+  const [state, setState] = useState({
+    data: null as any[] | null,
+    isLoading: true,
+    error: null as Error | null,
+  })
 
-  const { data, error, isLoading, mutate } = useSWR(
-    `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/admin/drafts/all`,
-    async (url) => {
-      const token = await getToken()
-      if (!token) {
-        throw new Error('No authentication token available')
-      }
-      return fetcher(url, token)
-    },
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
+  const fetch = useCallback(async () => {
+    if (!supabase) return
+
+    try {
+      const { data, error } = await supabase
+        .from('leagues_drafts')
+        .select('*')
+        .eq('type', 'draft')
+        .order('updated_at', { ascending: false })
+
+      if (error) throw error
+
+      setState({
+        data: (data || []) as any[],
+        isLoading: false,
+        error: null,
+      })
+    } catch (error) {
+      const errorMessage = stringifyError(error)
+      console.error('useAllDrafts - Error:', errorMessage)
+      setState({
+        data: null,
+        isLoading: false,
+        error: new Error(errorMessage),
+      })
     }
-  )
+  }, [supabase])
+
+  useEffect(() => {
+    if (isLoaded && supabase) {
+      fetch()
+    }
+  }, [isLoaded, supabase, fetch])
 
   return {
-    drafts: (data?.drafts || []) as any[], // TODO: Add proper Draft type
-    isLoading,
-    error,
-    mutate,
+    drafts: state.data || [],
+    isLoading: state.isLoading,
+    error: state.error,
+    refetch: fetch,
   }
 }
 

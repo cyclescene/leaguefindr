@@ -1,6 +1,6 @@
-import useSWR from 'swr'
-import { useAuth } from '@clerk/nextjs'
-import { fetcher } from '@/lib/api'
+import { useCallback, useEffect, useState } from 'react'
+import { useSupabase } from '@/context/SupabaseContext'
+import { stringifyError } from '@/hooks/useReadOnlyData'
 
 interface Organization {
   id: string
@@ -12,27 +12,60 @@ interface Organization {
 }
 
 export function useOrganizationSearch() {
-  const { getToken } = useAuth()
+  const { supabase, isLoaded } = useSupabase()
+  const [state, setState] = useState({
+    data: null as Organization[] | null,
+    isLoading: true,
+    error: null as Error | null,
+  })
 
-  const { data, error, isLoading, mutate } = useSWR(
-    `${process.env.NEXT_PUBLIC_API_URL}/v1/organizations/admin`,
-    async (url) => {
-      const token = await getToken()
-      if (!token) {
-        throw new Error('No authentication token available')
+  const fetch = useCallback(async () => {
+    if (!supabase) return
+
+    try {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .order('org_name', { ascending: true })
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          setState({
+            data: [],
+            isLoading: false,
+            error: null,
+          })
+          return
+        }
+        throw error
       }
-      return fetcher(url, token)
-    },
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
+
+      setState({
+        data: (data || []) as Organization[],
+        isLoading: false,
+        error: null,
+      })
+    } catch (error) {
+      const errorMessage = stringifyError(error)
+      console.error('useOrganizationSearch - Error:', errorMessage)
+      setState({
+        data: null,
+        isLoading: false,
+        error: new Error(errorMessage),
+      })
     }
-  )
+  }, [supabase])
+
+  useEffect(() => {
+    if (isLoaded && supabase) {
+      fetch()
+    }
+  }, [isLoaded, supabase, fetch])
 
   return {
-    organizations: (data as Organization[] | undefined) || [],
-    isLoading,
-    error,
-    mutate,
+    organizations: state.data || [],
+    isLoading: state.isLoading,
+    error: state.error,
+    refetch: fetch,
   }
 }

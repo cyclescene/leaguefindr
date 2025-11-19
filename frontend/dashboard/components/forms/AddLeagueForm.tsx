@@ -51,9 +51,9 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     onSuccess,
     onClose,
     onLeagueSubmitted,
-    mutateDrafts,
-    mutateTemplates,
-    mutateLeagues,
+    refetchDrafts,
+    refetchTemplates,
+    refetchLeagues,
   } = useLeagueFormContext()
 
   // Derive boolean flags from mode
@@ -313,8 +313,8 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       }
 
       // Refresh drafts list after creation
-      if (mutateDrafts) {
-        await mutateDrafts()
+      if (refetchDrafts) {
+        await refetchDrafts()
       }
 
       setDraftSaveStatus('Draft saved successfully')
@@ -351,8 +351,8 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       })
 
       // Refresh drafts list after deletion
-      if (mutateDrafts) {
-        await mutateDrafts()
+      if (refetchDrafts) {
+        await refetchDrafts()
       }
     } catch (error) {
       console.error('Failed to delete draft:', error)
@@ -410,8 +410,8 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       }
 
       // Refresh templates list after update
-      if (mutateTemplates) {
-        await mutateTemplates()
+      if (refetchTemplates) {
+        await refetchTemplates()
       }
 
       setSuccess(true)
@@ -494,11 +494,11 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       await handleDeleteDraft()
 
       // Refresh leagues and drafts lists after submission
-      if (mutateLeagues) {
-        await mutateLeagues()
+      if (refetchLeagues) {
+        await refetchLeagues()
       }
-      if (mutateDrafts) {
-        await mutateDrafts()
+      if (refetchDrafts) {
+        await refetchDrafts()
       }
 
       setSuccess(true)

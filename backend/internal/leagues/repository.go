@@ -98,11 +98,27 @@ func (r *Repository) GetAllApprovedWithPagination(ctx context.Context, limit, of
 }
 
 // GetByID retrieves a league by ID (any status - auth required at route level)
+// Deprecated: Use GetByUUID instead
 func (r *Repository) GetByID(ctx context.Context, id int) (*League, error) {
 	var leagues []League
 	_, err := r.client.From("leagues").
 		Select("*", "", false).
 		Eq("id", strconv.Itoa(id)).
+		ExecuteToWithContext(ctx, &leagues)
+
+	if err != nil || len(leagues) == 0 {
+		return nil, fmt.Errorf("league not found")
+	}
+
+	return &leagues[0], nil
+}
+
+// GetByUUID retrieves a league by UUID
+func (r *Repository) GetByUUID(ctx context.Context, id string) (*League, error) {
+	var leagues []League
+	_, err := r.client.From("leagues").
+		Select("*", "", false).
+		Eq("id", id).
 		ExecuteToWithContext(ctx, &leagues)
 
 	if err != nil || len(leagues) == 0 {
@@ -158,7 +174,6 @@ func (r *Repository) Create(ctx context.Context, league *League) error {
 		"registration_deadline": league.RegistrationDeadline,
 		"season_start_date":     league.SeasonStartDate,
 		"season_end_date":       league.SeasonEndDate,
-		"game_occurrences":      league.GameOccurrences,
 		"pricing_strategy":      league.PricingStrategy,
 		"pricing_amount":        league.PricingAmount,
 		"pricing_per_player":    league.PricingPerPlayer,
@@ -169,7 +184,6 @@ func (r *Repository) Create(ctx context.Context, league *League) error {
 		"duration":              league.Duration,
 		"minimum_team_players":  league.MinimumTeamPlayers,
 		"per_game_fee":          league.PerGameFee,
-		"supplemental_requests": league.SupplementalRequests,
 		"form_data":             league.FormData,
 		"status":                league.Status,
 		"created_at":            now,
@@ -188,8 +202,8 @@ func (r *Repository) Create(ctx context.Context, league *League) error {
 
 	// Extract ID from result if available
 	if len(result) > 0 && result[0]["id"] != nil {
-		if id, ok := result[0]["id"].(float64); ok {
-			league.ID = int(id)
+		if id, ok := result[0]["id"].(string); ok {
+			league.ID = &id
 		}
 	}
 
@@ -262,8 +276,32 @@ func (r *Repository) UpdateStatus(ctx context.Context, id int, status LeagueStat
 	return nil
 }
 
+// UpdateStatusByUUID updates a league status by UUID
+func (r *Repository) UpdateStatusByUUID(ctx context.Context, id string, status LeagueStatus, rejectionReason *string) error {
+	updateData := map[string]interface{}{
+		"status":           status.String(),
+		"rejection_reason": rejectionReason,
+		"updated_at":       time.Now(),
+	}
+
+	_, err := r.client.From("leagues").
+		Update(updateData, "", "").
+		Eq("id", id).
+		ExecuteToWithContext(ctx, nil)
+
+	if err != nil {
+		return fmt.Errorf("failed to update league status: %w", err)
+	}
+
+	return nil
+}
+
 // UpdateLeague updates an existing league (used when approving with new sport/venue IDs)
 func (r *Repository) UpdateLeague(ctx context.Context, league *League) error {
+	if league.ID == nil {
+		return fmt.Errorf("league ID is required")
+	}
+
 	updateData := map[string]interface{}{
 		"sport_id":   league.SportID,
 		"venue_id":   league.VenueID,
@@ -272,7 +310,7 @@ func (r *Repository) UpdateLeague(ctx context.Context, league *League) error {
 
 	_, err := r.client.From("leagues").
 		Update(updateData, "", "").
-		Eq("id", strconv.Itoa(league.ID)).
+		Eq("id", *league.ID).
 		ExecuteToWithContext(ctx, nil)
 
 	if err != nil {
@@ -284,7 +322,7 @@ func (r *Repository) UpdateLeague(ctx context.Context, league *League) error {
 
 // ApproveLeagueWithTransaction atomically updates sport_id, venue_id, status to approved, and creates game_occurrences
 // With PostgREST, we'll perform multiple operations with RLS enforcing consistency at the database level
-func (r *Repository) ApproveLeagueWithTransaction(ctx context.Context, id int, sportID *int, venueID *int) error {
+func (r *Repository) ApproveLeagueWithTransaction(ctx context.Context, id int, sportID *int64, venueID *int64) error {
 	// Fetch the league to get game_occurrences
 	var leagues []League
 	_, err := r.client.From("leagues").

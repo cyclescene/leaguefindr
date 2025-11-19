@@ -87,7 +87,7 @@ COMMENT ON TABLE user_organizations IS 'Maps users to organizations with their r
 -- ============================================================================
 
 CREATE TABLE sports (
-  id INT PRIMARY KEY,
+  id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL UNIQUE
 );
 
@@ -101,7 +101,7 @@ COMMENT ON COLUMN sports.name IS 'Sport name - must be unique';
 -- ============================================================================
 
 CREATE TABLE venues (
-  id INT PRIMARY KEY,
+  id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   address TEXT,
   lng NUMERIC(9, 6),
@@ -119,15 +119,15 @@ COMMENT ON COLUMN venues.lat IS 'Latitude for venue location';
 -- ============================================================================
 
 CREATE TABLE leagues (
-  id INT PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL,
-  sport_id INT,
+  sport_id BIGINT,
   league_name TEXT,
   division TEXT,
   registration_deadline DATE,
   season_start_date DATE,
   season_end_date DATE,
-  venue_id INT,
+  venue_id BIGINT,
   gender TEXT,
   season_details TEXT,
   registration_url TEXT,
@@ -164,20 +164,24 @@ COMMENT ON COLUMN leagues.created_by IS 'Clerk user ID of the user who created/s
 -- ============================================================================
 
 CREATE TABLE leagues_drafts (
-  id INT PRIMARY KEY,
-  org_id UUID NOT NULL UNIQUE,
+  id BIGSERIAL PRIMARY KEY,
+  org_id UUID NOT NULL,
   type TEXT,                                    -- 'draft' or 'template'
+  name VARCHAR(255),                            -- User-defined name for draft/template
   form_data JSONB NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   created_by TEXT,                              -- Clerk user ID
-  CONSTRAINT fk_leagues_drafts_org_id FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE
+  CONSTRAINT fk_leagues_drafts_org_id FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE,
+  CONSTRAINT unique_org_type UNIQUE (org_id, type)
 );
 
 CREATE INDEX idx_leagues_drafts_org_id ON leagues_drafts(org_id);
 CREATE INDEX idx_leagues_drafts_created_by ON leagues_drafts(created_by);
+CREATE INDEX idx_leagues_drafts_name ON leagues_drafts(name);
 
 COMMENT ON TABLE leagues_drafts IS 'Draft and template league submissions. One per organization, can be in draft or template mode.';
 COMMENT ON COLUMN leagues_drafts.type IS 'Type of saved data: draft (work in progress) or template (reusable)';
+COMMENT ON COLUMN leagues_drafts.name IS 'User-defined name for the draft or template';
 COMMENT ON COLUMN leagues_drafts.form_data IS 'Complete form data that can be restored or submitted as a league';
 COMMENT ON COLUMN leagues_drafts.created_by IS 'Clerk user ID of the user who created/updated the draft';

@@ -1,12 +1,15 @@
 -- Supabase seed script
 -- This script runs after migrations to populate the database with test data
 -- NOTE: Users referenced here by Clerk ID should already exist in Clerk
--- Test user for development: user_35aLezBPrIKwG8UHGKU2Cy5g9Ba (admin role)
+-- Test users for development:
+--   - user_35iIVMkUqxuqPTDHYexjBwqh7Ah (admin role)
+--   - user_35iIZO05zFhiy51Zsj4QLTYxpzQ (organizer role)
 
--- Insert test user (admin)
-INSERT INTO users (id, email, role, is_active)
+-- Insert test users (admin and organizer)
+INSERT INTO "public"."users" ("id", "email", "role", "last_login", "login_count", "created_at", "updated_at", "is_active")
 VALUES
-  ('user_35aLezBPrIKwG8UHGKU2Cy5g9Ba', 'test@test.com', 'admin', true)
+  ('user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'test@test.com', 'admin', null, '0', '2025-11-19 21:08:08.57761', '2025-11-19 21:08:08.57761', 'true'),
+  ('user_35iIZO05zFhiy51Zsj4QLTYxpzQ', 'test2@test.com', 'organizer', null, '0', '2025-11-19 21:08:40.576894', '2025-11-19 21:08:40.576894', 'true')
 ON CONFLICT (id) DO NOTHING;
 
 -- Insert test sports
@@ -87,16 +90,17 @@ SELECT
   '21:30'
 WHERE NOT EXISTS (SELECT 1 FROM game_occurrences WHERE day = 'Thursday' AND start_time = '19:30');
 
--- Add test user to organizations
+-- Add test users to organizations
 INSERT INTO user_organizations (user_id, org_id, is_active)
 VALUES
-  ('user_35aLezBPrIKwG8UHGKU2Cy5g9Ba', 'a0000000-0000-0000-0000-000000000001', true),
-  ('user_35aLezBPrIKwG8UHGKU2Cy5g9Ba', 'a0000000-0000-0000-0000-000000000002', true),
-  ('user_35aLezBPrIKwG8UHGKU2Cy5g9Ba', 'a0000000-0000-0000-0000-000000000003', true)
+  ('user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'a0000000-0000-0000-0000-000000000001', true),
+  ('user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'a0000000-0000-0000-0000-000000000002', true),
+  ('user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'a0000000-0000-0000-0000-000000000003', true)
 ON CONFLICT DO NOTHING;
 
--- Add notification preferences for test user
+-- Add notification preferences for test users
 INSERT INTO notification_preferences (user_id, league_approved, league_rejected, league_submitted, draft_saved, template_saved)
 VALUES
-  ('user_35aLezBPrIKwG8UHGKU2Cy5g9Ba', true, true, true, true, true)
+  ('user_35iIVMkUqxuqPTDHYexjBwqh7Ah', true, true, true, true, true),
+  ('user_35iIZO05zFhiy51Zsj4QLTYxpzQ', true, true, true, true, true)
 ON CONFLICT (user_id) DO NOTHING;

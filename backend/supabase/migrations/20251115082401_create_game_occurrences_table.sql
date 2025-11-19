@@ -6,8 +6,8 @@
 -- - Proper normalization vs JSONB
 
 CREATE TABLE game_occurrences (
-  id SERIAL PRIMARY KEY,
-  league_id INT NOT NULL,
+  id BIGSERIAL PRIMARY KEY,
+  league_id UUID NOT NULL,
   day TEXT NOT NULL,                            -- e.g., "Monday", "Tuesday", "Wednesday" (TEXT for flexibility)
   start_time TIME NOT NULL,                     -- e.g., "19:00"
   end_time TIME NOT NULL,                       -- e.g., "22:00"

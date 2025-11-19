@@ -30,11 +30,18 @@ function DashboardContent() {
 
   // Pagination state
   const [page, setPage] = useState(0)
+  const [activeTab, setActiveTab] = useState('all')
   const offset = page * ITEMS_PER_PAGE
 
   // Fetch leagues by status with pagination
-  const { pendingLeagues, total: totalPending, isLoading: isLoadingPending, mutate: mutatePendingLeagues } = usePendingLeagues(ITEMS_PER_PAGE, offset)
-  const { allLeagues, total: totalAll, isLoading: isLoadingAll, mutate: mutateAllLeagues } = useAllLeagues(ITEMS_PER_PAGE, offset)
+  const { pendingLeagues, total: totalPending, isLoading: isLoadingPending, refetch: refetchPendingLeagues } = usePendingLeagues(
+    activeTab === 'pending' ? ITEMS_PER_PAGE : 0,
+    activeTab === 'pending' ? offset : 0
+  )
+  const { allLeagues, total: totalAll, isLoading: isLoadingAll, refetch: refetchAllLeagues } = useAllLeagues(
+    activeTab === 'all' ? ITEMS_PER_PAGE : 0,
+    activeTab === 'all' ? offset : 0
+  )
 
   // Admin operations
   const { approveLeague, rejectLeague } = useAdminLeagueOperations()
@@ -77,7 +84,7 @@ function DashboardContent() {
       setIsApproving(leagueId)
       await approveLeague(leagueId)
       // Refresh both pending and all leagues
-      await Promise.all([mutatePendingLeagues(), mutateAllLeagues()])
+      await Promise.all([refetchPendingLeagues(), refetchAllLeagues()])
     } catch (error) {
       console.error('Failed to approve league:', error)
       alert('Failed to approve league')
@@ -101,7 +108,7 @@ function DashboardContent() {
       setIsRejecting(rejectingLeagueId)
       await rejectLeague(rejectingLeagueId, reason)
       // Refresh both pending and all leagues
-      await Promise.all([mutatePendingLeagues(), mutateAllLeagues()])
+      await Promise.all([refetchPendingLeagues(), refetchAllLeagues()])
     } catch (error) {
       console.error('Failed to reject league:', error)
       throw error // Let the dialog handle the error display
@@ -198,7 +205,7 @@ function DashboardContent() {
       <Header organizationName="" />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12">
-        <Tabs defaultValue="all" onValueChange={() => setPage(0)}>
+        <Tabs defaultValue="all" onValueChange={(value) => { setActiveTab(value); setPage(0); }}>
           <div className="flex flex-row w-full justify-between items-center mb-4">
             <TabsList>
               <TabsTrigger value="all">All Leagues ({totalAll})</TabsTrigger>
@@ -257,12 +264,12 @@ function DashboardContent() {
           setReviewingLeagueId(null)
         }}
         onApproveSuccess={() => {
-          mutatePendingLeagues()
-          mutateAllLeagues()
+          refetchPendingLeagues()
+          refetchAllLeagues()
         }}
         onRejectSuccess={() => {
-          mutatePendingLeagues()
-          mutateAllLeagues()
+          refetchPendingLeagues()
+          refetchAllLeagues()
         }}
       />
 

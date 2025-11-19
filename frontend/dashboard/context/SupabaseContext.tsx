@@ -3,18 +3,24 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { useSession } from '@clerk/nextjs'
 import { useEffect, useState, createContext, useContext } from 'react'
+import { toast } from 'sonner'
 
 type SupabaseContext = {
   supabase: SupabaseClient | null
   isLoaded: boolean
+  isError: boolean
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
 
+// 5 second timeout for Supabase initialization
+const SUPABASE_TIMEOUT = 5000;
+
 const Context = createContext<SupabaseContext>({
   supabase: null,
-  isLoaded: false
+  isLoaded: false,
+  isError: false
 })
 
 type Props = {
@@ -25,23 +31,86 @@ export default function SupabaseProvider({ children }: Props) {
   const { session } = useSession()
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [isError, setIsError] = useState(false)
 
   useEffect(() => {
-    if (!session) return
+    // If no session, just mark as loaded and don't try to initialize Supabase
+    if (!session) {
+      setIsLoaded(true)
+      return
+    }
 
-    const client = createClient(
-      supabaseUrl!,
-      supabaseKey!, {
-      accessToken: () => session?.getToken()
-    })
+    let timeoutId: NodeJS.Timeout
+    let isMounted = true
 
-    setSupabase(client)
-    setIsLoaded(true)
-  }, [session])
+    const initSupabase = async () => {
+      try {
+        const client = createClient(
+          supabaseUrl!,
+          supabaseKey!, {
+          accessToken: () => session?.getToken()
+        })
+
+        // Set a timeout - if Supabase doesn't load in time, show error and continue anyway
+        timeoutId = setTimeout(() => {
+          if (isMounted && !isLoaded) {
+            setIsError(true)
+            setIsLoaded(true)
+            toast.error('Supabase is taking longer than expected. Some features may be unavailable.')
+          }
+        }, SUPABASE_TIMEOUT)
+
+        // Try to verify connection with a simple query
+        try {
+          await client
+            .from('users')
+            .select('id')
+            .limit(1)
+
+          if (isMounted) {
+            clearTimeout(timeoutId)
+            setSupabase(client)
+            setIsLoaded(true)
+            setIsError(false)
+          }
+        } catch (err) {
+          if (isMounted) {
+            clearTimeout(timeoutId)
+            setIsError(true)
+            setIsLoaded(true)
+            toast.error('Failed to connect to database. Please try again.')
+            console.error('Supabase connection error:', err)
+          }
+        }
+      } catch (error) {
+        if (isMounted) {
+          clearTimeout(timeoutId)
+          setIsError(true)
+          setIsLoaded(true)
+          toast.error('Database connection error. Please try again.')
+          console.error('Supabase initialization error:', error)
+        }
+      }
+    }
+
+    initSupabase()
+
+    return () => {
+      isMounted = false
+      clearTimeout(timeoutId)
+    }
+  }, [session, isLoaded])
 
   return (
-    <Context.Provider value={{ supabase, isLoaded }}>
-      {!isLoaded ? <div>Loading...</div> : children}
+    <Context.Provider value={{ supabase, isLoaded, isError }}>
+      {!isLoaded ? (
+        <div className="flex items-center justify-center min-h-screen bg-neutral-light">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-dark mx-auto mb-4"></div>
+            <p className="text-brand-dark font-medium">Connecting to database...</p>
+          </div>
+        </div>
+      ) : children}
     </Context.Provider>
   )
 }

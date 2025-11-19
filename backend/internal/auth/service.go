@@ -13,6 +13,8 @@ import (
 type Service struct {
 	baseClient    *postgrest.Client
 	serviceClient *postgrest.Client
+	baseURL       string
+	anonKey       string
 }
 
 func NewService(baseClient *postgrest.Client, serviceClient *postgrest.Client) *Service {
@@ -22,9 +24,45 @@ func NewService(baseClient *postgrest.Client, serviceClient *postgrest.Client) *
 	}
 }
 
-// getClientWithAuth creates a new PostgREST client
+// NewServiceWithConfig creates a new auth service with Supabase config
+func NewServiceWithConfig(baseClient *postgrest.Client, serviceClient *postgrest.Client, baseURL string, anonKey string) *Service {
+	return &Service{
+		baseClient:    baseClient,
+		serviceClient: serviceClient,
+		baseURL:       baseURL,
+		anonKey:       anonKey,
+	}
+}
+
+// getClientWithAuth creates a new PostgREST client with JWT from context
 func (s *Service) getClientWithAuth(ctx context.Context) *postgrest.Client {
-	// For auth, we use the base client as-is
+	// Extract JWT token from context (set by JWT middleware)
+	token := ""
+	if jwtVal := ctx.Value("jwt_token"); jwtVal != nil {
+		if t, ok := jwtVal.(string); ok {
+			token = t
+		}
+	}
+
+	// If we have config, create a new client with JWT
+	if s.baseURL != "" && s.anonKey != "" {
+		client := postgrest.NewClient(
+			s.baseURL,
+			"public",
+			map[string]string{
+				"apikey": s.anonKey,
+			},
+		)
+
+		// Set JWT token if present (this adds it to Authorization header)
+		if token != "" {
+			client.SetAuthToken(token)
+		}
+
+		return client
+	}
+
+	// Fallback to base client for backwards compatibility
 	return s.baseClient
 }
 
@@ -46,7 +84,7 @@ func (s *Service) RegisterUser(ctx context.Context, clerkID, email string) error
 	}
 
 	// Determine role: first user is admin, others are regular users
-	role := RoleUser
+	role := RoleOrganizer
 	adminExists, err := repo.AdminExists(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to check admin existence: %w", err)

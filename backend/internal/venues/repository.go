@@ -98,7 +98,7 @@ func (r *Repository) Create(ctx context.Context, venue *Venue) (*Venue, error) {
 	// Extract ID from result if available
 	if len(result) > 0 && result[0]["id"] != nil {
 		if id, ok := result[0]["id"].(float64); ok {
-			venue.ID = int(id)
+			venue.ID = int64(id)
 		}
 	}
 

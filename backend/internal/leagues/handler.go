@@ -110,19 +110,13 @@ func (h *Handler) GetApprovedLeagues(w http.ResponseWriter, r *http.Request) {
 
 // GetApprovedLeagueByID returns an approved league by ID (public)
 func (h *Handler) GetApprovedLeagueByID(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	if idStr == "" {
+	id := chi.URLParam(r, "id")
+	if id == "" {
 		http.Error(w, "league ID is required", http.StatusBadRequest)
 		return
 	}
 
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid league ID", http.StatusBadRequest)
-		return
-	}
-
-	league, err := h.service.GetLeagueByID(r.Context(), id)
+	league, err := h.service.GetLeagueByUUID(r.Context(), id)
 	if err != nil {
 		slog.Error("get approved league by id error", "id", id, "err", err)
 		http.Error(w, "League not found", http.StatusNotFound)
@@ -142,19 +136,13 @@ func (h *Handler) GetApprovedLeagueByID(w http.ResponseWriter, r *http.Request) 
 
 // GetLeagueByID returns a league by ID (admin only - any status)
 func (h *Handler) GetLeagueByID(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	if idStr == "" {
+	id := chi.URLParam(r, "id")
+	if id == "" {
 		http.Error(w, "league ID is required", http.StatusBadRequest)
 		return
 	}
 
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid league ID", http.StatusBadRequest)
-		return
-	}
-
-	league, err := h.service.GetLeagueByID(r.Context(), id)
+	league, err := h.service.GetLeagueByUUID(r.Context(), id)
 	if err != nil {
 		slog.Error("get league by id error", "id", id, "err", err)
 		http.Error(w, "League not found", http.StatusNotFound)
@@ -321,19 +309,13 @@ func (h *Handler) ApproveLeague(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idStr := chi.URLParam(r, "id")
-	if idStr == "" {
+	id := chi.URLParam(r, "id")
+	if id == "" {
 		http.Error(w, "league ID is required", http.StatusBadRequest)
 		return
 	}
 
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid league ID", http.StatusBadRequest)
-		return
-	}
-
-	err = h.service.ApproveLeague(r.Context(), userID, id)
+	err := h.service.ApproveLeagueByUUID(r.Context(), userID, id)
 	if err != nil {
 		slog.Error("approve league error", "id", id, "err", err)
 		http.Error(w, "Failed to approve league", http.StatusInternalServerError)
@@ -353,21 +335,15 @@ func (h *Handler) RejectLeague(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idStr := chi.URLParam(r, "id")
-	if idStr == "" {
+	id := chi.URLParam(r, "id")
+	if id == "" {
 		http.Error(w, "league ID is required", http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid league ID", http.StatusBadRequest)
 		return
 	}
 
 	var req RejectLeagueRequest
 
-	err = json.NewDecoder(r.Body).Decode(&req)
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		slog.Error("reject league error", "err", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -383,7 +359,7 @@ func (h *Handler) RejectLeague(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.RejectLeague(r.Context(), userID, id, req.RejectionReason)
+	err = h.service.RejectLeagueByUUID(r.Context(), userID, id, req.RejectionReason)
 	if err != nil {
 		slog.Error("reject league error", "id", id, "err", err)
 		http.Error(w, "Failed to reject league", http.StatusInternalServerError)

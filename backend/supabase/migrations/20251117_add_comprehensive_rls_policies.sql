@@ -57,11 +57,12 @@ CREATE POLICY "Everyone can view organizations"
 ON organizations FOR SELECT
 USING (true);
 
--- Only admins can create organizations
-CREATE POLICY "Only admins can create organizations"
+-- Admins and organizers can create organizations
+CREATE POLICY "Admins and organizers can create organizations"
 ON organizations FOR INSERT
 WITH CHECK (
   auth.jwt()->>'appRole' = 'admin'
+  OR auth.jwt()->>'appRole' = 'organizer'
 );
 
 -- Admins and org members can update organizations
@@ -98,12 +99,15 @@ USING (
   OR auth.jwt()->>'appRole' = 'admin'
 );
 
--- Users can join organizations themselves
-CREATE POLICY "Users can join organizations"
+-- Only organizers and admins can be added to user_organizations
+CREATE POLICY "Only organizers and admins can join organizations"
 ON user_organizations FOR INSERT
 WITH CHECK (
-  (auth.jwt()->>'sub')::text = user_id
-  OR auth.jwt()->>'appRole' = 'admin'
+  auth.jwt()->>'appRole' = 'admin'
+  OR (
+    (auth.jwt()->>'sub')::text = user_id
+    AND (auth.jwt()->>'appRole' = 'organizer' OR auth.jwt()->>'appRole' = 'admin')
+  )
 );
 
 -- Users can update their own membership, admins can update any
@@ -252,11 +256,12 @@ USING (
   OR auth.jwt()->>'appRole' = 'admin'
 );
 
--- INSERT: Users create their own drafts/templates
-CREATE POLICY "Users can create their own drafts"
+-- INSERT: Organizers and admins can create drafts/templates
+CREATE POLICY "Organizers and admins can create drafts"
 ON leagues_drafts FOR INSERT
 WITH CHECK (
-  (auth.jwt()->>'sub')::text = created_by
+  auth.jwt()->>'appRole' = 'admin'
+  OR auth.jwt()->>'appRole' = 'organizer'
 );
 
 -- UPDATE: Owners and org members can update drafts/templates

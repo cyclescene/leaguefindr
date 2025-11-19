@@ -25,9 +25,9 @@ interface SubmitLeagueDialogProps {
   viewingLeagueStatus?: string;
   viewingLeagueRejectionReason?: string | null;
   onLeagueSubmitted?: () => void;
-  mutateDrafts?: () => Promise<any>;
-  mutateTemplates?: () => Promise<any>;
-  mutateLeagues?: () => Promise<any>;
+  refetchDrafts?: () => Promise<any>;
+  refetchTemplates?: () => Promise<any>;
+  refetchLeagues?: () => Promise<any>;
   organizationName?: string;
 }
 
@@ -46,9 +46,9 @@ export function SubmitLeagueDialog({
   viewingLeagueStatus,
   viewingLeagueRejectionReason,
   onLeagueSubmitted,
-  mutateDrafts,
-  mutateTemplates,
-  mutateLeagues,
+  refetchDrafts,
+  refetchTemplates,
+  refetchLeagues,
   organizationName: propOrganizationName,
 }: SubmitLeagueDialogProps) {
   const { organization } = useOrganization(organizationId);
@@ -77,9 +77,9 @@ export function SubmitLeagueDialog({
     onSuccess,
     onClose: handleClose,
     onLeagueSubmitted,
-    mutateDrafts,
-    mutateTemplates,
-    mutateLeagues,
+    refetchDrafts,
+    refetchTemplates,
+    refetchLeagues,
   };
 
   const dialogTitle = {

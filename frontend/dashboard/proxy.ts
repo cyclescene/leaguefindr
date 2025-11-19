@@ -8,22 +8,11 @@ const isProtectedRoute = createRouteMatcher(['/', '/admin(.*?)'])
 // See: https://clerk.com/docs/reference/nextjs/clerk-middleware
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth()
+  console.log('sessionClaims:', sessionClaims)
 
   const isVerified = (sessionClaims?.emailVerified as boolean) || false
   const userRole = (sessionClaims?.appRole as string) || null
 
-  // Log claims for debugging
-  console.log('=== Clerk Middleware Debug ===')
-  console.log('userId:', userId)
-  console.log('isVerified:', isVerified)
-  console.log('userRole:', userRole)
-  console.log('sessionClaims:', sessionClaims)
-  console.log('All claim keys:', Object.keys(sessionClaims || {}))
-  if (sessionClaims) {
-    console.log('appRole claim:', sessionClaims.appRole)
-    console.log('role claim:', sessionClaims.role)
-  }
-  console.log('=== End Debug ===')
 
   const pathname = req.nextUrl.pathname
   const isAuthPage = pathname === '/signin' || pathname === '/signup'
@@ -46,19 +35,10 @@ export default clerkMiddleware(async (auth, req) => {
     // Authenticated and verified: handle role-based routing
     const isAdmin = userRole === 'admin'
 
-    console.log('Clerk Middleware - Role-based routing:', {
-      isAdmin,
-      pathname,
-      isAuthPage,
-      isVerifyPage,
-      isUserDashboard,
-      isAdminRoute,
-    })
 
     // Redirect auth pages to appropriate dashboard
     if (isAuthPage || isVerifyPage) {
       const dashboardUrl = isAdmin ? '/admin' : '/'
-      console.log(`Clerk Middleware - Redirecting from auth page to ${dashboardUrl}`)
       return NextResponse.redirect(new URL(dashboardUrl, req.url))
     }
 
@@ -66,13 +46,11 @@ export default clerkMiddleware(async (auth, req) => {
     if (isAdmin) {
       // Admin trying to access user dashboard: redirect to admin
       if (isUserDashboard) {
-        console.log('Clerk Middleware - Admin redirected to /admin')
         return NextResponse.redirect(new URL('/admin', req.url))
       }
     } else {
       // Regular user trying to access admin routes: redirect to user dashboard
       if (isAdminRoute) {
-        console.log('Clerk Middleware - Non-admin redirected to /')
         return NextResponse.redirect(new URL('/', req.url))
       }
     }

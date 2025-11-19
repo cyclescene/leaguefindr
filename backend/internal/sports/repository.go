@@ -92,7 +92,7 @@ func (r *Repository) Create(ctx context.Context, name string) (*Sport, error) {
 	// Extract ID from result if available
 	if len(result) > 0 && result[0]["id"] != nil {
 		if id, ok := result[0]["id"].(float64); ok {
-			sport.ID = int(id)
+			sport.ID = int64(id)
 		}
 	}
 

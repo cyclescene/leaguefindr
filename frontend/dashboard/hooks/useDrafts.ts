@@ -1,6 +1,6 @@
-import useSWR from 'swr'
-import { useAuth } from '@clerk/nextjs'
-import { fetcher } from '@/lib/api'
+import { useCallback, useEffect, useState } from 'react'
+import { useSupabase } from '@/context/SupabaseContext'
+import { stringifyError } from '@/hooks/useReadOnlyData'
 
 export interface Draft {
   id: number
@@ -14,54 +14,126 @@ export interface Draft {
 }
 
 export function useDrafts(orgId: string) {
-  const { getToken } = useAuth()
+  const { supabase, isLoaded } = useSupabase()
+  const [state, setState] = useState({
+    data: null as Draft[] | null,
+    isLoading: true,
+    error: null as Error | null,
+  })
 
-  const { data, error, isLoading, mutate } = useSWR(
-    orgId ? `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/drafts/${orgId}` : null,
-    async (url) => {
-      const token = await getToken()
-      if (!token) {
-        throw new Error('No authentication token available')
+  const fetch = useCallback(async () => {
+    if (!supabase || !orgId) return
+
+    try {
+      const { data, error } = await supabase
+        .from('leagues_drafts')
+        .select('*')
+        .eq('org_id', orgId)
+        .eq('type', 'draft')
+        .order('updated_at', { ascending: false })
+
+      if (error) {
+        // Handle 416 gracefully
+        if (error.code === 'PGRST116') {
+          setState({
+            data: [],
+            isLoading: false,
+            error: null,
+          })
+          return
+        }
+        throw error
       }
-      return fetcher(url, token)
-    },
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
+
+      setState({
+        data: (data || []) as Draft[],
+        isLoading: false,
+        error: null,
+      })
+    } catch (error) {
+      const errorMessage = stringifyError(error)
+      console.error('useDrafts - Error:', errorMessage)
+      setState({
+        data: null,
+        isLoading: false,
+        error: new Error(errorMessage),
+      })
     }
-  )
+  }, [supabase, orgId])
+
+  useEffect(() => {
+    if (isLoaded && supabase && orgId) {
+      fetch()
+    }
+  }, [isLoaded, supabase, orgId, fetch])
 
   return {
-    drafts: (data?.drafts || []) as Draft[],
-    isLoading,
-    error,
-    mutate,
+    drafts: state.data || [],
+    isLoading: state.isLoading,
+    error: state.error,
+    refetch: fetch,
   }
 }
 
 export function useTemplates(orgId: string) {
-  const { getToken } = useAuth()
+  const { supabase, isLoaded } = useSupabase()
+  const [state, setState] = useState({
+    data: null as Draft[] | null,
+    isLoading: true,
+    error: null as Error | null,
+  })
 
-  const { data, error, isLoading, mutate } = useSWR(
-    orgId ? `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/templates/${orgId}` : null,
-    async (url) => {
-      const token = await getToken()
-      if (!token) {
-        throw new Error('No authentication token available')
+  const fetch = useCallback(async () => {
+    if (!supabase || !orgId) return
+
+    try {
+      const { data, error } = await supabase
+        .from('leagues_drafts')
+        .select('*')
+        .eq('org_id', orgId)
+        .eq('type', 'template')
+        .order('updated_at', { ascending: false })
+
+      if (error) {
+        // Handle 416 gracefully
+        if (error.code === 'PGRST116') {
+          setState({
+            data: [],
+            isLoading: false,
+            error: null,
+          })
+          return
+        }
+        throw error
       }
-      return fetcher(url, token)
-    },
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
+
+      setState({
+        data: (data || []) as Draft[],
+        isLoading: false,
+        error: null,
+      })
+    } catch (error) {
+      const errorMessage = stringifyError(error)
+      console.error('useTemplates - Error:', errorMessage)
+      setState({
+        data: null,
+        isLoading: false,
+        error: new Error(errorMessage),
+      })
     }
-  )
+  }, [supabase, orgId])
+
+  useEffect(() => {
+    if (isLoaded && supabase && orgId) {
+      fetch()
+    }
+  }, [isLoaded, supabase, orgId, fetch])
 
   return {
-    templates: (data?.templates || []) as Draft[],
-    isLoading,
-    error,
-    mutate,
+    templates: state.data || [],
+    isLoading: state.isLoading,
+    error: state.error,
+    refetch: fetch,
   }
 }
 
@@ -99,27 +171,61 @@ export interface SubmittedLeague {
 }
 
 export function useLeagues(orgId: string) {
-  const { getToken } = useAuth()
+  const { supabase, isLoaded } = useSupabase()
+  const [state, setState] = useState({
+    data: null as SubmittedLeague[] | null,
+    isLoading: true,
+    error: null as Error | null,
+  })
 
-  const { data, error, isLoading, mutate } = useSWR(
-    orgId ? `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/org/${orgId}` : null,
-    async (url) => {
-      const token = await getToken()
-      if (!token) {
-        throw new Error('No authentication token available')
+  const fetch = useCallback(async () => {
+    if (!supabase || !orgId) return
+
+    try {
+      const { data, error } = await supabase
+        .from('leagues')
+        .select('*')
+        .eq('org_id', orgId)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          setState({
+            data: [],
+            isLoading: false,
+            error: null,
+          })
+          return
+        }
+        throw error
       }
-      return fetcher(url, token)
-    },
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
+
+      setState({
+        data: (data || []) as SubmittedLeague[],
+        isLoading: false,
+        error: null,
+      })
+    } catch (error) {
+      const errorMessage = stringifyError(error)
+      console.error('useLeagues - Error:', errorMessage)
+      setState({
+        data: null,
+        isLoading: false,
+        error: new Error(errorMessage),
+      })
     }
-  )
+  }, [supabase, orgId])
+
+  useEffect(() => {
+    if (isLoaded && supabase && orgId) {
+      fetch()
+    }
+  }, [isLoaded, supabase, orgId, fetch])
 
   return {
-    leagues: (data?.leagues || []) as SubmittedLeague[],
-    isLoading,
-    error,
-    mutate,
+    leagues: state.data || [],
+    isLoading: state.isLoading,
+    error: state.error,
+    refetch: fetch,
   }
 }

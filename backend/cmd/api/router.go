@@ -57,19 +57,19 @@ func newRouter(postgrestClient *postgrest.Client, postgrestServiceClient *postgr
 	r.Get("/", health)
 
 	// Auth
-	authService := auth.NewService(postgrestClient, postgrestServiceClient)
+	authService := auth.NewServiceWithConfig(postgrestClient, postgrestServiceClient, cfg.SupabaseURL+"/rest/v1", cfg.SupabaseAnonKey)
 	authHandler := auth.NewHandler(authService)
 
 	// Sports
-	sportsService := sports.NewService(postgrestClient)
+	sportsService := sports.NewService(postgrestClient, cfg.SupabaseURL+"/rest/v1", cfg.SupabaseAnonKey)
 	sportsHandler := sports.NewHandler(sportsService)
 
 	// Venues
-	venuesService := venues.NewService(postgrestClient)
+	venuesService := venues.NewService(postgrestClient, cfg.SupabaseURL+"/rest/v1", cfg.SupabaseAnonKey)
 	venuesHandler := venues.NewHandler(venuesService)
 
 	// Organizations
-	organizationsService := organizations.NewService(postgrestClient)
+	organizationsService := organizations.NewService(postgrestClient, cfg.SupabaseURL+"/rest/v1", cfg.SupabaseAnonKey)
 	organizationsHandler := organizations.NewHandler(organizationsService, authService)
 
 	// Notifications

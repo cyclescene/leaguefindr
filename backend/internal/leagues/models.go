@@ -114,9 +114,9 @@ type SupplementalVenue struct {
 
 // League represents a league in the system
 type League struct {
-	ID                   int                   `json:"id"`
-	OrgID                *string               `json:"org_id"` // UUID of the organization
-	SportID              *int                  `json:"sport_id"` // Nullable if sport doesn't exist yet
+	ID                   *string               `json:"id"`                     // UUID of the league
+	OrgID                *string               `json:"org_id"`                 // UUID of the organization
+	SportID              *int64                `json:"sport_id"`               // Nullable if sport doesn't exist yet
 	LeagueName           *string               `json:"league_name"`
 	Division             *string               `json:"division"`
 	RegistrationDeadline *Date                 `json:"registration_deadline"` // DATE column - uses custom Date type
@@ -126,7 +126,7 @@ type League struct {
 	PricingStrategy      PricingStrategy       `json:"pricing_strategy"`
 	PricingAmount        *float64              `json:"pricing_amount"`
 	PricingPerPlayer     *float64              `json:"pricing_per_player"`
-	VenueID              *int                  `json:"venue_id"` // Nullable if venue doesn't exist yet
+	VenueID              *int64                `json:"venue_id"`               // Nullable if venue doesn't exist yet
 	Gender               *string               `json:"gender"`
 	SeasonDetails        *string               `json:"season_details"`
 	RegistrationURL      *string               `json:"registration_url"`
@@ -134,17 +134,17 @@ type League struct {
 	MinimumTeamPlayers   *int                  `json:"minimum_team_players"`
 	PerGameFee           *float64              `json:"per_game_fee"`
 	SupplementalRequests *SupplementalRequests `json:"supplemental_requests"` // Sport/venue data for items not in DB
-	FormData             FormData              `json:"form_data"` // Complete form submission data
+	FormData             FormData              `json:"form_data"`              // Complete form submission data
 	Status               LeagueStatus          `json:"status"`
 	CreatedAt            Timestamp             `json:"created_at"`   // TIMESTAMP column - uses custom Timestamp type
 	UpdatedAt            Timestamp             `json:"updated_at"`   // TIMESTAMP column - uses custom Timestamp type
-	CreatedBy            *string               `json:"created_by"` // UUID of the user who submitted it
+	CreatedBy            *string               `json:"created_by"`   // UUID of the user who submitted it
 	RejectionReason      *string               `json:"rejection_reason"` // Reason for rejection if applicable
 }
 
 // CreateLeagueRequest represents the request to create/submit a new league
 type CreateLeagueRequest struct {
-	SportID              *int            `json:"sport_id"` // Optional if sport doesn't exist yet
+	SportID              *int64          `json:"sport_id"` // Optional if sport doesn't exist yet
 	SportName            string          `json:"sport_name" validate:"required,max=255"` // Sport name (always required)
 	OrganizationName     *string         `json:"organization_name" validate:"max=255"` // Organization name for draft_data
 	LeagueName           *string         `json:"league_name" validate:"max=255"`
@@ -155,7 +155,7 @@ type CreateLeagueRequest struct {
 	GameOccurrences      GameOccurrences `json:"game_occurrences" validate:"required"`
 	PricingStrategy      PricingStrategy `json:"pricing_strategy" validate:"required"`
 	PricingAmount        *float64        `json:"pricing_amount" validate:"required"`
-	VenueID              *int            `json:"venue_id"` // Optional if venue doesn't exist yet
+	VenueID              *int64          `json:"venue_id"` // Optional if venue doesn't exist yet
 	VenueName            *string         `json:"venue_name" validate:"max=255"` // Optional venue name
 	VenueAddress         *string         `json:"venue_address" validate:"max=500"` // Optional venue address
 	VenueLat             *float64        `json:"venue_lat"` // Optional venue latitude from Mapbox

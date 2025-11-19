@@ -9,19 +9,43 @@ import (
 
 type Service struct {
 	baseClient *postgrest.Client
+	baseURL    string
+	anonKey    string
 }
 
-func NewService(baseClient *postgrest.Client) *Service {
+func NewService(baseClient *postgrest.Client, baseURL string, anonKey string) *Service {
 	return &Service{
 		baseClient: baseClient,
+		baseURL:    baseURL,
+		anonKey:    anonKey,
 	}
 }
 
 // getClientWithAuth creates a new PostgREST client with JWT from context
 func (s *Service) getClientWithAuth(ctx context.Context) *postgrest.Client {
-	// For venues, we use the base client as-is since it's public reference data
-	// But we follow the same pattern for consistency
-	return s.baseClient
+	// Extract JWT token from context (set by JWT middleware)
+	token := ""
+	if jwtVal := ctx.Value("jwt_token"); jwtVal != nil {
+		if t, ok := jwtVal.(string); ok {
+			token = t
+		}
+	}
+
+	// Create a new client for this request with the anon key
+	client := postgrest.NewClient(
+		s.baseURL,
+		"public",
+		map[string]string{
+			"apikey": s.anonKey,
+		},
+	)
+
+	// Set JWT token if present (this adds it to Authorization header)
+	if token != "" {
+		client.SetAuthToken(token)
+	}
+
+	return client
 }
 
 // GetAllVenues retrieves all venues

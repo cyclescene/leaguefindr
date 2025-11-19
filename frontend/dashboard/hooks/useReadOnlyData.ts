@@ -11,7 +11,7 @@ interface FetchState<T> {
  * Helper function to stringify error objects for better debugging
  * Handles Supabase PostgrestError and other error types
  */
-function stringifyError(error: unknown): string {
+export function stringifyError(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }

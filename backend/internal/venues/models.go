@@ -2,7 +2,7 @@ package venues
 
 // Venue represents a venue/location in the system (reference data)
 type Venue struct {
-	ID      int     `json:"id"`
+	ID      int64   `json:"id"`
 	Name    string  `json:"name"`
 	Address string  `json:"address"`
 	Lat     float64 `json:"lat"`

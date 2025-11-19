@@ -105,10 +105,18 @@ func (s *Service) GetApprovedLeaguesWithPagination(ctx context.Context, limit, o
 }
 
 // GetLeagueByID retrieves a league by ID (admin only - any status)
+// Deprecated: Use GetLeagueByUUID instead
 func (s *Service) GetLeagueByID(ctx context.Context, id int) (*League, error) {
 	client := s.getClientWithAuth(ctx)
 	repo := NewRepository(client)
 	return repo.GetByID(ctx, id)
+}
+
+// GetLeagueByUUID retrieves a league by UUID
+func (s *Service) GetLeagueByUUID(ctx context.Context, id string) (*League, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetByUUID(ctx, id)
 }
 
 // GetPendingLeagues retrieves all pending league submissions (admin only)
@@ -403,6 +411,136 @@ func (s *Service) RejectLeague(ctx context.Context, userID string, id int, rejec
 			fmt.Sprintf("Your league '%s' was rejected. Reason: %s", league.LeagueName, rejectionReason),
 			&id,
 			nil,
+		)
+		if notificationErr != nil {
+			slog.Error("failed to send league rejection notification", "leagueID", id, "userID", league.CreatedBy, "err", notificationErr)
+			// Don't return error - league was already rejected, notification failure isn't critical
+		}
+	}
+
+	return nil
+}
+
+// ApproveLeagueByUUID approves a pending league submission by UUID (admin only)
+func (s *Service) ApproveLeagueByUUID(ctx context.Context, userID string, id string) error {
+	// Verify user is admin
+	isAdmin, err := s.authService.IsUserAdmin(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to verify admin status: %w", err)
+	}
+	if !isAdmin {
+		return fmt.Errorf("only admins can approve leagues")
+	}
+
+	// Get the league to check supplemental requests
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	league, err := repo.GetByUUID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed to fetch league: %w", err)
+	}
+
+	// If sport_id is nil and supplemental requests has sport, create it
+	if league.SportID == nil && league.SupplementalRequests != nil && league.SupplementalRequests.Sport != nil {
+		newSport, err := s.sportsService.CreateSport(ctx, &sports.CreateSportRequest{
+			Name: league.SupplementalRequests.Sport.Name,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create sport: %w", err)
+		}
+		league.SportID = &newSport.ID
+	}
+
+	// If venue_id is nil and supplemental requests has venue, create it
+	if league.VenueID == nil && league.SupplementalRequests != nil && league.SupplementalRequests.Venue != nil {
+		lat := 0.0
+		lng := 0.0
+		if league.SupplementalRequests.Venue.Lat != nil {
+			lat = *league.SupplementalRequests.Venue.Lat
+		}
+		if league.SupplementalRequests.Venue.Lng != nil {
+			lng = *league.SupplementalRequests.Venue.Lng
+		}
+		venueReq := &venues.CreateVenueRequest{
+			Name:    league.SupplementalRequests.Venue.Name,
+			Address: league.SupplementalRequests.Venue.Address,
+			Lat:     lat,
+			Lng:     lng,
+		}
+		newVenue, err := s.venuesService.CreateVenue(ctx, venueReq)
+		if err != nil {
+			return fmt.Errorf("failed to create venue: %w", err)
+		}
+		league.VenueID = &newVenue.ID
+	}
+
+	// Update league status to approved
+	err = repo.UpdateStatusByUUID(ctx, id, LeagueStatusApproved, nil)
+	if err != nil {
+		return err
+	}
+
+	// Send notification to league creator that their league was approved
+	if league.CreatedBy != nil {
+		ctx := context.Background()
+		notificationErr := s.notificationsService.CreateNotification(
+			ctx,
+			*league.CreatedBy,
+			notifications.NotificationLeagueApproved.String(),
+			"League Approved",
+			fmt.Sprintf("Your league '%s' has been approved!", league.LeagueName),
+			nil,
+			league.ID,
+		)
+		if notificationErr != nil {
+			slog.Error("failed to send league approval notification", "leagueID", id, "userID", league.CreatedBy, "err", notificationErr)
+			// Don't return error - league was already approved, notification failure isn't critical
+		}
+	}
+
+	return nil
+}
+
+// RejectLeagueByUUID rejects a pending league submission with a reason by UUID (admin only)
+func (s *Service) RejectLeagueByUUID(ctx context.Context, userID string, id string, rejectionReason string) error {
+	// Verify user is admin
+	isAdmin, err := s.authService.IsUserAdmin(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to verify admin status: %w", err)
+	}
+	if !isAdmin {
+		return fmt.Errorf("only admins can reject leagues")
+	}
+
+	if rejectionReason == "" {
+		return fmt.Errorf("rejection reason cannot be empty")
+	}
+
+	// Get the league to retrieve creator info
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	league, err := repo.GetByUUID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed to fetch league: %w", err)
+	}
+
+	// Update the league status
+	err = repo.UpdateStatusByUUID(ctx, id, LeagueStatusRejected, &rejectionReason)
+	if err != nil {
+		return err
+	}
+
+	// Send notification to league creator that their league was rejected
+	if league.CreatedBy != nil {
+		ctx := context.Background()
+		notificationErr := s.notificationsService.CreateNotification(
+			ctx,
+			*league.CreatedBy,
+			notifications.NotificationLeagueRejected.String(),
+			"League Rejected",
+			fmt.Sprintf("Your league '%s' was rejected. Reason: %s", league.LeagueName, rejectionReason),
+			nil,
+			league.ID,
 		)
 		if notificationErr != nil {
 			slog.Error("failed to send league rejection notification", "leagueID", id, "userID", league.CreatedBy, "err", notificationErr)

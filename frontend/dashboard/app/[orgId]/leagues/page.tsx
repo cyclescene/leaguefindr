@@ -40,9 +40,9 @@ function LeaguesContent() {
   const [viewingLeagueRejectionReason, setViewingLeagueRejectionReason] = useState<string | null | undefined>();
 
   // Fetch real leagues, drafts and templates from API
-  const { leagues: apiLeagues, isLoading: leaguesLoading, mutate: mutateLeagues } = useLeagues(orgId);
-  const { drafts: apiDrafts, isLoading: draftsLoading, mutate: mutateDrafts } = useDrafts(orgId);
-  const { templates: apiTemplates, isLoading: templatesLoading, mutate: mutateTemplates } = useTemplates(orgId);
+  const { leagues: apiLeagues, isLoading: leaguesLoading, refetch: refetchLeagues } = useLeagues(orgId);
+  const { drafts: apiDrafts, isLoading: draftsLoading, refetch: refetchDrafts } = useDrafts(orgId);
+  const { templates: apiTemplates, isLoading: templatesLoading, refetch: refetchTemplates } = useTemplates(orgId);
 
   // Convert API drafts to display format
   const displayDrafts = apiDrafts
@@ -159,7 +159,7 @@ function LeaguesContent() {
         }
       );
 
-      mutateDrafts();
+      refetchDrafts();
     } catch (error) {
       console.error("Failed to delete draft:", error);
     }
@@ -191,7 +191,7 @@ function LeaguesContent() {
         }
       );
 
-      mutateTemplates();
+      refetchTemplates();
     } catch (error) {
       console.error("Failed to delete template:", error);
     }
@@ -218,12 +218,12 @@ function LeaguesContent() {
   };
 
   const handleTemplateCreated = () => {
-    mutateTemplates();
+    refetchTemplates();
     setOpenDialog(null);
   };
 
   const handleLeagueSubmitted = () => {
-    mutateLeagues();
+    refetchLeagues();
   };
 
   if (!isLoaded) {
@@ -281,9 +281,9 @@ function LeaguesContent() {
         viewingLeagueStatus={viewingLeagueStatus}
         viewingLeagueRejectionReason={viewingLeagueRejectionReason}
         onLeagueSubmitted={handleLeagueSubmitted}
-        mutateDrafts={mutateDrafts}
-        mutateTemplates={mutateTemplates}
-        mutateLeagues={mutateLeagues}
+        refetchDrafts={refetchDrafts}
+        refetchTemplates={refetchTemplates}
+        refetchLeagues={refetchLeagues}
       />
 
       <CreateTemplateDialog
@@ -291,7 +291,7 @@ function LeaguesContent() {
         onOpenChange={(open) => !open && handleCloseDialog()}
         organizationId={orgId}
         onSuccess={handleTemplateCreated}
-        mutateTemplates={mutateTemplates}
+        refetchTemplates={refetchTemplates}
       />
 
       <Footer />

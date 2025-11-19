@@ -96,25 +96,44 @@ func (r *Repository) AdminExists(ctx context.Context) (bool, error) {
 
 // UpdateLastLogin updates the user's last login time and increments login count
 func (r *Repository) UpdateLastLogin(ctx context.Context, userID string) error {
+	// First, get the current login count
+	var users []map[string]interface{}
+	_, err := r.client.From("users").
+		Select("login_count", "", false).
+		Eq("id", userID).
+		ExecuteToWithContext(ctx, &users)
+
+	if err != nil {
+		return fmt.Errorf("failed to fetch user: %w", err)
+	}
+
+	if len(users) == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	// Get current login count and increment it
+	currentCount := 0
+	if count, ok := users[0]["login_count"]; ok {
+		if countFloat, ok := count.(float64); ok {
+			currentCount = int(countFloat)
+		}
+	}
+	newCount := currentCount + 1
+
+	// Update with the incremented count
 	updateData := map[string]interface{}{
 		"last_login": "now()",
-		"login_count": map[string]interface{}{
-			"__increment": 1,
-		},
+		"login_count": newCount,
 	}
 
 	var result []map[string]interface{}
-	_, err := r.client.From("users").
+	_, err = r.client.From("users").
 		Update(updateData, "", "").
 		Eq("id", userID).
 		ExecuteToWithContext(ctx, &result)
 
 	if err != nil {
 		return fmt.Errorf("failed to update last login: %w", err)
-	}
-
-	if len(result) == 0 {
-		return fmt.Errorf("user not found")
 	}
 
 	return nil

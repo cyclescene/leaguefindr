@@ -31,7 +31,7 @@ function OrganizationDashboardContent() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [showInviteDialog, setShowInviteDialog] = useState(false);
   
-  const { organization, isLoading, error, mutate } = useOrganization(orgId);
+  const { organization, isLoading, error, refetch } = useOrganization(orgId);
 
   // Redirect to home if user doesn't have access (403 error)
   useEffect(() => {
@@ -41,7 +41,7 @@ function OrganizationDashboardContent() {
   }, [error, router]);
 
   const handleEditSuccess = async () => {
-    await mutate();
+    await refetch();
   };
 
   

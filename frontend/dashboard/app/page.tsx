@@ -23,7 +23,7 @@ import { useUserOrganizations } from "@/hooks/useOrganizations";
 function OrganizationHubContent() {
   const { user, isLoaded } = useUser() as { user: ClerkUser | null; isLoaded: boolean };
   const router = useRouter();
-  const { organizations, isLoading: isLoadingOrgs, mutate } = useUserOrganizations();
+  const { organizations, isLoading: isLoadingOrgs, refetch } = useUserOrganizations();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
 
@@ -48,13 +48,13 @@ function OrganizationHubContent() {
 
   const handleCreateOrgSuccess = (orgId: string) => {
     // Revalidate organizations list and redirect
-    mutate();
+    refetch();
     router.push(`/${orgId}`);
   };
 
   const handleJoinOrgSuccess = (orgId: string) => {
     // Revalidate organizations list and redirect
-    mutate();
+    refetch();
     router.push(`/${orgId}`);
   };
 

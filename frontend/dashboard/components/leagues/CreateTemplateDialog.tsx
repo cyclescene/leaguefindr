@@ -22,7 +22,7 @@ interface CreateTemplateDialogProps {
   onOpenChange: (open: boolean) => void;
   organizationId?: string;
   onSuccess?: () => void;
-  mutateTemplates?: () => Promise<any>;
+  refetchTemplates?: () => Promise<any>;
 }
 
 export function CreateTemplateDialog({
@@ -30,7 +30,7 @@ export function CreateTemplateDialog({
   onOpenChange,
   organizationId,
   onSuccess,
-  mutateTemplates,
+  refetchTemplates,
 }: CreateTemplateDialogProps) {
   const { getToken } = useAuth();
   const { organization } = useOrganization(organizationId || "");
@@ -105,8 +105,8 @@ export function CreateTemplateDialog({
       }
 
       // Refresh templates list after creation
-      if (mutateTemplates) {
-        await mutateTemplates();
+      if (refetchTemplates) {
+        await refetchTemplates();
       }
 
       setTemplateName('');

@@ -28,10 +28,10 @@ export interface LeagueFormContextType {
   onClose?: () => void;
   onLeagueSubmitted?: () => void;
 
-  // Mutate functions
-  mutateDrafts?: () => Promise<any>;
-  mutateTemplates?: () => Promise<any>;
-  mutateLeagues?: () => Promise<any>;
+  // Refetch functions
+  refetchDrafts?: () => Promise<any>;
+  refetchTemplates?: () => Promise<any>;
+  refetchLeagues?: () => Promise<any>;
 
   // Admin review mode
   pendingLeagueId?: number;
