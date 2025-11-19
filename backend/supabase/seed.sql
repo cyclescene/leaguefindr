@@ -12,31 +12,31 @@ VALUES
   ('user_35iIZO05zFhiy51Zsj4QLTYxpzQ', 'test2@test.com', 'organizer', null, '0', '2025-11-19 21:08:40.576894', '2025-11-19 21:08:40.576894', 'true')
 ON CONFLICT (id) DO NOTHING;
 
--- Insert test sports
-INSERT INTO sports (id, name)
+-- Insert test sports (auto-increment ID)
+INSERT INTO sports (name)
 VALUES
-  (1, 'Basketball'),
-  (2, 'Soccer'),
-  (3, 'Football'),
-  (4, 'Baseball'),
-  (5, 'Tennis'),
-  (6, 'Hockey'),
-  (7, 'Volleyball'),
-  (8, 'Badminton')
-ON CONFLICT DO NOTHING;
+  ('Basketball'),
+  ('Soccer'),
+  ('Football'),
+  ('Baseball'),
+  ('Tennis'),
+  ('Hockey'),
+  ('Volleyball'),
+  ('Badminton')
+ON CONFLICT (name) DO NOTHING;
 
--- Insert test venues
-INSERT INTO venues (id, name, address)
+-- Insert test venues (auto-increment ID)
+INSERT INTO venues (name, address)
 VALUES
-  (1, 'Central Park', '123 Main St'),
-  (2, 'Downtown Arena', '456 Park Ave'),
-  (3, 'Riverside Stadium', '789 River Rd'),
-  (4, 'Lakeside Courts', '321 Lake Ave'),
-  (5, 'Mountain Resort', '654 Peak Ln'),
-  (6, 'Beachside Complex', '987 Beach Blvd'),
-  (7, 'City Center Hall', '147 Center St'),
-  (8, 'Suburban Fields', '258 Suburb Ave')
-ON CONFLICT DO NOTHING;
+  ('Central Park', '123 Main St'),
+  ('Downtown Arena', '456 Park Ave'),
+  ('Riverside Stadium', '789 River Rd'),
+  ('Lakeside Courts', '321 Lake Ave'),
+  ('Mountain Resort', '654 Peak Ln'),
+  ('Beachside Complex', '987 Beach Blvd'),
+  ('City Center Hall', '147 Center St'),
+  ('Suburban Fields', '258 Suburb Ave')
+ON CONFLICT (name) DO NOTHING;
 
 -- Insert test organizations
 INSERT INTO organizations (id, org_name, org_email, org_phone_number)
@@ -46,15 +46,15 @@ VALUES
   ('a0000000-0000-0000-0000-000000000003', 'Community League', 'community@test.com', '555-0003')
 ON CONFLICT DO NOTHING;
 
--- Insert test leagues (will use Clerk user ID in real scenario)
+-- Insert test leagues (auto-generate UUID ID)
 -- These are placeholder leagues for testing
-INSERT INTO leagues (id, league_name, sport_id, venue_id, org_id, status, season_start_date)
+INSERT INTO leagues (league_name, sport_id, venue_id, org_id, status, season_start_date, created_by, pricing_strategy, pricing_amount)
 VALUES
-  (1, 'Test Basketball League', (SELECT id FROM sports WHERE name = 'Basketball'), (SELECT id FROM venues WHERE name = 'Central Park'), 'a0000000-0000-0000-0000-000000000001', 'approved', CURRENT_DATE),
-  (2, 'Test Soccer League', (SELECT id FROM sports WHERE name = 'Soccer'), (SELECT id FROM venues WHERE name = 'Downtown Arena'), 'a0000000-0000-0000-0000-000000000001', 'pending', CURRENT_DATE),
-  (3, 'Test Football League', (SELECT id FROM sports WHERE name = 'Football'), (SELECT id FROM venues WHERE name = 'Riverside Stadium'), 'a0000000-0000-0000-0000-000000000002', 'approved', CURRENT_DATE),
-  (4, 'Test Tennis League', (SELECT id FROM sports WHERE name = 'Tennis'), (SELECT id FROM venues WHERE name = 'Lakeside Courts'), 'a0000000-0000-0000-0000-000000000002', 'rejected', CURRENT_DATE),
-  (5, 'Test Volleyball League', (SELECT id FROM sports WHERE name = 'Volleyball'), (SELECT id FROM venues WHERE name = 'Beachside Complex'), 'a0000000-0000-0000-0000-000000000003', 'approved', CURRENT_DATE)
+  ('Test Basketball League', (SELECT id FROM sports WHERE name = 'Basketball'), (SELECT id FROM venues WHERE name = 'Central Park'), 'a0000000-0000-0000-0000-000000000001', 'approved', CURRENT_DATE, 'user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'per_team', 500.00),
+  ('Test Soccer League', (SELECT id FROM sports WHERE name = 'Soccer'), (SELECT id FROM venues WHERE name = 'Downtown Arena'), 'a0000000-0000-0000-0000-000000000001', 'pending', CURRENT_DATE, 'user_35iIZO05zFhiy51Zsj4QLTYxpzQ', 'per_team', 450.00),
+  ('Test Football League', (SELECT id FROM sports WHERE name = 'Football'), (SELECT id FROM venues WHERE name = 'Riverside Stadium'), 'a0000000-0000-0000-0000-000000000002', 'approved', CURRENT_DATE, 'user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'per_person', 75.00),
+  ('Test Tennis League', (SELECT id FROM sports WHERE name = 'Tennis'), (SELECT id FROM venues WHERE name = 'Lakeside Courts'), 'a0000000-0000-0000-0000-000000000002', 'rejected', CURRENT_DATE, 'user_35iIZO05zFhiy51Zsj4QLTYxpzQ', 'per_team', 300.00),
+  ('Test Volleyball League', (SELECT id FROM sports WHERE name = 'Volleyball'), (SELECT id FROM venues WHERE name = 'Beachside Complex'), 'a0000000-0000-0000-0000-000000000003', 'approved', CURRENT_DATE, 'user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'per_person', 50.00)
 ON CONFLICT DO NOTHING;
 
 -- Insert game occurrences for test leagues
@@ -90,13 +90,25 @@ SELECT
   '21:30'
 WHERE NOT EXISTS (SELECT 1 FROM game_occurrences WHERE day = 'Thursday' AND start_time = '19:30');
 
--- Add test users to organizations
-INSERT INTO user_organizations (user_id, org_id, is_active)
+-- Insert test league drafts and templates
+INSERT INTO leagues_drafts (org_id, type, name, form_data, created_by)
 VALUES
-  ('user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'a0000000-0000-0000-0000-000000000001', true),
-  ('user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'a0000000-0000-0000-0000-000000000002', true),
-  ('user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'a0000000-0000-0000-0000-000000000003', true)
-ON CONFLICT DO NOTHING;
+  ('a0000000-0000-0000-0000-000000000001', 'draft', 'Basketball Draft', '{"league_name": "Future Basketball", "sport_name": "Basketball"}', 'user_35iIZO05zFhiy51Zsj4QLTYxpzQ'),
+  ('a0000000-0000-0000-0000-000000000001', 'template', 'Basketball Template', '{"league_name": "Basketball Template", "sport_name": "Basketball", "pricing_strategy": "per_team", "pricing_amount": 500}', 'user_35iIVMkUqxuqPTDHYexjBwqh7Ah'),
+  ('a0000000-0000-0000-0000-000000000002', 'draft', 'Soccer Draft', '{"league_name": "Future Soccer", "sport_name": "Soccer"}', 'user_35iIVMkUqxuqPTDHYexjBwqh7Ah'),
+  ('a0000000-0000-0000-0000-000000000003', 'template', 'Tennis Template', '{"league_name": "Tennis Template", "sport_name": "Tennis"}', 'user_35iIZO05zFhiy51Zsj4QLTYxpzQ')
+ON CONFLICT (org_id, type) DO NOTHING;
+
+-- Add test users to organizations
+INSERT INTO user_organizations (user_id, org_id, role_in_org, is_active)
+VALUES
+  ('user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'a0000000-0000-0000-0000-000000000001', 'owner', true),
+  ('user_35iIZO05zFhiy51Zsj4QLTYxpzQ', 'a0000000-0000-0000-0000-000000000001', 'member', true),
+  ('user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'a0000000-0000-0000-0000-000000000002', 'owner', true),
+  ('user_35iIZO05zFhiy51Zsj4QLTYxpzQ', 'a0000000-0000-0000-0000-000000000002', 'member', true),
+  ('user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'a0000000-0000-0000-0000-000000000003', 'member', true),
+  ('user_35iIZO05zFhiy51Zsj4QLTYxpzQ', 'a0000000-0000-0000-0000-000000000003', 'owner', true)
+ON CONFLICT (user_id, org_id) DO NOTHING;
 
 -- Add notification preferences for test users
 INSERT INTO notification_preferences (user_id, league_approved, league_rejected, league_submitted, draft_saved, template_saved)
