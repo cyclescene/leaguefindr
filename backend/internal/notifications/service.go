@@ -10,12 +10,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/supabase-community/postgrest-go"
 )
 
 // Service handles notification operations and real-time broadcasting
 type Service struct {
-	db                   *pgxpool.Pool
+	postgrestClient      *postgrest.Client
 	supabaseBroadcastURL string
 	supabaseAPIKey       string
 	httpClient           *http.Client
@@ -47,7 +47,7 @@ type broadcastPayload struct {
 }
 
 // NewService creates a new notification service
-func NewService(db *pgxpool.Pool) *Service {
+func NewService(postgrestClient *postgrest.Client) *Service {
 	broadcastURL := os.Getenv("SUPABASE_BROADCAST_URL")
 	apiKey := os.Getenv("SUPABASE_API_KEY")
 
@@ -59,7 +59,7 @@ func NewService(db *pgxpool.Pool) *Service {
 	}
 
 	return &Service{
-		db:                   db,
+		postgrestClient:      postgrestClient,
 		supabaseBroadcastURL: broadcastURL,
 		supabaseAPIKey:       apiKey,
 		httpClient:           &http.Client{Timeout: 5 * time.Second},
@@ -83,19 +83,50 @@ func (s *Service) CreateNotification(ctx context.Context, userID string, notific
 	}
 
 	// Create notification in database
-	var notificationID int
-	query := `
-		INSERT INTO notifications (user_id, type, title, message, related_league_id, related_org_id, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-		RETURNING id, created_at, updated_at
-	`
+	insertData := map[string]interface{}{
+		"user_id":            userID,
+		"type":               notificationType,
+		"title":              title,
+		"message":            message,
+		"related_league_id":  relatedLeagueID,
+		"related_org_id":     relatedOrgID,
+	}
 
-	var createdAt, updatedAt time.Time
-	err = s.db.QueryRow(ctx, query, userID, notificationType, title, message, relatedLeagueID, relatedOrgID).
-		Scan(&notificationID, &createdAt, &updatedAt)
+	var results []map[string]interface{}
+	_, err = s.postgrestClient.From("notifications").
+		Insert(insertData, true, "", "", "").
+		ExecuteToWithContext(ctx, &results)
+
 	if err != nil {
 		slog.Error("failed to create notification in database", "userID", userID, "type", notificationType, "err", err)
 		return fmt.Errorf("failed to create notification: %w", err)
+	}
+
+	if len(results) == 0 {
+		return fmt.Errorf("failed to create notification: no result returned")
+	}
+
+	var notificationID int
+	var createdAt, updatedAt time.Time
+
+	if id, ok := results[0]["id"].(float64); ok {
+		notificationID = int(id)
+	}
+	if created, ok := results[0]["created_at"].(string); ok {
+		// Parse timestamp - try multiple formats
+		if t, err := time.Parse(time.RFC3339Nano, created); err == nil {
+			createdAt = t
+		} else if t, err := time.Parse("2006-01-02T15:04:05", created); err == nil {
+			createdAt = t
+		}
+	}
+	if updated, ok := results[0]["updated_at"].(string); ok {
+		// Parse timestamp - try multiple formats
+		if t, err := time.Parse(time.RFC3339Nano, updated); err == nil {
+			updatedAt = t
+		} else if t, err := time.Parse("2006-01-02T15:04:05", updated); err == nil {
+			updatedAt = t
+		}
 	}
 
 	// Create payload for broadcasting
@@ -266,66 +297,65 @@ func (s *Service) CheckNotificationPreference(ctx context.Context, userID string
 		return true, nil // Default to true if unknown type
 	}
 
-	query := fmt.Sprintf(`
-		SELECT %s FROM notification_preferences
-		WHERE user_id = $1
-	`, preferenceColumn)
+	var prefs []map[string]interface{}
+	_, err := s.postgrestClient.From("notification_preferences").
+		Select(preferenceColumn, "", false).
+		Eq("user_id", userID).
+		ExecuteToWithContext(ctx, &prefs)
 
-	var isEnabled bool
-	err := s.db.QueryRow(ctx, query, userID).Scan(&isEnabled)
-	if err != nil {
+	if err != nil || len(prefs) == 0 {
 		slog.Warn("failed to fetch notification preference", "userID", userID, "type", notificationType, "err", err)
 		return true, nil // Default to true if preference doesn't exist
 	}
 
-	return isEnabled, nil
+	// Extract the preference value
+	if val, ok := prefs[0][preferenceColumn].(bool); ok {
+		return val, nil
+	}
+
+	return true, nil // Default to true if can't parse
 }
 
 // GetNotifications retrieves notifications for a user (with optional pagination)
-func (s *Service) GetNotifications(ctx context.Context, userID string, limit int, offset int) ([]NotificationPayload, error) {
-	query := `
-		SELECT id, user_id, type, title, message, read, related_league_id, related_org_id, created_at, updated_at
-		FROM notifications
-		WHERE user_id = $1
-		ORDER BY created_at DESC
-		LIMIT $2 OFFSET $3
-	`
-
-	rows, err := s.db.Query(ctx, query, userID, limit, offset)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query notifications: %w", err)
-	}
-	defer rows.Close()
-
+func (s *Service) GetNotifications(ctx context.Context, userID string, limit int, offset int) ([]NotificationPayload, int64, error) {
 	var notifications []NotificationPayload
-	for rows.Next() {
-		var n NotificationPayload
-		err := rows.Scan(&n.ID, &n.UserID, &n.Type, &n.Title, &n.Message, &n.Read,
-			&n.RelatedLeagueID, &n.RelatedOrgID, &n.CreatedAt, &n.UpdatedAt)
-		if err != nil {
-			slog.Error("failed to scan notification", "err", err)
-			continue
-		}
-		notifications = append(notifications, n)
+
+	count, err := s.postgrestClient.From("notifications").
+		Select("*", "exact", false).
+		Eq("user_id", userID).
+		Order("created_at", &postgrest.OrderOpts{Ascending: false}).
+		Range(offset, offset+limit-1, "").
+		ExecuteToWithContext(ctx, &notifications)
+
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query notifications: %w", err)
 	}
 
-	return notifications, nil
+	if notifications == nil {
+		notifications = []NotificationPayload{}
+	}
+
+	return notifications, int64(count), nil
 }
 
 // MarkAsRead marks a notification as read
 func (s *Service) MarkAsRead(ctx context.Context, notificationID int, userID string) error {
-	query := `
-		UPDATE notifications
-		SET read = true, updated_at = CURRENT_TIMESTAMP
-		WHERE id = $1 AND user_id = $2
-	`
+	updateData := map[string]interface{}{
+		"read": true,
+	}
 
-	result, err := s.db.Exec(ctx, query, notificationID, userID)
+	var result []map[string]interface{}
+	_, err := s.postgrestClient.From("notifications").
+		Update(updateData, "", "").
+		Eq("id", fmt.Sprintf("%d", notificationID)).
+		Eq("user_id", userID).
+		ExecuteToWithContext(ctx, &result)
+
 	if err != nil {
 		return fmt.Errorf("failed to update notification: %w", err)
 	}
 
-	if result.RowsAffected() == 0 {
+	if len(result) == 0 {
 		return fmt.Errorf("notification not found or unauthorized")
 	}
 

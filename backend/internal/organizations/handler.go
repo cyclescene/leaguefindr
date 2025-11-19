@@ -86,6 +86,7 @@ func (h *Handler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 	}
 
 	orgID, err := h.service.CreateOrganization(
+		r.Context(),
 		req.OrgName,
 		orgURL,
 		orgEmail,
@@ -115,7 +116,7 @@ func (h *Handler) GetUserOrganizations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orgs, err := h.service.GetUserOrganizations(userID)
+	orgs, err := h.service.GetUserOrganizations(r.Context(), userID)
 	if err != nil {
 		slog.Error("Failed to get user organizations", "error", err, "userId", userID)
 		http.Error(w, "Failed to get organizations", http.StatusInternalServerError)
@@ -142,13 +143,13 @@ func (h *Handler) GetOrganization(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify user has access to this organization
-	if err := h.service.VerifyUserOrgAccess(userID, orgID); err != nil {
+	if err := h.service.VerifyUserOrgAccess(r.Context(), userID, orgID); err != nil {
 		slog.Warn("User attempted unauthorized org access", "userId", userID, "orgId", orgID)
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
-	org, err := h.service.GetOrganizationByID(orgID)
+	org, err := h.service.GetOrganizationByID(r.Context(), orgID)
 	if err != nil {
 		slog.Error("Failed to get organization", "error", err, "orgId", orgID)
 		http.Error(w, "Organization not found", http.StatusNotFound)
@@ -179,14 +180,14 @@ func (h *Handler) JoinOrganization(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.JoinOrganization(userID, req.OrgID); err != nil {
+	if err := h.service.JoinOrganization(r.Context(), userID, req.OrgID); err != nil {
 		slog.Error("Failed to join organization", "error", err, "userId", userID, "orgId", req.OrgID)
 		http.Error(w, "Failed to join organization", http.StatusInternalServerError)
 		return
 	}
 
 	// Get the organization to return it
-	org, err := h.service.GetOrganizationByID(req.OrgID)
+	org, err := h.service.GetOrganizationByID(r.Context(), req.OrgID)
 	if err != nil {
 		slog.Error("Failed to get organization after join", "error", err, "orgId", req.OrgID)
 		http.Error(w, "Failed to get organization", http.StatusInternalServerError)
@@ -203,7 +204,7 @@ func (h *Handler) JoinOrganization(w http.ResponseWriter, r *http.Request) {
 
 // GetAllOrganizations gets all organizations (admin only)
 func (h *Handler) GetAllOrganizations(w http.ResponseWriter, r *http.Request) {
-	orgs, err := h.service.GetAllOrganizations()
+	orgs, err := h.service.GetAllOrganizations(r.Context())
 	if err != nil {
 		slog.Error("Failed to get all organizations", "error", err)
 		http.Error(w, "Failed to get organizations", http.StatusInternalServerError)
@@ -240,7 +241,7 @@ func (h *Handler) UpdateOrganization(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.UpdateOrganization(userID, orgID, req.OrgName, req.OrgURL, req.OrgEmail, req.OrgPhone, req.OrgAddress); err != nil {
+	if err := h.service.UpdateOrganization(r.Context(), userID, orgID, req.OrgName, req.OrgURL, req.OrgEmail, req.OrgPhone, req.OrgAddress); err != nil {
 		slog.Error("Failed to update organization", "error", err, "userId", userID, "orgId", orgID)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -265,7 +266,7 @@ func (h *Handler) DeleteOrganization(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.DeleteOrganization(userID, orgID); err != nil {
+	if err := h.service.DeleteOrganization(r.Context(), userID, orgID); err != nil {
 		slog.Error("Failed to delete organization", "error", err, "userId", userID, "orgId", orgID)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

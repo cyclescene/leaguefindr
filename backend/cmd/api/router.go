@@ -25,7 +25,7 @@ func isAllowedOrigin(db *http.Request, origin string) bool {
 	return slices.Contains(allowedDomains, origin)
 }
 
-func newRouter(postgrestClient *postgrest.Client) *chi.Mux {
+func newRouter(postgrestClient *postgrest.Client, postgrestServiceClient *postgrest.Client) *chi.Mux {
 	r := chi.NewRouter()
 
 	var corsOptions cors.Options
@@ -57,32 +57,27 @@ func newRouter(postgrestClient *postgrest.Client) *chi.Mux {
 	r.Get("/", health)
 
 	// Auth
-	authRepo := auth.NewRepository(dbPool)
-	authService := auth.NewService(authRepo)
+	authService := auth.NewService(postgrestClient, postgrestServiceClient)
 	authHandler := auth.NewHandler(authService)
 
 	// Sports
-	sportsRepo := sports.NewRepository(dbPool)
-	sportsService := sports.NewService(sportsRepo)
+	sportsService := sports.NewService(postgrestClient)
 	sportsHandler := sports.NewHandler(sportsService)
 
 	// Venues
-	venuesRepo := venues.NewRepository(dbPool)
-	venuesService := venues.NewService(venuesRepo)
+	venuesService := venues.NewService(postgrestClient)
 	venuesHandler := venues.NewHandler(venuesService)
 
 	// Organizations
-	organizationsRepo := organizations.NewRepository(dbPool)
-	organizationsService := organizations.NewService(organizationsRepo)
+	organizationsService := organizations.NewService(postgrestClient)
 	organizationsHandler := organizations.NewHandler(organizationsService, authService)
 
 	// Notifications
-	notificationsService := notifications.NewService(dbPool)
+	notificationsService := notifications.NewService(postgrestClient)
 	notificationsHandler := notifications.NewHandler(notificationsService)
 
 	// Leagues
-	leaguesRepo := leagues.NewRepository(dbPool)
-	leaguesService := leagues.NewService(leaguesRepo, organizationsService, authService, sportsService, venuesService, notificationsService)
+	leaguesService := leagues.NewService(postgrestClient, cfg.SupabaseURL+"/rest/v1", cfg.SupabaseAnonKey, organizationsService, authService, sportsService, venuesService, notificationsService)
 	leaguesHandler := leagues.NewHandler(leaguesService, authService)
 
 	r.Route("/v1", func(r chi.Router) {

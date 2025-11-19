@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 	"log/slog"
 	"net/http"
@@ -14,12 +13,14 @@ import (
 )
 
 type config struct {
-	SupabaseURL     string `env:"SUPABASE_URL,required"`
-	SupabaseAnonKey string `env:"SUPABASE_ANON_KEY,required"`
+	SupabaseURL       string `env:"SUPABASE_URL,required"`
+	SupabaseAnonKey   string `env:"SUPABASE_ANON_KEY,required"`
+	SupabaseSecretKey string `env:"SUPABASE_SECRET_KEY,required"`
 }
 
 var cfg config
 var postgrestClient *postgrest.Client
+var postgrestServiceClient *postgrest.Client
 
 func init() {
 	var err error
@@ -54,26 +55,30 @@ func init() {
 		panic(err)
 	}
 
-	// Create PostgREST client
+	// Create PostgREST client with publishable key (for user-facing operations with RLS)
 	// Note: JWT token will be added per-request via context in middleware
-	postgrestClient, err = postgrest.NewClient(
+	postgrestClient = postgrest.NewClient(
 		cfg.SupabaseURL+"/rest/v1",
-		&postgrest.ClientOptions{
-			Headers: map[string]string{
-				"apikey": cfg.SupabaseAnonKey,
-			},
+		"public",
+		map[string]string{
+			"apikey": cfg.SupabaseAnonKey,
 		},
 	)
-	if err != nil {
-		slog.Error("postgrest client creation error", "err", err)
-		panic(err)
-	}
 
-	slog.Info("PostgREST client initialized", "url", cfg.SupabaseURL)
+	// Create PostgREST service client with secret key (for backend admin operations like registration)
+	postgrestServiceClient = postgrest.NewClient(
+		cfg.SupabaseURL+"/rest/v1",
+		"public",
+		map[string]string{
+			"apikey": cfg.SupabaseSecretKey,
+		},
+	)
+
+	slog.Info("PostgREST clients initialized", "url", cfg.SupabaseURL)
 }
 
 func main() {
-	r := newRouter(postgrestClient)
+	r := newRouter(postgrestClient, postgrestServiceClient)
 
 	slog.Info("Starting server...", "port", "8080")
 	log.Fatal(http.ListenAndServe(":8080", r))

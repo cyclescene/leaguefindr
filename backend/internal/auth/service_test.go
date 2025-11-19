@@ -17,11 +17,10 @@ func NewMockRepository() *MockRepository {
 
 func (m *MockRepository) CreateUser(userID, email, organizationName string, role Role) error {
 	user := &User{
-		ID:               userID,
-		Email:            email,
-		Role:             role,
-		OrganizationName: organizationName,
-		IsActive:         true,
+		ID:       userID,
+		Email:    email,
+		Role:     role,
+		IsActive: true,
 	}
 	m.users[userID] = user
 	return nil

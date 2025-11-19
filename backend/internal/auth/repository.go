@@ -3,40 +3,42 @@ package auth
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/supabase-community/postgrest-go"
 )
 
 // RepositoryInterface defines the contract for repository implementations
 type RepositoryInterface interface {
-	CreateUser(userID, email string, role Role) error
-	GetUserByID(userID string) (*User, error)
-	UserExists(userID string) (bool, error)
-	AdminExists() (bool, error)
-	UpdateLastLogin(userID string) error
-	UpdateUserRole(userID string, role Role) error
+	CreateUser(ctx context.Context, userID, email string, role Role) error
+	GetUserByID(ctx context.Context, userID string) (*User, error)
+	UserExists(ctx context.Context, userID string) (bool, error)
+	AdminExists(ctx context.Context) (bool, error)
+	UpdateLastLogin(ctx context.Context, userID string) error
+	UpdateUserRole(ctx context.Context, userID string, role Role) error
 }
 
 type Repository struct {
-	db *pgxpool.Pool
+	client *postgrest.Client
 }
 
-func NewRepository(db *pgxpool.Pool) *Repository {
-	return &Repository{db: db}
+func NewRepository(client *postgrest.Client) *Repository {
+	return &Repository{client: client}
 }
 
-// CreateUser creates a new user in the database (without organization assignment)
-func (r *Repository) CreateUser(userID, email string, role Role) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+// CreateUser creates a new user in the database
+func (r *Repository) CreateUser(ctx context.Context, userID, email string, role Role) error {
+	insertData := map[string]interface{}{
+		"id":        userID,
+		"email":     email,
+		"role":      role.String(),
+		"is_active": true,
+	}
 
-	query := `
-		INSERT INTO users (id, email, role, is_active)
-		VALUES ($1, $2, $3, $4)
-	`
+	var result []map[string]interface{}
+	_, err := r.client.From("users").
+		Insert(insertData, true, "", "", "").
+		ExecuteToWithContext(ctx, &result)
 
-	_, err := r.db.Exec(ctx, query, userID, email, role.String(), true)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -45,79 +47,73 @@ func (r *Repository) CreateUser(userID, email string, role Role) error {
 }
 
 // GetUserByID retrieves a user by ID
-func (r *Repository) GetUserByID(userID string) (*User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+func (r *Repository) GetUserByID(ctx context.Context, userID string) (*User, error) {
+	var users []User
 
-	user := &User{}
+	_, err := r.client.From("users").
+		Select("*", "", false).
+		Eq("id", userID).
+		ExecuteToWithContext(ctx, &users)
 
-	query := `
-		SELECT id, email, role, is_active, login_count, created_at, updated_at, last_login
-		FROM users
-		WHERE id = $1
-	`
-
-	err := r.db.QueryRow(ctx, query, userID).
-		Scan(&user.ID, &user.Email, &user.Role, &user.IsActive, &user.LoginCount, &user.CreatedAt, &user.UpdatedAt, &user.LastLogin)
-
-	if err != nil {
+	if err != nil || len(users) == 0 {
 		return nil, fmt.Errorf("user not found")
 	}
 
-	return user, nil
+	return &users[0], nil
 }
 
 // UserExists checks if a user exists by ID
-func (r *Repository) UserExists(userID string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+func (r *Repository) UserExists(ctx context.Context, userID string) (bool, error) {
+	var users []map[string]interface{}
 
-	var exists bool
-
-	query := `SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)`
-	err := r.db.QueryRow(ctx, query, userID).Scan(&exists)
+	_, err := r.client.From("users").
+		Select("id", "", false).
+		Eq("id", userID).
+		ExecuteToWithContext(ctx, &users)
 
 	if err != nil {
 		return false, fmt.Errorf("failed to check user existence: %w", err)
 	}
 
-	return exists, nil
+	return len(users) > 0, nil
 }
 
 // AdminExists checks if any admin users exist in the database
-func (r *Repository) AdminExists() (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+func (r *Repository) AdminExists(ctx context.Context) (bool, error) {
+	var users []map[string]interface{}
 
-	var exists bool
-
-	query := `SELECT EXISTS(SELECT 1 FROM users WHERE role = 'admin')`
-	err := r.db.QueryRow(ctx, query).Scan(&exists)
+	_, err := r.client.From("users").
+		Select("id", "", false).
+		Eq("role", "admin").
+		ExecuteToWithContext(ctx, &users)
 
 	if err != nil {
 		return false, fmt.Errorf("failed to check admin existence: %w", err)
 	}
 
-	return exists, nil
+	return len(users) > 0, nil
 }
 
 // UpdateLastLogin updates the user's last login time and increments login count
-func (r *Repository) UpdateLastLogin(userID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+func (r *Repository) UpdateLastLogin(ctx context.Context, userID string) error {
+	updateData := map[string]interface{}{
+		"last_login": "now()",
+		"login_count": map[string]interface{}{
+			"__increment": 1,
+		},
+	}
 
-	query := `
-		UPDATE users
-		SET last_login = NOW(), login_count = login_count + 1, updated_at = NOW()
-		WHERE id = $1
-	`
+	var result []map[string]interface{}
+	_, err := r.client.From("users").
+		Update(updateData, "", "").
+		Eq("id", userID).
+		ExecuteToWithContext(ctx, &result)
 
-	result, err := r.db.Exec(ctx, query, userID)
 	if err != nil {
 		return fmt.Errorf("failed to update last login: %w", err)
 	}
 
-	if result.RowsAffected() == 0 {
+	if len(result) == 0 {
 		return fmt.Errorf("user not found")
 	}
 
@@ -125,22 +121,22 @@ func (r *Repository) UpdateLastLogin(userID string) error {
 }
 
 // UpdateUserRole updates a user's role
-func (r *Repository) UpdateUserRole(userID string, role Role) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+func (r *Repository) UpdateUserRole(ctx context.Context, userID string, role Role) error {
+	updateData := map[string]interface{}{
+		"role": role.String(),
+	}
 
-	query := `
-		UPDATE users
-		SET role = $1, updated_at = NOW()
-		WHERE id = $2
-	`
+	var result []map[string]interface{}
+	_, err := r.client.From("users").
+		Update(updateData, "", "").
+		Eq("id", userID).
+		ExecuteToWithContext(ctx, &result)
 
-	result, err := r.db.Exec(ctx, query, role.String(), userID)
 	if err != nil {
 		return fmt.Errorf("failed to update user role: %w", err)
 	}
 
-	if result.RowsAffected() == 0 {
+	if len(result) == 0 {
 		return fmt.Errorf("user not found")
 	}
 

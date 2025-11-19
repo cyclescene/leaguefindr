@@ -67,7 +67,32 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 // GetApprovedLeagues returns all approved leagues (public)
 func (h *Handler) GetApprovedLeagues(w http.ResponseWriter, r *http.Request) {
-	leagues, err := h.service.GetApprovedLeagues()
+	// Parse query parameters for pagination
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	limit := 10 // default limit
+	offset := 0 // default offset
+
+	if limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
+			limit = parsedLimit
+		}
+	}
+
+	if offsetStr != "" {
+		if parsedOffset, err := strconv.Atoi(offsetStr); err == nil && parsedOffset >= 0 {
+			offset = parsedOffset
+		}
+	}
+
+	// Always use paginated version to include count
+	var leagues []League
+	var count int64
+	var err error
+
+	leagues, count, err = h.service.GetApprovedLeaguesWithPagination(r.Context(), limit, offset)
+
 	if err != nil {
 		slog.Error("get approved leagues error", "err", err)
 		http.Error(w, "Failed to fetch leagues", http.StatusInternalServerError)
@@ -80,7 +105,7 @@ func (h *Handler) GetApprovedLeagues(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(GetLeaguesResponse{Leagues: leagues})
+	json.NewEncoder(w).Encode(GetLeaguesResponse{Leagues: leagues, Count: count})
 }
 
 // GetApprovedLeagueByID returns an approved league by ID (public)
@@ -97,7 +122,7 @@ func (h *Handler) GetApprovedLeagueByID(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	league, err := h.service.GetLeagueByID(id)
+	league, err := h.service.GetLeagueByID(r.Context(), id)
 	if err != nil {
 		slog.Error("get approved league by id error", "id", id, "err", err)
 		http.Error(w, "League not found", http.StatusNotFound)
@@ -129,7 +154,7 @@ func (h *Handler) GetLeagueByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	league, err := h.service.GetLeagueByID(id)
+	league, err := h.service.GetLeagueByID(r.Context(), id)
 	if err != nil {
 		slog.Error("get league by id error", "id", id, "err", err)
 		http.Error(w, "League not found", http.StatusNotFound)
@@ -174,7 +199,7 @@ func (h *Handler) CreateLeague(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	league, err := h.service.CreateLeague(userID, orgID, &req)
+	league, err := h.service.CreateLeague(r.Context(), userID, orgID, &req)
 	if err != nil {
 		slog.Error("create league error", "userID", userID, "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -194,7 +219,7 @@ func (h *Handler) GetLeaguesByOrgID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	leagues, err := h.service.GetLeaguesByOrgID(orgID)
+	leagues, err := h.service.GetLeaguesByOrgID(r.Context(), orgID)
 	if err != nil {
 		slog.Error("get leagues by org id error", "orgID", orgID, "err", err)
 		http.Error(w, "Failed to fetch leagues", http.StatusInternalServerError)
@@ -228,7 +253,7 @@ func (h *Handler) GetAllLeagues(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	leagues, total, err := h.service.GetAllLeaguesWithPagination(limit, offset)
+	leagues, total, err := h.service.GetAllLeaguesWithPagination(r.Context(), limit, offset)
 	if err != nil {
 		slog.Error("get all leagues error", "err", err)
 		http.Error(w, "Failed to fetch leagues", http.StatusInternalServerError)
@@ -267,7 +292,7 @@ func (h *Handler) GetPendingLeagues(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	leagues, total, err := h.service.GetPendingLeaguesWithPagination(limit, offset)
+	leagues, total, err := h.service.GetPendingLeaguesWithPagination(r.Context(), limit, offset)
 	if err != nil {
 		slog.Error("get pending leagues error", "err", err)
 		http.Error(w, "Failed to fetch pending leagues", http.StatusInternalServerError)
@@ -308,7 +333,7 @@ func (h *Handler) ApproveLeague(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.ApproveLeague(userID, id)
+	err = h.service.ApproveLeague(r.Context(), userID, id)
 	if err != nil {
 		slog.Error("approve league error", "id", id, "err", err)
 		http.Error(w, "Failed to approve league", http.StatusInternalServerError)
@@ -358,7 +383,7 @@ func (h *Handler) RejectLeague(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.RejectLeague(userID, id, req.RejectionReason)
+	err = h.service.RejectLeague(r.Context(), userID, id, req.RejectionReason)
 	if err != nil {
 		slog.Error("reject league error", "id", id, "err", err)
 		http.Error(w, "Failed to reject league", http.StatusInternalServerError)
@@ -380,7 +405,7 @@ func (h *Handler) GetDraft(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	draft, err := h.service.GetDraft(orgID)
+	draft, err := h.service.GetDraft(r.Context(), orgID)
 	if err != nil {
 		slog.Error("get draft error", "orgID", orgID, "err", err)
 		http.Error(w, "Failed to fetch draft", http.StatusInternalServerError)
@@ -429,10 +454,10 @@ func (h *Handler) SaveDraft(w http.ResponseWriter, r *http.Request) {
 	// Check if updating existing draft or creating new one
 	if req.DraftID != nil && *req.DraftID > 0 {
 		// Update existing draft
-		draft, err = h.service.UpdateDraft(*req.DraftID, orgID, req.FormData)
+		draft, err = h.service.UpdateDraft(r.Context(), *req.DraftID, orgID, req.FormData)
 	} else {
 		// Create new draft
-		draft, err = h.service.SaveDraft(orgID, userID, req.Name, req.FormData)
+		draft, err = h.service.SaveDraft(r.Context(), orgID, userID, req.Name, req.FormData)
 	}
 
 	if err != nil {
@@ -468,7 +493,7 @@ func (h *Handler) DeleteDraft(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.DeleteDraftByID(req.DraftID, orgID)
+	err := h.service.DeleteDraftByID(r.Context(), req.DraftID, orgID)
 	if err != nil {
 		slog.Error("delete draft error", "draftID", req.DraftID, "orgID", orgID, "err", err)
 		http.Error(w, "Failed to delete draft", http.StatusInternalServerError)
@@ -482,7 +507,7 @@ func (h *Handler) DeleteDraft(w http.ResponseWriter, r *http.Request) {
 
 // GetAllDrafts returns all league drafts across all organizations (admin only)
 func (h *Handler) GetAllDrafts(w http.ResponseWriter, r *http.Request) {
-	drafts, err := h.service.GetAllDrafts()
+	drafts, err := h.service.GetAllDrafts(r.Context())
 	if err != nil {
 		slog.Error("get all drafts error", "err", err)
 		http.Error(w, "Failed to fetch drafts", http.StatusInternalServerError)
@@ -529,7 +554,7 @@ func (h *Handler) SaveTemplate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	template, err := h.service.SaveTemplate(orgID, userID, req.Name, req.FormData)
+	template, err := h.service.SaveTemplate(r.Context(), orgID, userID, req.Name, req.FormData)
 	if err != nil {
 		slog.Error("save template error", "orgID", orgID, "userID", userID, "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -549,7 +574,7 @@ func (h *Handler) GetDraftsByOrgID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	drafts, err := h.service.GetDraftsByOrgID(orgID)
+	drafts, err := h.service.GetDraftsByOrgID(r.Context(), orgID)
 	if err != nil {
 		slog.Error("get drafts by org id error", "orgID", orgID, "err", err)
 		http.Error(w, "Failed to fetch drafts", http.StatusInternalServerError)
@@ -573,7 +598,7 @@ func (h *Handler) GetTemplatesByOrgID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates, err := h.service.GetTemplatesByOrgID(orgID)
+	templates, err := h.service.GetTemplatesByOrgID(r.Context(), orgID)
 	if err != nil {
 		slog.Error("get templates by org id error", "orgID", orgID, "err", err)
 		http.Error(w, "Failed to fetch templates", http.StatusInternalServerError)
@@ -591,7 +616,7 @@ func (h *Handler) GetTemplatesByOrgID(w http.ResponseWriter, r *http.Request) {
 
 // GetAllTemplates returns all templates across all organizations (admin only)
 func (h *Handler) GetAllTemplates(w http.ResponseWriter, r *http.Request) {
-	templates, err := h.service.GetAllTemplates()
+	templates, err := h.service.GetAllTemplates(r.Context())
 	if err != nil {
 		slog.Error("get all templates error", "err", err)
 		http.Error(w, "Failed to fetch templates", http.StatusInternalServerError)
@@ -644,7 +669,7 @@ func (h *Handler) UpdateTemplate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	template, err := h.service.UpdateTemplate(templateID, orgID, req.Name, req.FormData)
+	template, err := h.service.UpdateTemplate(r.Context(), templateID, orgID, req.Name, req.FormData)
 	if err != nil {
 		slog.Error("update template error", "templateID", templateID, "orgID", orgID, "err", err)
 		if err.Error() == "template not found or access denied" {
@@ -680,7 +705,7 @@ func (h *Handler) DeleteTemplate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.DeleteTemplate(templateID, orgID)
+	err = h.service.DeleteTemplate(r.Context(), templateID, orgID)
 	if err != nil {
 		slog.Error("delete template error", "templateID", templateID, "orgID", orgID, "err", err)
 		if err.Error() == "template not found or access denied" {

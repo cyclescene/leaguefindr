@@ -135,7 +135,7 @@ func RequireAdmin(authService *Service) func(http.Handler) http.Handler {
 			}
 
 			// Check if user is admin
-			isAdmin, err := authService.IsUserAdmin(userID)
+			isAdmin, err := authService.IsUserAdmin(r.Context(), userID)
 			if err != nil || !isAdmin {
 				slog.Warn("RequireAdmin: admin check failed", "userID", userID, "err", err)
 				http.Error(w, "Forbidden: admin access required", http.StatusForbidden)

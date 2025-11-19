@@ -1,39 +1,58 @@
 package sports
 
 import (
+	"context"
 	"fmt"
+
+	"github.com/supabase-community/postgrest-go"
 )
 
 type Service struct {
-	repo RepositoryInterface
+	baseClient *postgrest.Client
 }
 
-func NewService(repo RepositoryInterface) *Service {
+func NewService(baseClient *postgrest.Client) *Service {
 	return &Service{
-		repo: repo,
+		baseClient: baseClient,
 	}
 }
 
+// getClientWithAuth creates a new PostgREST client with JWT from context
+func (s *Service) getClientWithAuth(ctx context.Context) *postgrest.Client {
+	// For sports, we use the base client as-is since it's public reference data
+	// But we follow the same pattern for consistency
+	return s.baseClient
+}
+
 // GetAllSports retrieves all sports
-func (s *Service) GetAllSports() ([]Sport, error) {
-	return s.repo.GetAll()
+func (s *Service) GetAllSports(ctx context.Context) ([]Sport, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetAll(ctx)
 }
 
 // GetSportByID retrieves a sport by ID
-func (s *Service) GetSportByID(id int) (*Sport, error) {
-	return s.repo.GetByID(id)
+func (s *Service) GetSportByID(ctx context.Context, id int) (*Sport, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetByID(ctx, id)
 }
 
 // CheckSportExists checks if a sport exists by name
-func (s *Service) CheckSportExists(name string) (*Sport, error) {
-	return s.repo.GetByName(name)
+func (s *Service) CheckSportExists(ctx context.Context, name string) (*Sport, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetByName(ctx, name)
 }
 
 // CreateSport creates a new sport (auto-creates if doesn't exist)
 // Returns the existing sport if it already exists, or the newly created one
-func (s *Service) CreateSport(req *CreateSportRequest) (*Sport, error) {
+func (s *Service) CreateSport(ctx context.Context, req *CreateSportRequest) (*Sport, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+
 	// Check if sport already exists
-	existingSport, err := s.repo.GetByName(req.Name)
+	existingSport, err := repo.GetByName(ctx, req.Name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check sport existence: %w", err)
 	}
@@ -44,7 +63,7 @@ func (s *Service) CreateSport(req *CreateSportRequest) (*Sport, error) {
 	}
 
 	// Sport doesn't exist, create it
-	sport, err := s.repo.Create(req.Name)
+	sport, err := repo.Create(ctx, req.Name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sport: %w", err)
 	}

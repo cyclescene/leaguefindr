@@ -7,6 +7,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/supabase-community/postgrest-go"
 	"github.com/leaguefindr/backend/internal/auth"
 	"github.com/leaguefindr/backend/internal/notifications"
 	"github.com/leaguefindr/backend/internal/organizations"
@@ -15,7 +16,9 @@ import (
 )
 
 type Service struct {
-	repo                  RepositoryInterface
+	baseClient            *postgrest.Client
+	baseURL               string
+	apiKey                string
 	orgService            *organizations.Service
 	authService           *auth.Service
 	sportsService         *sports.Service
@@ -23,9 +26,11 @@ type Service struct {
 	notificationsService  *notifications.Service
 }
 
-func NewService(repo RepositoryInterface, orgService *organizations.Service, authService *auth.Service, sportsService *sports.Service, venuesService *venues.Service, notificationsService *notifications.Service) *Service {
+func NewService(baseClient *postgrest.Client, baseURL string, apiKey string, orgService *organizations.Service, authService *auth.Service, sportsService *sports.Service, venuesService *venues.Service, notificationsService *notifications.Service) *Service {
 	return &Service{
-		repo:                  repo,
+		baseClient:            baseClient,
+		baseURL:               baseURL,
+		apiKey:                apiKey,
 		orgService:            orgService,
 		authService:           authService,
 		sportsService:         sportsService,
@@ -34,53 +39,101 @@ func NewService(repo RepositoryInterface, orgService *organizations.Service, aut
 	}
 }
 
+// getClientWithAuth creates a new PostgREST client with JWT from context
+func (s *Service) getClientWithAuth(ctx context.Context) *postgrest.Client {
+	// Extract JWT token from context (set by JWT middleware)
+	token := ""
+	if jwtVal := ctx.Value("jwt_token"); jwtVal != nil {
+		if t, ok := jwtVal.(string); ok {
+			token = t
+		}
+	}
+
+	// Create a new client with the API key in headers
+	headers := map[string]string{
+		"apikey": s.apiKey,
+	}
+
+	client := postgrest.NewClient(s.baseURL, "public", headers)
+
+	// Set JWT token if present (overrides default auth)
+	if token != "" {
+		client.SetAuthToken(token)
+	}
+
+	return client
+}
+
 // ============= LEAGUE METHODS =============
 
 // GetAllLeagues retrieves all leagues (admin only)
-func (s *Service) GetAllLeagues() ([]League, error) {
-	return s.repo.GetAll()
+func (s *Service) GetAllLeagues(ctx context.Context) ([]League, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetAll(ctx)
 }
 
 // GetLeaguesByOrgID retrieves all leagues for a specific organization
-func (s *Service) GetLeaguesByOrgID(orgID string) ([]League, error) {
-	return s.repo.GetByOrgID(orgID)
+func (s *Service) GetLeaguesByOrgID(ctx context.Context, orgID string) ([]League, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetByOrgID(ctx, orgID)
 }
 
 // GetLeaguesByOrgIDAndStatus retrieves leagues filtered by organization and status
-func (s *Service) GetLeaguesByOrgIDAndStatus(orgID string, status LeagueStatus) ([]League, error) {
+func (s *Service) GetLeaguesByOrgIDAndStatus(ctx context.Context, orgID string, status LeagueStatus) ([]League, error) {
 	if !status.IsValid() {
 		return nil, fmt.Errorf("invalid league status: %s", status)
 	}
-	return s.repo.GetByOrgIDAndStatus(orgID, status)
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetByOrgIDAndStatus(ctx, orgID, status)
 }
 
 // GetApprovedLeagues retrieves all approved leagues (public)
-func (s *Service) GetApprovedLeagues() ([]League, error) {
-	return s.repo.GetAllApproved()
+func (s *Service) GetApprovedLeagues(ctx context.Context) ([]League, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetAllApproved(ctx)
+}
+
+// GetApprovedLeaguesWithPagination retrieves approved leagues with pagination
+func (s *Service) GetApprovedLeaguesWithPagination(ctx context.Context, limit, offset int) ([]League, int64, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetAllApprovedWithPagination(ctx, limit, offset)
 }
 
 // GetLeagueByID retrieves a league by ID (admin only - any status)
-func (s *Service) GetLeagueByID(id int) (*League, error) {
-	return s.repo.GetByID(id)
+func (s *Service) GetLeagueByID(ctx context.Context, id int) (*League, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetByID(ctx, id)
 }
 
 // GetPendingLeagues retrieves all pending league submissions (admin only)
-func (s *Service) GetPendingLeagues() ([]League, error) {
-	return s.repo.GetPending()
+func (s *Service) GetPendingLeagues(ctx context.Context) ([]League, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetPending(ctx)
 }
 
 // GetPendingLeaguesWithPagination retrieves pending leagues with pagination support
-func (s *Service) GetPendingLeaguesWithPagination(limit, offset int) ([]League, int64, error) {
-	return s.repo.GetPendingWithPagination(limit, offset)
+func (s *Service) GetPendingLeaguesWithPagination(ctx context.Context, limit, offset int) ([]League, int64, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetPendingWithPagination(ctx, limit, offset)
 }
 
 // GetAllLeaguesWithPagination retrieves all leagues regardless of status with pagination support
-func (s *Service) GetAllLeaguesWithPagination(limit, offset int) ([]League, int64, error) {
-	return s.repo.GetAllWithPagination(limit, offset)
+func (s *Service) GetAllLeaguesWithPagination(ctx context.Context, limit, offset int) ([]League, int64, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetAllWithPagination(ctx, limit, offset)
 }
 
 // CreateLeague creates a new league with validation and pricing calculation
-func (s *Service) CreateLeague(userID string, orgID string, request *CreateLeagueRequest) (*League, error) {
+func (s *Service) CreateLeague(ctx context.Context, userID string, orgID string, request *CreateLeagueRequest) (*League, error) {
 	if request == nil {
 		return nil, fmt.Errorf("create league request cannot be nil")
 	}
@@ -89,7 +142,7 @@ func (s *Service) CreateLeague(userID string, orgID string, request *CreateLeagu
 		return nil, fmt.Errorf("organization ID is required")
 	}
 
-	err := s.orgService.VerifyUserOrgAccess(userID, orgID)
+	err := s.orgService.VerifyUserOrgAccess(ctx, userID, orgID)
 	if err != nil {
 		return nil, fmt.Errorf("user does not have access to this organization: %w", err)
 	}
@@ -100,23 +153,25 @@ func (s *Service) CreateLeague(userID string, orgID string, request *CreateLeagu
 	}
 
 	// Parse dates
-	regDeadline, err := time.Parse("2006-01-02", *request.RegistrationDeadline)
+	regDeadlineParsed, err := time.Parse("2006-01-02", *request.RegistrationDeadline)
 	if err != nil {
 		return nil, fmt.Errorf("invalid registration deadline format: %w", err)
 	}
+	regDeadline := &Date{regDeadlineParsed}
 
-	seasonStart, err := time.Parse("2006-01-02", *request.SeasonStartDate)
+	seasonStartParsed, err := time.Parse("2006-01-02", *request.SeasonStartDate)
 	if err != nil {
 		return nil, fmt.Errorf("invalid season start date format: %w", err)
 	}
+	seasonStart := &Date{seasonStartParsed}
 
-	var seasonEnd *time.Time
+	var seasonEnd *Date
 	if request.SeasonEndDate != nil {
 		parsedEnd, err := time.Parse("2006-01-02", *request.SeasonEndDate)
 		if err != nil {
 			return nil, fmt.Errorf("invalid season end date format: %w", err)
 		}
-		seasonEnd = &parsedEnd
+		seasonEnd = &Date{parsedEnd}
 	}
 
 	// Calculate per-player pricing
@@ -157,7 +212,7 @@ func (s *Service) CreateLeague(userID string, orgID string, request *CreateLeagu
 		orgName = *request.OrganizationName
 	} else {
 		// Fallback: query organization table if name not provided
-		org, err := s.orgService.GetOrganizationByID(orgID)
+		org, err := s.orgService.GetOrganizationByID(ctx, orgID)
 		if err == nil && org != nil {
 			orgName = org.OrgName
 		}
@@ -195,8 +250,8 @@ func (s *Service) CreateLeague(userID string, orgID string, request *CreateLeagu
 		SportID:              request.SportID,
 		LeagueName:           request.LeagueName,
 		Division:             request.Division,
-		RegistrationDeadline: &regDeadline,
-		SeasonStartDate:      &seasonStart,
+		RegistrationDeadline: regDeadline,
+		SeasonStartDate:      seasonStart,
 		SeasonEndDate:        seasonEnd,
 		GameOccurrences:      request.GameOccurrences,
 		PricingStrategy:      request.PricingStrategy,
@@ -216,7 +271,9 @@ func (s *Service) CreateLeague(userID string, orgID string, request *CreateLeagu
 	}
 
 	// Save league
-	if err := s.repo.Create(league); err != nil {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	if err := repo.Create(ctx, league); err != nil {
 		return nil, fmt.Errorf("failed to create league: %w", err)
 	}
 
@@ -226,9 +283,9 @@ func (s *Service) CreateLeague(userID string, orgID string, request *CreateLeagu
 // ApproveLeague approves a pending league submission (admin only)
 // If sport_id is nil and supplemental_requests.sport exists, creates the sport
 // If venue_id is nil and supplemental_requests.venue exists, creates the venue
-func (s *Service) ApproveLeague(userID string, id int) error {
+func (s *Service) ApproveLeague(ctx context.Context, userID string, id int) error {
 	// Verify user is admin
-	isAdmin, err := s.authService.IsUserAdmin(userID)
+	isAdmin, err := s.authService.IsUserAdmin(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("failed to verify admin status: %w", err)
 	}
@@ -237,14 +294,16 @@ func (s *Service) ApproveLeague(userID string, id int) error {
 	}
 
 	// Get the league to check supplemental requests
-	league, err := s.repo.GetByID(id)
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	league, err := repo.GetByID(ctx, id)
 	if err != nil {
 		return fmt.Errorf("failed to fetch league: %w", err)
 	}
 
 	// If sport_id is nil and supplemental requests has sport, create it
 	if league.SportID == nil && league.SupplementalRequests != nil && league.SupplementalRequests.Sport != nil {
-		newSport, err := s.sportsService.CreateSport(&sports.CreateSportRequest{
+		newSport, err := s.sportsService.CreateSport(ctx, &sports.CreateSportRequest{
 			Name: league.SupplementalRequests.Sport.Name,
 		})
 		if err != nil {
@@ -269,7 +328,7 @@ func (s *Service) ApproveLeague(userID string, id int) error {
 			Lat:     lat,
 			Lng:     lng,
 		}
-		newVenue, err := s.venuesService.CreateVenue(venueReq)
+		newVenue, err := s.venuesService.CreateVenue(ctx, venueReq)
 		if err != nil {
 			return fmt.Errorf("failed to create venue: %w", err)
 		}
@@ -278,7 +337,7 @@ func (s *Service) ApproveLeague(userID string, id int) error {
 
 	// Atomically update league IDs and status to approved in a single transaction
 	// This ensures both updates succeed or both fail together
-	err = s.repo.ApproveLeagueWithTransaction(id, league.SportID, league.VenueID)
+	err = repo.ApproveLeagueWithTransaction(ctx, id, league.SportID, league.VenueID)
 	if err != nil {
 		return err
 	}
@@ -305,9 +364,9 @@ func (s *Service) ApproveLeague(userID string, id int) error {
 }
 
 // RejectLeague rejects a pending league submission with a reason (admin only)
-func (s *Service) RejectLeague(userID string, id int, rejectionReason string) error {
+func (s *Service) RejectLeague(ctx context.Context, userID string, id int, rejectionReason string) error {
 	// Verify user is admin
-	isAdmin, err := s.authService.IsUserAdmin(userID)
+	isAdmin, err := s.authService.IsUserAdmin(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("failed to verify admin status: %w", err)
 	}
@@ -320,13 +379,15 @@ func (s *Service) RejectLeague(userID string, id int, rejectionReason string) er
 	}
 
 	// Get the league to retrieve creator info
-	league, err := s.repo.GetByID(id)
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	league, err := repo.GetByID(ctx, id)
 	if err != nil {
 		return fmt.Errorf("failed to fetch league: %w", err)
 	}
 
 	// Update the league status
-	err = s.repo.UpdateStatus(id, LeagueStatusRejected, &rejectionReason)
+	err = repo.UpdateStatus(ctx, id, LeagueStatusRejected, &rejectionReason)
 	if err != nil {
 		return err
 	}
@@ -355,12 +416,14 @@ func (s *Service) RejectLeague(userID string, id int, rejectionReason string) er
 // ============= DRAFT METHODS =============
 
 // GetDraft retrieves the draft for an organization
-func (s *Service) GetDraft(orgID string) (*LeagueDraft, error) {
-	return s.repo.GetDraftByOrgID(orgID)
+func (s *Service) GetDraft(ctx context.Context, orgID string) (*LeagueDraft, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetDraftByOrgID(ctx, orgID)
 }
 
 // SaveDraft saves or updates a draft for an organization
-func (s *Service) SaveDraft(orgID string, userID string, draftName *string, formData FormData) (*LeagueDraft, error) {
+func (s *Service) SaveDraft(ctx context.Context, orgID string, userID string, draftName *string, formData FormData) (*LeagueDraft, error) {
 	if formData == nil || len(formData) == 0 {
 		return nil, fmt.Errorf("draft data cannot be empty")
 	}
@@ -382,7 +445,9 @@ func (s *Service) SaveDraft(orgID string, userID string, draftName *string, form
 		CreatedBy: &userID,
 	}
 
-	if err := s.repo.SaveDraft(draft); err != nil {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	if err := repo.SaveDraft(ctx, draft); err != nil {
 		return nil, fmt.Errorf("failed to save draft: %w", err)
 	}
 
@@ -390,13 +455,15 @@ func (s *Service) SaveDraft(orgID string, userID string, draftName *string, form
 }
 
 // UpdateDraft updates an existing draft with new data
-func (s *Service) UpdateDraft(draftID int, orgID string, formData FormData) (*LeagueDraft, error) {
+func (s *Service) UpdateDraft(ctx context.Context, draftID int, orgID string, formData FormData) (*LeagueDraft, error) {
 	if formData == nil || len(formData) == 0 {
 		return nil, fmt.Errorf("draft data cannot be empty")
 	}
 
 	// Fetch existing draft to preserve original fields
-	existing, err := s.repo.GetDraftByID(draftID)
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	existing, err := repo.GetDraftByID(ctx, draftID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch draft: %w", err)
 	}
@@ -408,9 +475,9 @@ func (s *Service) UpdateDraft(draftID int, orgID string, formData FormData) (*Le
 
 	// Update draft data while preserving other fields
 	existing.FormData = formData
-	existing.UpdatedAt = time.Now()
+	existing.UpdatedAt = Timestamp{time.Now()}
 
-	if err := s.repo.SaveDraft(existing); err != nil {
+	if err := repo.SaveDraft(ctx, existing); err != nil {
 		return nil, fmt.Errorf("failed to update draft: %w", err)
 	}
 
@@ -418,7 +485,7 @@ func (s *Service) UpdateDraft(draftID int, orgID string, formData FormData) (*Le
 }
 
 // SaveTemplate saves a league configuration as a reusable template
-func (s *Service) SaveTemplate(orgID string, userID string, name string, formData FormData) (*LeagueDraft, error) {
+func (s *Service) SaveTemplate(ctx context.Context, orgID string, userID string, name string, formData FormData) (*LeagueDraft, error) {
 	if formData == nil || len(formData) == 0 {
 		return nil, fmt.Errorf("draft data cannot be empty")
 	}
@@ -435,7 +502,9 @@ func (s *Service) SaveTemplate(orgID string, userID string, name string, formDat
 		CreatedBy: &userID,
 	}
 
-	if err := s.repo.SaveDraft(template); err != nil {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	if err := repo.SaveDraft(ctx, template); err != nil {
 		return nil, fmt.Errorf("failed to save template: %w", err)
 	}
 
@@ -443,17 +512,21 @@ func (s *Service) SaveTemplate(orgID string, userID string, name string, formDat
 }
 
 // GetTemplatesByOrgID retrieves all templates for an organization
-func (s *Service) GetTemplatesByOrgID(orgID string) ([]LeagueDraft, error) {
-	return s.repo.GetTemplatesByOrgID(orgID)
+func (s *Service) GetTemplatesByOrgID(ctx context.Context, orgID string) ([]LeagueDraft, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetTemplatesByOrgID(ctx, orgID)
 }
 
 // GetDraftsByOrgID retrieves all drafts for an organization
-func (s *Service) GetDraftsByOrgID(orgID string) ([]LeagueDraft, error) {
-	return s.repo.GetDraftsByOrgID(orgID)
+func (s *Service) GetDraftsByOrgID(ctx context.Context, orgID string) ([]LeagueDraft, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetDraftsByOrgID(ctx, orgID)
 }
 
 // UpdateTemplate updates an existing template
-func (s *Service) UpdateTemplate(templateID int, orgID string, name string, formData FormData) (*LeagueDraft, error) {
+func (s *Service) UpdateTemplate(ctx context.Context, templateID int, orgID string, name string, formData FormData) (*LeagueDraft, error) {
 	if name == "" {
 		return nil, fmt.Errorf("template name is required")
 	}
@@ -470,7 +543,9 @@ func (s *Service) UpdateTemplate(templateID int, orgID string, name string, form
 		Type:     DraftTypeTemplate,
 	}
 
-	if err := s.repo.UpdateTemplate(template); err != nil {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	if err := repo.UpdateTemplate(ctx, template); err != nil {
 		return nil, fmt.Errorf("failed to update template: %w", err)
 	}
 
@@ -478,23 +553,31 @@ func (s *Service) UpdateTemplate(templateID int, orgID string, name string, form
 }
 
 // DeleteTemplate deletes a template
-func (s *Service) DeleteTemplate(templateID int, orgID string) error {
-	return s.repo.DeleteTemplate(templateID, orgID)
+func (s *Service) DeleteTemplate(ctx context.Context, templateID int, orgID string) error {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.DeleteTemplate(ctx, templateID, orgID)
 }
 
 // DeleteDraftByID deletes a specific draft by ID for an organization
-func (s *Service) DeleteDraftByID(draftID int, orgID string) error {
-	return s.repo.DeleteDraftByID(draftID, orgID)
+func (s *Service) DeleteDraftByID(ctx context.Context, draftID int, orgID string) error {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.DeleteDraftByID(ctx, draftID, orgID)
 }
 
 // GetAllDrafts retrieves all league drafts across all organizations (admin only)
-func (s *Service) GetAllDrafts() ([]LeagueDraft, error) {
-	return s.repo.GetAllDrafts()
+func (s *Service) GetAllDrafts(ctx context.Context) ([]LeagueDraft, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetAllDrafts(ctx)
 }
 
 // GetAllTemplates retrieves all templates across all organizations (admin only)
-func (s *Service) GetAllTemplates() ([]LeagueDraft, error) {
-	return s.repo.GetAllTemplates()
+func (s *Service) GetAllTemplates(ctx context.Context) ([]LeagueDraft, error) {
+	client := s.getClientWithAuth(ctx)
+	repo := NewRepository(client)
+	return repo.GetAllTemplates(ctx)
 }
 
 // ============= HELPER METHODS =============

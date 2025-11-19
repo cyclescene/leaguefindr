@@ -64,7 +64,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Register user (no organization assignment yet - user will do that during onboarding)
-	err = h.service.RegisterUser(req.ClerkID, req.Email)
+	err = h.service.RegisterUser(r.Context(), req.ClerkID, req.Email)
 	if err != nil {
 		slog.Error("register error", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -91,7 +91,7 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify that authenticated user can only access their own data (unless admin)
-	isAdmin, err := h.service.ValidateUserRole(authenticatedUserID, RoleAdmin)
+	isAdmin, err := h.service.ValidateUserRole(r.Context(), authenticatedUserID, RoleAdmin)
 	if err != nil || !isAdmin {
 		// Non-admin users can only access their own data
 		if userID != authenticatedUserID {
@@ -103,7 +103,7 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	user, err := h.service.GetUser(userID)
+	user, err := h.service.GetUser(r.Context(), userID)
 	if err != nil {
 		slog.Error("get user error", "userID", userID, "err", err)
 		http.Error(w, "User not found", http.StatusNotFound)
@@ -133,7 +133,7 @@ func (h *Handler) RecordLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.RecordLogin(userID)
+	err = h.service.RecordLogin(r.Context(), userID)
 	if err != nil {
 		slog.Error("record login error", "err", err)
 		http.Error(w, "Failed to record login", http.StatusInternalServerError)
@@ -172,7 +172,7 @@ func (h *Handler) UpdateUserRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.UpdateUserRole(userID, req.Role)
+	err = h.service.UpdateUserRole(r.Context(), userID, req.Role)
 	if err != nil {
 		slog.Error("update role error", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

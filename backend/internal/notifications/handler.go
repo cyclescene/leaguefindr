@@ -64,7 +64,7 @@ func (h *Handler) GetNotifications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	notifications, err := h.service.GetNotifications(ctx, authenticatedUserID, limit, offset)
+	notifications, count, err := h.service.GetNotifications(ctx, authenticatedUserID, limit, offset)
 	if err != nil {
 		slog.Error("failed to get notifications", "userID", authenticatedUserID, "err", err)
 		http.Error(w, "Failed to retrieve notifications", http.StatusInternalServerError)
@@ -75,6 +75,7 @@ func (h *Handler) GetNotifications(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"notifications": notifications,
+		"count":         count,
 		"limit":         limit,
 		"offset":        offset,
 	})
