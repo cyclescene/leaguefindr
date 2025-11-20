@@ -496,13 +496,17 @@ func (s *Service) ApproveLeagueByUUID(ctx context.Context, userID string, id str
 
 	// Send notification to league creator that their league was approved
 	if league.CreatedBy != nil {
+		leagueName := ""
+		if league.LeagueName != nil {
+			leagueName = *league.LeagueName
+		}
 		ctx := context.Background()
 		notificationErr := s.notificationsService.CreateNotification(
 			ctx,
 			*league.CreatedBy,
 			notifications.NotificationLeagueApproved.String(),
 			"League Approved",
-			fmt.Sprintf("Your league '%s' has been approved!", league.LeagueName),
+			fmt.Sprintf("Your league '%s' has been approved!", leagueName),
 			nil,
 			league.OrgID,
 		)
@@ -546,13 +550,17 @@ func (s *Service) RejectLeagueByUUID(ctx context.Context, userID string, id stri
 
 	// Send notification to league creator that their league was rejected
 	if league.CreatedBy != nil {
+		leagueName := ""
+		if league.LeagueName != nil {
+			leagueName = *league.LeagueName
+		}
 		ctx := context.Background()
 		notificationErr := s.notificationsService.CreateNotification(
 			ctx,
 			*league.CreatedBy,
 			notifications.NotificationLeagueRejected.String(),
 			"League Rejected",
-			fmt.Sprintf("Your league '%s' was rejected. Reason: %s", league.LeagueName, rejectionReason),
+			fmt.Sprintf("Your league '%s' was rejected. Reason: %s", leagueName, rejectionReason),
 			nil,
 			league.OrgID,
 		)
