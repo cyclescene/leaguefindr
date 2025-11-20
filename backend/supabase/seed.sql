@@ -35,8 +35,7 @@ VALUES
   ('Mountain Resort', '654 Peak Ln'),
   ('Beachside Complex', '987 Beach Blvd'),
   ('City Center Hall', '147 Center St'),
-  ('Suburban Fields', '258 Suburb Ave')
-ON CONFLICT (name) DO NOTHING;
+  ('Suburban Fields', '258 Suburb Ave');
 
 -- Insert test organizations
 INSERT INTO organizations (id, org_name, org_email, org_phone_number)
