@@ -44,7 +44,7 @@ VALUES
   ('a0000000-0000-0000-0000-000000000001', 'Test Organization', 'org@test.com', '555-0001'),
   ('a0000000-0000-0000-0000-000000000002', 'Demo Sports Club', 'demo@test.com', '555-0002'),
   ('a0000000-0000-0000-0000-000000000003', 'Community League', 'community@test.com', '555-0003')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (id) DO NOTHING;
 
 -- Insert test leagues (auto-generate UUID ID)
 -- These are placeholder leagues for testing
@@ -54,8 +54,7 @@ VALUES
   ('Test Soccer League', (SELECT id FROM sports WHERE name = 'Soccer'), (SELECT id FROM venues WHERE name = 'Downtown Arena'), 'a0000000-0000-0000-0000-000000000001', 'pending', CURRENT_DATE, 'user_35iIZO05zFhiy51Zsj4QLTYxpzQ', 'per_team', 450.00),
   ('Test Football League', (SELECT id FROM sports WHERE name = 'Football'), (SELECT id FROM venues WHERE name = 'Riverside Stadium'), 'a0000000-0000-0000-0000-000000000002', 'approved', CURRENT_DATE, 'user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'per_person', 75.00),
   ('Test Tennis League', (SELECT id FROM sports WHERE name = 'Tennis'), (SELECT id FROM venues WHERE name = 'Lakeside Courts'), 'a0000000-0000-0000-0000-000000000002', 'rejected', CURRENT_DATE, 'user_35iIZO05zFhiy51Zsj4QLTYxpzQ', 'per_team', 300.00),
-  ('Test Volleyball League', (SELECT id FROM sports WHERE name = 'Volleyball'), (SELECT id FROM venues WHERE name = 'Beachside Complex'), 'a0000000-0000-0000-0000-000000000003', 'approved', CURRENT_DATE, 'user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'per_person', 50.00)
-ON CONFLICT DO NOTHING;
+  ('Test Volleyball League', (SELECT id FROM sports WHERE name = 'Volleyball'), (SELECT id FROM venues WHERE name = 'Beachside Complex'), 'a0000000-0000-0000-0000-000000000003', 'approved', CURRENT_DATE, 'user_35iIVMkUqxuqPTDHYexjBwqh7Ah', 'per_person', 50.00);
 
 -- Insert game occurrences for test leagues
 INSERT INTO game_occurrences (league_id, day, start_time, end_time)
