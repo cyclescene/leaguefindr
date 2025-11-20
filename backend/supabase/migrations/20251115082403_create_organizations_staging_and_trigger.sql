@@ -40,7 +40,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY INVOKER SET search_path = public;
 
 -- Create trigger that fires BEFORE INSERT on organizations_staging
 CREATE TRIGGER trg_organizations_staging

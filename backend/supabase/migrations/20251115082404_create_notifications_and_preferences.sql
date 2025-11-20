@@ -69,7 +69,7 @@ BEGIN
   ON CONFLICT (user_id) DO NOTHING;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY INVOKER SET search_path = public;
 
 -- Create trigger that fires AFTER INSERT on auth.users
 CREATE TRIGGER trg_create_notification_preferences

@@ -231,7 +231,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY INVOKER SET search_path = public;
 
 -- Create trigger that fires BEFORE INSERT OR UPDATE on leagues_staging
 -- This allows re-importing the same league IDs without constraint violations
@@ -260,7 +260,7 @@ BEGIN
 
   RETURN QUERY SELECT v_deleted_count, 'Cleared ' || v_deleted_count || ' records from leagues_staging. Ready for re-import.';
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY INVOKER SET search_path = public;
 
 COMMENT ON FUNCTION clear_leagues_staging() IS 'Clears all records from the leagues_staging table to prepare for a fresh CSV import. Call this before uploading a new CSV file if re-importing the same league IDs.';
 
