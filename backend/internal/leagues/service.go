@@ -2,6 +2,7 @@ package leagues
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"
@@ -289,8 +290,8 @@ func (s *Service) CreateLeague(ctx context.Context, userID string, orgID string,
 }
 
 // ApproveLeague approves a pending league submission (admin only)
-// If sport_id is nil and supplemental_requests.sport exists, creates the sport
-// If venue_id is nil and supplemental_requests.venue exists, creates the venue
+// If sport_id is nil and form_data has sport_name, creates the sport
+// If venue_id is nil and form_data has venue_name, creates the venue
 func (s *Service) ApproveLeague(ctx context.Context, userID string, id int) error {
 	// Verify user is admin
 	isAdmin, err := s.authService.IsUserAdmin(ctx, userID)
@@ -301,7 +302,7 @@ func (s *Service) ApproveLeague(ctx context.Context, userID string, id int) erro
 		return fmt.Errorf("only admins can approve leagues")
 	}
 
-	// Get the league to check supplemental requests
+	// Get the league to check form_data
 	client := s.getClientWithAuth(ctx)
 	repo := NewRepository(client)
 	league, err := repo.GetByID(ctx, id)
@@ -309,38 +310,63 @@ func (s *Service) ApproveLeague(ctx context.Context, userID string, id int) erro
 		return fmt.Errorf("failed to fetch league: %w", err)
 	}
 
-	// If sport_id is nil and supplemental requests has sport, create it
-	if league.SportID == nil && league.SupplementalRequests != nil && league.SupplementalRequests.Sport != nil {
-		newSport, err := s.sportsService.CreateSport(ctx, &sports.CreateSportRequest{
-			Name: league.SupplementalRequests.Sport.Name,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create sport: %w", err)
+	// If sport_id is nil and form_data has sport_name, create it
+	if league.SportID == nil && league.FormData != nil {
+		formDataMap, ok := league.FormData.(map[string]interface{})
+		if !ok {
+			// Try to unmarshal if it's still JSON
+			err := json.Unmarshal(league.FormData.([]byte), &formDataMap)
+			if err != nil {
+				formDataMap = make(map[string]interface{})
+			}
 		}
-		league.SportID = &newSport.ID
+
+		if sportName, ok := formDataMap["sport_name"].(string); ok && sportName != "" {
+			newSport, err := s.sportsService.CreateSport(ctx, &sports.CreateSportRequest{
+				Name: sportName,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create sport: %w", err)
+			}
+			league.SportID = &newSport.ID
+		}
 	}
 
-	// If venue_id is nil and supplemental requests has venue, create it
-	if league.VenueID == nil && league.SupplementalRequests != nil && league.SupplementalRequests.Venue != nil {
-		lat := 0.0
-		lng := 0.0
-		if league.SupplementalRequests.Venue.Lat != nil {
-			lat = *league.SupplementalRequests.Venue.Lat
+	// If venue_id is nil and form_data has venue_name, create it
+	if league.VenueID == nil && league.FormData != nil {
+		formDataMap, ok := league.FormData.(map[string]interface{})
+		if !ok {
+			// Try to unmarshal if it's still JSON
+			err := json.Unmarshal(league.FormData.([]byte), &formDataMap)
+			if err != nil {
+				formDataMap = make(map[string]interface{})
+			}
 		}
-		if league.SupplementalRequests.Venue.Lng != nil {
-			lng = *league.SupplementalRequests.Venue.Lng
+
+		venueName, hasName := formDataMap["venue_name"].(string)
+		venueAddress, hasAddress := formDataMap["venue_address"].(string)
+		if (hasName && venueName != "") || (hasAddress && venueAddress != "") {
+			lat := 0.0
+			lng := 0.0
+			if venueLatVal, ok := formDataMap["venue_lat"].(float64); ok {
+				lat = venueLatVal
+			}
+			if venueLngVal, ok := formDataMap["venue_lng"].(float64); ok {
+				lng = venueLngVal
+			}
+
+			venueReq := &venues.CreateVenueRequest{
+				Name:    venueName,
+				Address: venueAddress,
+				Lat:     lat,
+				Lng:     lng,
+			}
+			newVenue, err := s.venuesService.CreateVenue(ctx, venueReq)
+			if err != nil {
+				return fmt.Errorf("failed to create venue: %w", err)
+			}
+			league.VenueID = &newVenue.ID
 		}
-		venueReq := &venues.CreateVenueRequest{
-			Name:    league.SupplementalRequests.Venue.Name,
-			Address: league.SupplementalRequests.Venue.Address,
-			Lat:     lat,
-			Lng:     lng,
-		}
-		newVenue, err := s.venuesService.CreateVenue(ctx, venueReq)
-		if err != nil {
-			return fmt.Errorf("failed to create venue: %w", err)
-		}
-		league.VenueID = &newVenue.ID
 	}
 
 	// Atomically update league IDs and status to approved in a single transaction
@@ -432,7 +458,7 @@ func (s *Service) ApproveLeagueByUUID(ctx context.Context, userID string, id str
 		return fmt.Errorf("only admins can approve leagues")
 	}
 
-	// Get the league to check supplemental requests
+	// Get the league to check form_data
 	client := s.getClientWithAuth(ctx)
 	repo := NewRepository(client)
 	league, err := repo.GetByUUID(ctx, id)
@@ -440,38 +466,81 @@ func (s *Service) ApproveLeagueByUUID(ctx context.Context, userID string, id str
 		return fmt.Errorf("failed to fetch league: %w", err)
 	}
 
-	// If sport_id is nil and supplemental requests has sport, create it
-	if league.SportID == nil && league.SupplementalRequests != nil && league.SupplementalRequests.Sport != nil {
-		newSport, err := s.sportsService.CreateSport(ctx, &sports.CreateSportRequest{
-			Name: league.SupplementalRequests.Sport.Name,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create sport: %w", err)
+	// If sport_id is nil and form_data has sport_name, create it
+	if league.SportID == nil && league.FormData != nil {
+		formDataMap, ok := league.FormData.(map[string]interface{})
+		if !ok {
+			// Try to unmarshal if it's still JSON
+			var formDataBytes []byte
+			switch v := league.FormData.(type) {
+			case []byte:
+				formDataBytes = v
+			case string:
+				formDataBytes = []byte(v)
+			}
+			if len(formDataBytes) > 0 {
+				json.Unmarshal(formDataBytes, &formDataMap)
+			}
+			if formDataMap == nil {
+				formDataMap = make(map[string]interface{})
+			}
 		}
-		league.SportID = &newSport.ID
+
+		if sportName, ok := formDataMap["sport_name"].(string); ok && sportName != "" {
+			newSport, err := s.sportsService.CreateSport(ctx, &sports.CreateSportRequest{
+				Name: sportName,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create sport: %w", err)
+			}
+			league.SportID = &newSport.ID
+		}
 	}
 
-	// If venue_id is nil and supplemental requests has venue, create it
-	if league.VenueID == nil && league.SupplementalRequests != nil && league.SupplementalRequests.Venue != nil {
-		lat := 0.0
-		lng := 0.0
-		if league.SupplementalRequests.Venue.Lat != nil {
-			lat = *league.SupplementalRequests.Venue.Lat
+	// If venue_id is nil and form_data has venue_name, create it
+	if league.VenueID == nil && league.FormData != nil {
+		formDataMap, ok := league.FormData.(map[string]interface{})
+		if !ok {
+			// Try to unmarshal if it's still JSON
+			var formDataBytes []byte
+			switch v := league.FormData.(type) {
+			case []byte:
+				formDataBytes = v
+			case string:
+				formDataBytes = []byte(v)
+			}
+			if len(formDataBytes) > 0 {
+				json.Unmarshal(formDataBytes, &formDataMap)
+			}
+			if formDataMap == nil {
+				formDataMap = make(map[string]interface{})
+			}
 		}
-		if league.SupplementalRequests.Venue.Lng != nil {
-			lng = *league.SupplementalRequests.Venue.Lng
+
+		venueName, hasName := formDataMap["venue_name"].(string)
+		venueAddress, hasAddress := formDataMap["venue_address"].(string)
+		if (hasName && venueName != "") || (hasAddress && venueAddress != "") {
+			lat := 0.0
+			lng := 0.0
+			if venueLatVal, ok := formDataMap["venue_lat"].(float64); ok {
+				lat = venueLatVal
+			}
+			if venueLngVal, ok := formDataMap["venue_lng"].(float64); ok {
+				lng = venueLngVal
+			}
+
+			venueReq := &venues.CreateVenueRequest{
+				Name:    venueName,
+				Address: venueAddress,
+				Lat:     lat,
+				Lng:     lng,
+			}
+			newVenue, err := s.venuesService.CreateVenue(ctx, venueReq)
+			if err != nil {
+				return fmt.Errorf("failed to create venue: %w", err)
+			}
+			league.VenueID = &newVenue.ID
 		}
-		venueReq := &venues.CreateVenueRequest{
-			Name:    league.SupplementalRequests.Venue.Name,
-			Address: league.SupplementalRequests.Venue.Address,
-			Lat:     lat,
-			Lng:     lng,
-		}
-		newVenue, err := s.venuesService.CreateVenue(ctx, venueReq)
-		if err != nil {
-			return fmt.Errorf("failed to create venue: %w", err)
-		}
-		league.VenueID = &newVenue.ID
 	}
 
 	// Update league status to approved
