@@ -194,10 +194,6 @@ export function useLeaguesReadOnly() {
         throw error;
       }
 
-      console.log('useLeaguesReadOnly: Leagues query returned', {
-        count: data?.length,
-        statuses: data?.map(l => l.status),
-      });
 
       setState({
         data: data || [],

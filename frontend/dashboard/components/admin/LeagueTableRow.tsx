@@ -1,6 +1,7 @@
 import { TableRow, TableCell } from "@/components/ui/table";
 import { StatusBadge } from "./StatusBadge";
 import { LeagueActions } from "./LeagueActions";
+import { truncate } from "@/lib/utils";
 
 interface League {
   id: number;
@@ -24,12 +25,12 @@ interface LeagueTableRowProps {
 export function LeagueTableRow({ league, onView, onApprove, onReject }: LeagueTableRowProps) {
   return (
     <TableRow>
-      <TableCell>{league.name}</TableCell>
-      <TableCell>{league.organizationName}</TableCell>
-      <TableCell>{league.sport}</TableCell>
+      <TableCell title={league.name}>{truncate(league.name, 20)}</TableCell>
+      <TableCell title={league.organizationName}>{truncate(league.organizationName, 20)}</TableCell>
+      <TableCell title={league.sport}>{truncate(league.sport, 20)}</TableCell>
       <TableCell>{league.gender}</TableCell>
       <TableCell>{league.startDate}</TableCell>
-      <TableCell>{league.venue}</TableCell>
+      <TableCell title={league.venue}>{truncate(league.venue, 20)}</TableCell>
       <TableCell>{league.dateSubmitted}</TableCell>
       <TableCell>
         <StatusBadge status={league.status} />

@@ -114,7 +114,6 @@ func verifyClerkToken(ctx context.Context, token string) (*TokenClaims, error) {
 
 	slog.Debug("verifyClerkToken: success",
 		"userID", userID,
-		"allClaims", verifiedClaims.Claims,
 	)
 	return &TokenClaims{Sub: userID}, nil
 }

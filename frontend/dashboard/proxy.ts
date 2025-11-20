@@ -8,7 +8,6 @@ const isProtectedRoute = createRouteMatcher(['/', '/admin(.*?)'])
 // See: https://clerk.com/docs/reference/nextjs/clerk-middleware
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth()
-  console.log('sessionClaims:', sessionClaims)
 
   const isVerified = (sessionClaims?.emailVerified as boolean) || false
   const userRole = (sessionClaims?.appRole as string) || null

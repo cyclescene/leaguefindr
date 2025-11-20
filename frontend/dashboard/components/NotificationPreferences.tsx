@@ -56,7 +56,6 @@ export function NotificationPreferences() {
 
       if (!data) {
         // Create default preferences for new user
-        console.log('Creating default preferences for user:', userId);
         const insertData = {
           user_id: userId,
           league_approved: true,
@@ -65,7 +64,6 @@ export function NotificationPreferences() {
           draft_saved: true,
           template_saved: true,
         };
-        console.log('Insert payload:', insertData);
 
         const { data: newPref, error: createError } = await supabase
           .from('notification_preferences')
@@ -73,21 +71,13 @@ export function NotificationPreferences() {
           .select()
           .single();
 
-        console.log('Insert response:', { data: newPref, error: createError });
 
         if (createError) {
-          console.error('Insert error details:', {
-            code: createError.code,
-            message: createError.message,
-            details: createError.details,
-            hint: createError.hint,
-          });
           throw createError;
         }
 
         setPreferences(newPref);
       } else {
-        console.log('Found existing preferences:', data);
         setPreferences(data);
       }
     } catch (error) {
