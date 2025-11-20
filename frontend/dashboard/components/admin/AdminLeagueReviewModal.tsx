@@ -225,34 +225,38 @@ export function AdminLeagueReviewModal({
                 <Button variant="outline" onClick={handleCloseModal} disabled={isApproving || isRejecting}>
                   Cancel
                 </Button>
-                <Button
-                  variant="destructive"
-                  onClick={handleReject}
-                  disabled={isApproving || isRejecting || !rejectionNotes.trim()}
-                >
-                  {isRejecting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Rejecting...
-                    </>
-                  ) : (
-                    'Reject'
-                  )}
-                </Button>
-                <Button
-                  variant="brandDark"
-                  onClick={handleApprove}
-                  disabled={isApproving || isRejecting}
-                >
-                  {isApproving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Approving...
-                    </>
-                  ) : (
-                    'Approve'
-                  )}
-                </Button>
+                {league.status !== 'rejected' && (
+                  <Button
+                    variant="destructive"
+                    onClick={handleReject}
+                    disabled={isApproving || isRejecting || !rejectionNotes.trim()}
+                  >
+                    {isRejecting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Rejecting...
+                      </>
+                    ) : (
+                      'Reject'
+                    )}
+                  </Button>
+                )}
+                {league.status !== 'approved' && (
+                  <Button
+                    variant="brandDark"
+                    onClick={handleApprove}
+                    disabled={isApproving || isRejecting}
+                  >
+                    {isApproving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Approving...
+                      </>
+                    ) : (
+                      'Approve'
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
           </>

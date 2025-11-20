@@ -465,6 +465,11 @@ func (s *Service) ApproveLeagueByUUID(ctx context.Context, userID string, id str
 		return fmt.Errorf("failed to fetch league: %w", err)
 	}
 
+	// Check if league is already approved
+	if league.Status == LeagueStatusApproved {
+		return fmt.Errorf("league is already approved")
+	}
+
 	// If sport_id is nil and form_data has sport_name, create it
 	if league.SportID == nil && league.FormData != nil {
 		if sportName, ok := league.FormData["sport_name"].(string); ok && sportName != "" {
@@ -558,6 +563,11 @@ func (s *Service) RejectLeagueByUUID(ctx context.Context, userID string, id stri
 	league, err := repo.GetByUUID(ctx, id)
 	if err != nil {
 		return fmt.Errorf("failed to fetch league: %w", err)
+	}
+
+	// Check if league is already rejected
+	if league.Status == LeagueStatusRejected {
+		return fmt.Errorf("league is already rejected")
 	}
 
 	// Update the league status

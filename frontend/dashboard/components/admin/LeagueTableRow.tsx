@@ -38,6 +38,7 @@ export function LeagueTableRow({ league, onView, onApprove, onReject }: LeagueTa
       <TableCell>
         <LeagueActions
           leagueId={league.id}
+          status={league.status}
           onView={onView}
           onApprove={onApprove}
           onReject={onReject}

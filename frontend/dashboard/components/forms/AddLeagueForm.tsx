@@ -601,18 +601,15 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
           {/* Division/Skill Level */}
           <div className="space-y-2">
             <Label htmlFor="division">Skill Level *</Label>
-            <select
+            <input
               {...register('division')}
               id="division"
+              type="text"
+              placeholder="e.g., Beginner, Intermediate, Expert"
               disabled={isViewingLeague}
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500"
               aria-invalid={errors.division ? 'true' : 'false'}
-            >
-              <option value="">Select a skill level</option>
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="expert">Expert</option>
-            </select>
+            />
             {errors.division && (
               <p className="text-sm text-red-600">{errors.division.message}</p>
             )}

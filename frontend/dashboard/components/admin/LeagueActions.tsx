@@ -4,12 +4,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
 
 interface LeagueActionsProps {
   leagueId: number;
+  status: string;
   onView: (leagueId: number) => void;
   onApprove: (leagueId: number) => void;
   onReject: (leagueId: number) => void;
 }
 
-export function LeagueActions({ leagueId, onView, onApprove, onReject }: LeagueActionsProps) {
+export function LeagueActions({ leagueId, status, onView, onApprove, onReject }: LeagueActionsProps) {
+  const canApprove = status !== "approved";
+  const canReject = status !== "rejected";
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -21,8 +25,12 @@ export function LeagueActions({ leagueId, onView, onApprove, onReject }: LeagueA
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuGroup>
           <DropdownMenuItem onClick={() => onView(leagueId)}>View</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onApprove(leagueId)}>Approve</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onReject(leagueId)}>Reject</DropdownMenuItem>
+          {canApprove && (
+            <DropdownMenuItem onClick={() => onApprove(leagueId)}>Approve</DropdownMenuItem>
+          )}
+          {canReject && (
+            <DropdownMenuItem onClick={() => onReject(leagueId)}>Reject</DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
