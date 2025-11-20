@@ -2,7 +2,6 @@ package leagues
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"
@@ -312,16 +311,7 @@ func (s *Service) ApproveLeague(ctx context.Context, userID string, id int) erro
 
 	// If sport_id is nil and form_data has sport_name, create it
 	if league.SportID == nil && league.FormData != nil {
-		formDataMap, ok := league.FormData.(map[string]interface{})
-		if !ok {
-			// Try to unmarshal if it's still JSON
-			err := json.Unmarshal(league.FormData.([]byte), &formDataMap)
-			if err != nil {
-				formDataMap = make(map[string]interface{})
-			}
-		}
-
-		if sportName, ok := formDataMap["sport_name"].(string); ok && sportName != "" {
+		if sportName, ok := league.FormData["sport_name"].(string); ok && sportName != "" {
 			newSport, err := s.sportsService.CreateSport(ctx, &sports.CreateSportRequest{
 				Name: sportName,
 			})
@@ -334,24 +324,15 @@ func (s *Service) ApproveLeague(ctx context.Context, userID string, id int) erro
 
 	// If venue_id is nil and form_data has venue_name, create it
 	if league.VenueID == nil && league.FormData != nil {
-		formDataMap, ok := league.FormData.(map[string]interface{})
-		if !ok {
-			// Try to unmarshal if it's still JSON
-			err := json.Unmarshal(league.FormData.([]byte), &formDataMap)
-			if err != nil {
-				formDataMap = make(map[string]interface{})
-			}
-		}
-
-		venueName, hasName := formDataMap["venue_name"].(string)
-		venueAddress, hasAddress := formDataMap["venue_address"].(string)
+		venueName, hasName := league.FormData["venue_name"].(string)
+		venueAddress, hasAddress := league.FormData["venue_address"].(string)
 		if (hasName && venueName != "") || (hasAddress && venueAddress != "") {
 			lat := 0.0
 			lng := 0.0
-			if venueLatVal, ok := formDataMap["venue_lat"].(float64); ok {
+			if venueLatVal, ok := league.FormData["venue_lat"].(float64); ok {
 				lat = venueLatVal
 			}
-			if venueLngVal, ok := formDataMap["venue_lng"].(float64); ok {
+			if venueLngVal, ok := league.FormData["venue_lng"].(float64); ok {
 				lng = venueLngVal
 			}
 
@@ -468,25 +449,7 @@ func (s *Service) ApproveLeagueByUUID(ctx context.Context, userID string, id str
 
 	// If sport_id is nil and form_data has sport_name, create it
 	if league.SportID == nil && league.FormData != nil {
-		formDataMap, ok := league.FormData.(map[string]interface{})
-		if !ok {
-			// Try to unmarshal if it's still JSON
-			var formDataBytes []byte
-			switch v := league.FormData.(type) {
-			case []byte:
-				formDataBytes = v
-			case string:
-				formDataBytes = []byte(v)
-			}
-			if len(formDataBytes) > 0 {
-				json.Unmarshal(formDataBytes, &formDataMap)
-			}
-			if formDataMap == nil {
-				formDataMap = make(map[string]interface{})
-			}
-		}
-
-		if sportName, ok := formDataMap["sport_name"].(string); ok && sportName != "" {
+		if sportName, ok := league.FormData["sport_name"].(string); ok && sportName != "" {
 			newSport, err := s.sportsService.CreateSport(ctx, &sports.CreateSportRequest{
 				Name: sportName,
 			})
@@ -499,33 +462,15 @@ func (s *Service) ApproveLeagueByUUID(ctx context.Context, userID string, id str
 
 	// If venue_id is nil and form_data has venue_name, create it
 	if league.VenueID == nil && league.FormData != nil {
-		formDataMap, ok := league.FormData.(map[string]interface{})
-		if !ok {
-			// Try to unmarshal if it's still JSON
-			var formDataBytes []byte
-			switch v := league.FormData.(type) {
-			case []byte:
-				formDataBytes = v
-			case string:
-				formDataBytes = []byte(v)
-			}
-			if len(formDataBytes) > 0 {
-				json.Unmarshal(formDataBytes, &formDataMap)
-			}
-			if formDataMap == nil {
-				formDataMap = make(map[string]interface{})
-			}
-		}
-
-		venueName, hasName := formDataMap["venue_name"].(string)
-		venueAddress, hasAddress := formDataMap["venue_address"].(string)
+		venueName, hasName := league.FormData["venue_name"].(string)
+		venueAddress, hasAddress := league.FormData["venue_address"].(string)
 		if (hasName && venueName != "") || (hasAddress && venueAddress != "") {
 			lat := 0.0
 			lng := 0.0
-			if venueLatVal, ok := formDataMap["venue_lat"].(float64); ok {
+			if venueLatVal, ok := league.FormData["venue_lat"].(float64); ok {
 				lat = venueLatVal
 			}
-			if venueLngVal, ok := formDataMap["venue_lng"].(float64); ok {
+			if venueLngVal, ok := league.FormData["venue_lng"].(float64); ok {
 				lng = venueLngVal
 			}
 
@@ -559,7 +504,7 @@ func (s *Service) ApproveLeagueByUUID(ctx context.Context, userID string, id str
 			"League Approved",
 			fmt.Sprintf("Your league '%s' has been approved!", league.LeagueName),
 			nil,
-			league.ID,
+			league.OrgID,
 		)
 		if notificationErr != nil {
 			slog.Error("failed to send league approval notification", "leagueID", id, "userID", league.CreatedBy, "err", notificationErr)
@@ -609,7 +554,7 @@ func (s *Service) RejectLeagueByUUID(ctx context.Context, userID string, id stri
 			"League Rejected",
 			fmt.Sprintf("Your league '%s' was rejected. Reason: %s", league.LeagueName, rejectionReason),
 			nil,
-			league.ID,
+			league.OrgID,
 		)
 		if notificationErr != nil {
 			slog.Error("failed to send league rejection notification", "leagueID", id, "userID", league.CreatedBy, "err", notificationErr)
