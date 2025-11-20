@@ -73,7 +73,7 @@ func newRouter(postgrestClient *postgrest.Client, postgrestServiceClient *postgr
 	organizationsHandler := organizations.NewHandler(organizationsService, authService)
 
 	// Notifications
-	notificationsService := notifications.NewService(postgrestClient)
+	notificationsService := notifications.NewService(postgrestClient, postgrestServiceClient)
 	notificationsHandler := notifications.NewHandler(notificationsService)
 
 	// Leagues

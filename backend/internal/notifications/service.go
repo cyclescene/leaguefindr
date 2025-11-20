@@ -16,6 +16,7 @@ import (
 // Service handles notification operations and real-time broadcasting
 type Service struct {
 	postgrestClient      *postgrest.Client
+	postgrestServiceClient *postgrest.Client // For backend operations (bypasses RLS)
 	supabaseBroadcastURL string
 	supabaseAPIKey       string
 	httpClient           *http.Client
@@ -47,7 +48,7 @@ type broadcastPayload struct {
 }
 
 // NewService creates a new notification service
-func NewService(postgrestClient *postgrest.Client) *Service {
+func NewService(postgrestClient *postgrest.Client, postgrestServiceClient *postgrest.Client) *Service {
 	broadcastURL := os.Getenv("SUPABASE_BROADCAST_URL")
 	apiKey := os.Getenv("SUPABASE_API_KEY")
 
@@ -59,10 +60,11 @@ func NewService(postgrestClient *postgrest.Client) *Service {
 	}
 
 	return &Service{
-		postgrestClient:      postgrestClient,
-		supabaseBroadcastURL: broadcastURL,
-		supabaseAPIKey:       apiKey,
-		httpClient:           &http.Client{Timeout: 5 * time.Second},
+		postgrestClient:        postgrestClient,
+		postgrestServiceClient: postgrestServiceClient,
+		supabaseBroadcastURL:   broadcastURL,
+		supabaseAPIKey:         apiKey,
+		httpClient:             &http.Client{Timeout: 5 * time.Second},
 	}
 }
 
@@ -93,7 +95,7 @@ func (s *Service) CreateNotification(ctx context.Context, userID string, notific
 	}
 
 	var results []map[string]interface{}
-	_, err = s.postgrestClient.From("notifications").
+	_, err = s.postgrestServiceClient.From("notifications").
 		Insert(insertData, true, "", "", "").
 		ExecuteToWithContext(ctx, &results)
 

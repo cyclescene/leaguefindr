@@ -335,6 +335,7 @@ USING (
 );
 
 -- INSERT: System/backend creates notifications (trusted)
+-- Backend service role can create notifications - no RLS check needed for service role
 CREATE POLICY "System can create notifications"
 ON notifications FOR INSERT
 WITH CHECK (true);
