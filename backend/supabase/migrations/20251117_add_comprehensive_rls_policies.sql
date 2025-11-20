@@ -16,6 +16,9 @@ ALTER TABLE leagues_drafts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE game_occurrences ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE org_id_mapping ENABLE ROW LEVEL SECURITY;
+ALTER TABLE organizations_staging ENABLE ROW LEVEL SECURITY;
+ALTER TABLE leagues_staging ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
 -- USERS TABLE POLICIES
@@ -386,3 +389,72 @@ USING (
   (SELECT ((SELECT auth.jwt()))->>'sub')::text = user_id
   OR (SELECT ((SELECT auth.jwt()))->>'appRole') = 'admin'
 );
+
+-- ============================================================================
+-- STAGING AND MAPPING TABLES - BACKEND ONLY
+-- ============================================================================
+-- These tables are internal to backend processes and should NOT be accessible
+-- to frontend clients. All operations are restricted to backend service role.
+
+-- ============================================================================
+-- ORG_ID_MAPPING TABLE POLICIES
+-- ============================================================================
+-- Deny all client access - backend only via service role
+
+CREATE POLICY "Deny all SELECT on org_id_mapping"
+ON org_id_mapping FOR SELECT
+USING (false);
+
+CREATE POLICY "Deny all INSERT on org_id_mapping"
+ON org_id_mapping FOR INSERT
+WITH CHECK (false);
+
+CREATE POLICY "Deny all UPDATE on org_id_mapping"
+ON org_id_mapping FOR UPDATE
+USING (false);
+
+CREATE POLICY "Deny all DELETE on org_id_mapping"
+ON org_id_mapping FOR DELETE
+USING (false);
+
+-- ============================================================================
+-- ORGANIZATIONS_STAGING TABLE POLICIES
+-- ============================================================================
+-- Deny all client access - backend only via service role
+
+CREATE POLICY "Deny all SELECT on organizations_staging"
+ON organizations_staging FOR SELECT
+USING (false);
+
+CREATE POLICY "Deny all INSERT on organizations_staging"
+ON organizations_staging FOR INSERT
+WITH CHECK (false);
+
+CREATE POLICY "Deny all UPDATE on organizations_staging"
+ON organizations_staging FOR UPDATE
+USING (false);
+
+CREATE POLICY "Deny all DELETE on organizations_staging"
+ON organizations_staging FOR DELETE
+USING (false);
+
+-- ============================================================================
+-- LEAGUES_STAGING TABLE POLICIES
+-- ============================================================================
+-- Deny all client access - backend only via service role
+
+CREATE POLICY "Deny all SELECT on leagues_staging"
+ON leagues_staging FOR SELECT
+USING (false);
+
+CREATE POLICY "Deny all INSERT on leagues_staging"
+ON leagues_staging FOR INSERT
+WITH CHECK (false);
+
+CREATE POLICY "Deny all UPDATE on leagues_staging"
+ON leagues_staging FOR UPDATE
+USING (false);
+
+CREATE POLICY "Deny all DELETE on leagues_staging"
+ON leagues_staging FOR DELETE
+USING (false);
