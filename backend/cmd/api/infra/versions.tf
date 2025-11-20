@@ -1,0 +1,21 @@
+terraform {
+  required_version = ">= 1.5"
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 6.0"
+    }
+  }
+
+  # Configure remote state storage in GCS
+  # Uncomment after applying root infrastructure
+  # backend "gcs" {
+  #   bucket = "leaguefindr-dev-terraform-state"
+  #   prefix = "services/api"
+  # }
+}
+
+provider "google" {
+  project = var.project_id
+  region  = var.region
+}

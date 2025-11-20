@@ -1,0 +1,38 @@
+# Example Terraform Variables File
+# Copy this to terraform.tfvars and fill in your actual values
+# terraform.tfvars is ignored by git to prevent secrets leaks
+
+project_id   = "leaguefindr-dev"
+region       = "us-west1"
+service_name = "leaguefindr-api"
+image_tag    = "latest"
+
+# API Configuration
+container_port        = 8080
+min_instances         = 0
+max_instances         = 10
+cpu_limit             = "1"
+memory_limit          = "512Mi"
+timeout_seconds       = 300
+allow_unauthenticated = true
+
+# Environment configuration
+env                       = "dev"
+skip_email_verification   = true
+
+# Supabase configuration
+# Get these from your Supabase project settings
+supabase_url        = "https://your-project.supabase.co"
+supabase_anon_key   = "your-anon-key-here"
+supabase_secret_key = "your-secret-key-here"
+
+# Clerk configuration
+# Get this from your Clerk dashboard
+clerk_secret_key = "sk_test_your-clerk-key-here"
+
+labels = {
+  app         = "leaguefindr"
+  service     = "api"
+  environment = "dev"
+  managed-by  = "opentofu"
+}

@@ -44,3 +44,31 @@ coverage/
 # OS
 .DS_Store
 Thumbs.db
+
+# Terraform / OpenTofu
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+.tofu/
+.tofu.lock.hcl
+*.tofu
+*_backup.tfstate
+
+# Local development overrides
+backend/cmd/*/infra/terraform.tfvars
+backend/cmd/*/infra/.terraform/
+backend/cmd/*/infra/.terraform.lock.hcl
+backend/cmd/*/infra/tfplan
+infrastructure/.terraform/
+infrastructure/.terraform.lock.hcl
