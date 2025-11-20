@@ -363,3 +363,36 @@ func (s *Service) MarkAsRead(ctx context.Context, notificationID int, userID str
 
 	return nil
 }
+
+// CreateNotificationForAllAdmins sends a notification to all admins
+func (s *Service) CreateNotificationForAllAdmins(ctx context.Context, notificationType string, title string, message string, relatedLeagueID *int, relatedOrgID *string) error {
+	// Fetch all admin users
+	var adminUsers []map[string]interface{}
+	_, err := s.postgrestServiceClient.From("users").
+		Select("id", "", false).
+		Eq("role", "admin").
+		ExecuteToWithContext(ctx, &adminUsers)
+
+	if err != nil {
+		slog.Error("failed to fetch admin users", "err", err)
+		return fmt.Errorf("failed to fetch admin users: %w", err)
+	}
+
+	if len(adminUsers) == 0 {
+		slog.Warn("no admin users found for notification")
+		return nil
+	}
+
+	// Create notification for each admin
+	for _, adminUser := range adminUsers {
+		if adminID, ok := adminUser["id"].(string); ok {
+			err := s.CreateNotification(ctx, adminID, notificationType, title, message, relatedLeagueID, relatedOrgID)
+			if err != nil {
+				slog.Error("failed to create admin notification", "adminID", adminID, "err", err)
+				// Continue with other admins even if one fails
+			}
+		}
+	}
+
+	return nil
+}

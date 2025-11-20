@@ -285,6 +285,24 @@ func (s *Service) CreateLeague(ctx context.Context, userID string, orgID string,
 		return nil, fmt.Errorf("failed to create league: %w", err)
 	}
 
+	// Send notification to all admins that a new league was submitted
+	leagueName := ""
+	if league.LeagueName != nil {
+		leagueName = *league.LeagueName
+	}
+	notificationErr := s.notificationsService.CreateNotificationForAllAdmins(
+		context.Background(),
+		notifications.NotificationLeagueSubmitted.String(),
+		"New League Submitted",
+		fmt.Sprintf("A new league '%s' has been submitted for approval", leagueName),
+		nil,
+		league.OrgID,
+	)
+	if notificationErr != nil {
+		slog.Warn("failed to send league submitted notification to admins", "leagueID", league.ID, "err", notificationErr)
+		// Don't return error - league was already created, notification failure isn't critical
+	}
+
 	return league, nil
 }
 
