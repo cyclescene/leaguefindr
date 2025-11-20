@@ -91,8 +91,6 @@ CREATE TABLE sports (
   name TEXT NOT NULL UNIQUE
 );
 
-CREATE UNIQUE INDEX idx_sports_name ON sports(name);
-
 COMMENT ON TABLE sports IS 'Reference data: Available sports (Basketball, Soccer, Volleyball, etc.)';
 COMMENT ON COLUMN sports.name IS 'Sport name - must be unique';
 

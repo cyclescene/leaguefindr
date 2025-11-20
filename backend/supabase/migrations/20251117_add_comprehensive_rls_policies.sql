@@ -25,27 +25,27 @@ ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users see their own profile"
 ON users FOR SELECT
 USING (
-  (auth.jwt()->>'sub')::text = id
-  OR auth.jwt()->>'appRole' = 'admin'
+  (((SELECT auth.jwt()))->>'sub')::text = id
+  OR ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- Users update their own profile, admins can update anyone
 CREATE POLICY "Users can update their own profile"
 ON users FOR UPDATE
 USING (
-  (auth.jwt()->>'sub')::text = id
-  OR auth.jwt()->>'appRole' = 'admin'
+  (((SELECT auth.jwt()))->>'sub')::text = id
+  OR ((SELECT auth.jwt()))->>'appRole' = 'admin'
 )
 WITH CHECK (
-  (auth.jwt()->>'sub')::text = id
-  OR auth.jwt()->>'appRole' = 'admin'
+  (((SELECT auth.jwt()))->>'sub')::text = id
+  OR ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- Only admins can delete users
 CREATE POLICY "Only admins can delete users"
 ON users FOR DELETE
 USING (
-  auth.jwt()->>'appRole' = 'admin'
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- ============================================================================
@@ -61,16 +61,16 @@ USING (true);
 CREATE POLICY "Admins and organizers can create organizations"
 ON organizations FOR INSERT
 WITH CHECK (
-  auth.jwt()->>'appRole' = 'admin'
-  OR auth.jwt()->>'appRole' = 'organizer'
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
+  OR ((SELECT auth.jwt()))->>'appRole' = 'organizer'
 );
 
 -- Admins and org members can update organizations
 CREATE POLICY "Admins and org members can update organizations"
 ON organizations FOR UPDATE
 USING (
-  auth.jwt()->>'appRole' = 'admin'
-  OR (auth.jwt()->>'sub')::text IN (
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
+  OR (((SELECT auth.jwt()))->>'sub')::text IN (
     SELECT user_id FROM user_organizations
     WHERE org_id = organizations.id AND is_active = true
   )
@@ -80,8 +80,8 @@ USING (
 CREATE POLICY "Admins and org members can delete organizations"
 ON organizations FOR DELETE
 USING (
-  auth.jwt()->>'appRole' = 'admin'
-  OR (auth.jwt()->>'sub')::text IN (
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
+  OR (((SELECT auth.jwt()))->>'sub')::text IN (
     SELECT user_id FROM user_organizations
     WHERE org_id = organizations.id AND is_active = true
   )
@@ -95,18 +95,18 @@ USING (
 CREATE POLICY "Users see their organization memberships"
 ON user_organizations FOR SELECT
 USING (
-  (auth.jwt()->>'sub')::text = user_id
-  OR auth.jwt()->>'appRole' = 'admin'
+  (SELECT ((SELECT auth.jwt()))->>'sub')::text = user_id
+  OR (SELECT ((SELECT auth.jwt()))->>'appRole') = 'admin'
 );
 
 -- Only organizers and admins can be added to user_organizations
 CREATE POLICY "Only organizers and admins can join organizations"
 ON user_organizations FOR INSERT
 WITH CHECK (
-  auth.jwt()->>'appRole' = 'admin'
+  (SELECT ((SELECT auth.jwt()))->>'appRole') = 'admin'
   OR (
-    (auth.jwt()->>'sub')::text = user_id
-    AND (auth.jwt()->>'appRole' = 'organizer' OR auth.jwt()->>'appRole' = 'admin')
+    (SELECT ((SELECT auth.jwt()))->>'sub')::text = user_id
+    AND ((SELECT ((SELECT auth.jwt()))->>'appRole') = 'organizer' OR (SELECT ((SELECT auth.jwt()))->>'appRole') = 'admin')
   )
 );
 
@@ -114,16 +114,16 @@ WITH CHECK (
 CREATE POLICY "Users can update their own org memberships"
 ON user_organizations FOR UPDATE
 USING (
-  (auth.jwt()->>'sub')::text = user_id
-  OR auth.jwt()->>'appRole' = 'admin'
+  (SELECT ((SELECT auth.jwt()))->>'sub')::text = user_id
+  OR (SELECT ((SELECT auth.jwt()))->>'appRole') = 'admin'
 );
 
 -- Users can leave organizations themselves, admins can remove anyone
 CREATE POLICY "Users can leave organizations"
 ON user_organizations FOR DELETE
 USING (
-  (auth.jwt()->>'sub')::text = user_id
-  OR auth.jwt()->>'appRole' = 'admin'
+  (SELECT ((SELECT auth.jwt()))->>'sub')::text = user_id
+  OR (SELECT ((SELECT auth.jwt()))->>'appRole') = 'admin'
 );
 
 -- ============================================================================
@@ -139,21 +139,21 @@ USING (true);
 CREATE POLICY "Only admins can create sports"
 ON sports FOR INSERT
 WITH CHECK (
-  auth.jwt()->>'appRole' = 'admin'
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- Only admins can update sports
 CREATE POLICY "Only admins can update sports"
 ON sports FOR UPDATE
 USING (
-  auth.jwt()->>'appRole' = 'admin'
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- Only admins can delete sports
 CREATE POLICY "Only admins can delete sports"
 ON sports FOR DELETE
 USING (
-  auth.jwt()->>'appRole' = 'admin'
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- ============================================================================
@@ -169,21 +169,21 @@ USING (true);
 CREATE POLICY "Only admins can create venues"
 ON venues FOR INSERT
 WITH CHECK (
-  auth.jwt()->>'appRole' = 'admin'
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- Only admins can update venues
 CREATE POLICY "Only admins can update venues"
 ON venues FOR UPDATE
 USING (
-  auth.jwt()->>'appRole' = 'admin'
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- Only admins can delete venues
 CREATE POLICY "Only admins can delete venues"
 ON venues FOR DELETE
 USING (
-  auth.jwt()->>'appRole' = 'admin'
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- ============================================================================
@@ -195,8 +195,8 @@ CREATE POLICY "Users see approved and their org leagues"
 ON leagues FOR SELECT
 USING (
   status = 'approved'
-  OR auth.jwt()->>'appRole' = 'admin'
-  OR (auth.jwt()->>'sub')::text IN (
+  OR ((SELECT auth.jwt()))->>'appRole' = 'admin'
+  OR (((SELECT auth.jwt()))->>'sub')::text IN (
     SELECT user_id FROM user_organizations
     WHERE org_id = leagues.org_id AND is_active = true
   )
@@ -206,10 +206,10 @@ USING (
 CREATE POLICY "Org members and admins can create leagues"
 ON leagues FOR INSERT
 WITH CHECK (
-  auth.jwt()->>'appRole' = 'admin'
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
   OR EXISTS (
     SELECT 1 FROM user_organizations
-    WHERE user_id = (auth.jwt()->>'sub')::text
+    WHERE user_id = (((SELECT auth.jwt()))->>'sub')::text
     AND user_organizations.org_id = leagues.org_id
     AND is_active = true
   )
@@ -219,24 +219,24 @@ WITH CHECK (
 CREATE POLICY "Org members and admins can update leagues"
 ON leagues FOR UPDATE
 USING (
-  auth.jwt()->>'appRole' = 'admin'
-  OR (auth.jwt()->>'sub')::text IN (
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
+  OR (((SELECT auth.jwt()))->>'sub')::text IN (
     SELECT user_id FROM user_organizations
     WHERE org_id = leagues.org_id AND is_active = true
   )
-  OR (auth.jwt()->>'sub')::text = created_by
+  OR (((SELECT auth.jwt()))->>'sub')::text = created_by
 );
 
 -- DELETE: Org members, creators, and admins can delete
 CREATE POLICY "Org members and admins can delete leagues"
 ON leagues FOR DELETE
 USING (
-  auth.jwt()->>'appRole' = 'admin'
-  OR (auth.jwt()->>'sub')::text IN (
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
+  OR (((SELECT auth.jwt()))->>'sub')::text IN (
     SELECT user_id FROM user_organizations
     WHERE org_id = leagues.org_id AND is_active = true
   )
-  OR (auth.jwt()->>'sub')::text = created_by
+  OR (((SELECT auth.jwt()))->>'sub')::text = created_by
 );
 
 -- ============================================================================
@@ -248,44 +248,44 @@ USING (
 CREATE POLICY "Users see their own and org drafts"
 ON leagues_drafts FOR SELECT
 USING (
-  (auth.jwt()->>'sub')::text = created_by
-  OR (auth.jwt()->>'sub')::text IN (
+  (((SELECT auth.jwt()))->>'sub')::text = created_by
+  OR (((SELECT auth.jwt()))->>'sub')::text IN (
     SELECT user_id FROM user_organizations
     WHERE org_id = leagues_drafts.org_id AND is_active = true
   )
-  OR auth.jwt()->>'appRole' = 'admin'
+  OR ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- INSERT: Organizers and admins can create drafts/templates
 CREATE POLICY "Organizers and admins can create drafts"
 ON leagues_drafts FOR INSERT
 WITH CHECK (
-  auth.jwt()->>'appRole' = 'admin'
-  OR auth.jwt()->>'appRole' = 'organizer'
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
+  OR ((SELECT auth.jwt()))->>'appRole' = 'organizer'
 );
 
 -- UPDATE: Owners and org members can update drafts/templates
 CREATE POLICY "Users and org members can update drafts"
 ON leagues_drafts FOR UPDATE
 USING (
-  (auth.jwt()->>'sub')::text = created_by
-  OR (auth.jwt()->>'sub')::text IN (
+  (((SELECT auth.jwt()))->>'sub')::text = created_by
+  OR (((SELECT auth.jwt()))->>'sub')::text IN (
     SELECT user_id FROM user_organizations
     WHERE org_id = leagues_drafts.org_id AND is_active = true
   )
-  OR auth.jwt()->>'appRole' = 'admin'
+  OR ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- DELETE: Owners and org members can delete drafts/templates
 CREATE POLICY "Users can delete their own drafts"
 ON leagues_drafts FOR DELETE
 USING (
-  (auth.jwt()->>'sub')::text = created_by
-  OR (auth.jwt()->>'sub')::text IN (
+  (((SELECT auth.jwt()))->>'sub')::text = created_by
+  OR (((SELECT auth.jwt()))->>'sub')::text IN (
     SELECT user_id FROM user_organizations
     WHERE org_id = leagues_drafts.org_id AND is_active = true
   )
-  OR auth.jwt()->>'appRole' = 'admin'
+  OR ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- ============================================================================
@@ -301,21 +301,21 @@ USING (true);
 CREATE POLICY "Only admins can create game occurrences"
 ON game_occurrences FOR INSERT
 WITH CHECK (
-  auth.jwt()->>'appRole' = 'admin'
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- UPDATE: Only admins can update game occurrences
 CREATE POLICY "Only admins can update game occurrences"
 ON game_occurrences FOR UPDATE
 USING (
-  auth.jwt()->>'appRole' = 'admin'
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- DELETE: Only admins can delete game occurrences
 CREATE POLICY "Only admins can delete game occurrences"
 ON game_occurrences FOR DELETE
 USING (
-  auth.jwt()->>'appRole' = 'admin'
+  ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- ============================================================================
@@ -327,8 +327,8 @@ USING (
 CREATE POLICY "Users see their own notifications"
 ON notifications FOR SELECT
 USING (
-  (auth.jwt()->>'sub')::text = user_id
-  OR auth.jwt()->>'appRole' = 'admin'
+  (((SELECT auth.jwt()))->>'sub')::text = user_id
+  OR ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- INSERT: System/backend creates notifications (trusted)
@@ -340,16 +340,16 @@ WITH CHECK (true);
 CREATE POLICY "Users can update their own notifications"
 ON notifications FOR UPDATE
 USING (
-  (auth.jwt()->>'sub')::text = user_id
-  OR auth.jwt()->>'appRole' = 'admin'
+  (((SELECT auth.jwt()))->>'sub')::text = user_id
+  OR ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- DELETE: Users delete their own, admins can delete any
 CREATE POLICY "Users can delete their own notifications"
 ON notifications FOR DELETE
 USING (
-  (auth.jwt()->>'sub')::text = user_id
-  OR auth.jwt()->>'appRole' = 'admin'
+  (((SELECT auth.jwt()))->>'sub')::text = user_id
+  OR ((SELECT auth.jwt()))->>'appRole' = 'admin'
 );
 
 -- ============================================================================
@@ -360,29 +360,29 @@ USING (
 CREATE POLICY "Users see their own notification preferences"
 ON notification_preferences FOR SELECT
 USING (
-  (auth.jwt()->>'sub')::text = user_id
-  OR auth.jwt()->>'appRole' = 'admin'
+  (SELECT ((SELECT auth.jwt()))->>'sub')::text = user_id
+  OR (SELECT ((SELECT auth.jwt()))->>'appRole') = 'admin'
 );
 
 -- INSERT: Users create their own preferences
 CREATE POLICY "Users can create their own notification preferences"
 ON notification_preferences FOR INSERT
 WITH CHECK (
-  (auth.jwt()->>'sub')::text = user_id
+  (SELECT ((SELECT auth.jwt()))->>'sub')::text = user_id
 );
 
 -- UPDATE: Users update their own, admins can update any
 CREATE POLICY "Users can update their own notification preferences"
 ON notification_preferences FOR UPDATE
 USING (
-  (auth.jwt()->>'sub')::text = user_id
-  OR auth.jwt()->>'appRole' = 'admin'
+  (SELECT ((SELECT auth.jwt()))->>'sub')::text = user_id
+  OR (SELECT ((SELECT auth.jwt()))->>'appRole') = 'admin'
 );
 
 -- DELETE: Users delete their own, admins can delete any
 CREATE POLICY "Users can delete their own notification preferences"
 ON notification_preferences FOR DELETE
 USING (
-  (auth.jwt()->>'sub')::text = user_id
-  OR auth.jwt()->>'appRole' = 'admin'
+  (SELECT ((SELECT auth.jwt()))->>'sub')::text = user_id
+  OR (SELECT ((SELECT auth.jwt()))->>'appRole') = 'admin'
 );
