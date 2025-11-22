@@ -2,6 +2,8 @@
 
 ## Features
 
+> CI/CD pipeline is now live with automatic deployments to Cloud Run
+
 - Authentication
   - Clerk
 
