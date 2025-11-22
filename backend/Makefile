@@ -1,4 +1,4 @@
-PROJECT_ID := leaguefindr-dev
+PROJECT_ID := leaguefindr
 REGION := us-west1
 REPO_NAME := leaguefindr
 
@@ -38,10 +38,12 @@ setup-state:
 	@echo "Creating Terraform state bucket..."
 	@echo "Project: $(PROJECT_ID)"
 	@echo "Region: $(REGION)"
-	gsutil mb -l $(REGION) gs://$(PROJECT_ID)-terraform-state 2>/dev/null || \
+	gcloud storage buckets create gs://$(PROJECT_ID)-terraform-state \
+		--location=$(REGION) \
+		--project=$(PROJECT_ID) 2>/dev/null || \
 		echo "State bucket may already exist. Continuing..."
 	@echo "Enabling versioning on state bucket..."
-	gsutil versioning set on gs://$(PROJECT_ID)-terraform-state
+	gcloud storage buckets update gs://$(PROJECT_ID)-terraform-state --versioning
 	@echo "✓ Terraform state bucket created!"
 	@echo ""
 	@echo "State bucket: gs://$(PROJECT_ID)-terraform-state"
