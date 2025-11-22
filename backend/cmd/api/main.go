@@ -83,4 +83,4 @@ func main() {
 	slog.Info("Starting server...", "port", "8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
-// Trigger workflow - testing with verified WIF secrets and repository permissions
+// Trigger workflow - testing with fixed WIF service account binding
