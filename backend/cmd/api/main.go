@@ -83,4 +83,4 @@ func main() {
 	slog.Info("Starting server...", "port", "8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
-// Trigger workflow - testing with fixed WIF service account binding
+// Trigger workflow - testing with fixed WIF and service account admin role
