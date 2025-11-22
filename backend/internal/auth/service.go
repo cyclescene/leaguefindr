@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
-	"strings"
 
 	"github.com/supabase-community/postgrest-go"
 )
