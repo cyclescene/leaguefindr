@@ -1,10 +1,10 @@
-PROJECT_ID := leaguefindr-dev
+PROJECT_ID := leaguefindr
 REGION := us-west1
 REPO_NAME := leaguefindr
-SERVICE_NAME := leaguefindr-api
-IMAGE_NAME := api-image
+SERVICE_NAME := api
+IMAGE_NAME := api
 LOCAL_TAG := leaguefindr-api:latest
-IMAGE_TAG := $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(REPO_NAME)/$(SERVICE_NAME)/$(IMAGE_NAME):latest
+IMAGE_TAG := $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(REPO_NAME)/$(SERVICE_NAME):latest
 
 .PHONY: help build push deploy deploy-all clean
 
@@ -17,10 +17,10 @@ help:
 	@echo "  make deploy-all  - Build, push, and deploy everything"
 	@echo "  make clean       - Clean local Docker images and Terraform files"
 
-# Build Docker image (context is functions root)
+# Build Docker image (context is backend root)
 build:
 	@echo "--- Building Docker image ---"
-	docker build -t $(LOCAL_TAG) -f Dockerfile ../../..
+	docker build -t $(LOCAL_TAG) -f Dockerfile ../..
 
 # Push image to Artifact Registry
 push: build

@@ -9,7 +9,7 @@ terraform {
 
   # Configure remote state storage in GCS
   backend "gcs" {
-    bucket = "leaguefindr-dev-terraform-state"
+    bucket = "leaguefindr-terraform-state"
     prefix = "services/api"
   }
 }

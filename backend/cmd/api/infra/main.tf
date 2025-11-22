@@ -7,7 +7,7 @@ locals {
 
 # Create service account for the API
 module "api_service_account" {
-  source = "../../../infrastructure/modules/service-account"
+  source = "../../../../infrastructure/modules/service-account"
 
   account_id   = "leaguefindr-api"
   display_name = "League Findr API Service Account"
@@ -23,7 +23,7 @@ module "api_service_account" {
 
 # Create Cloud Run service
 module "api_service" {
-  source = "../../../infrastructure/modules/cloud-run-service"
+  source = "../../../../infrastructure/modules/cloud-run-service"
 
   service_name          = var.service_name
   region                = var.region
