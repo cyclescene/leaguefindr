@@ -67,62 +67,46 @@ export function SignUpForm() {
         // No need to explicitly sign in again
       }
 
-      // Sync user to backend after Clerk signup
-      const clerkId = result.createdUserId;
-      const response = await fetch('/api/auth?action=register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          clerkID: clerkId,
-          email: data.email,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to sync user to backend:', errorText);
-        setSubmitted(false);
-        return;
-      }
-
       // Check if email is already verified (happens for first admin user)
       // If unverifiedFields is empty, all fields (including email) are verified
-      const isEmailVerified = signUp.unverifiedFields.length === 0;
+      const emailNeedsVerification = signUp.unverifiedFields.length > 0;
+
+      // Sync user to backend after Clerk signup (but only for first admin users)
+      if (!emailNeedsVerification) {
+        // First admin user - sync immediately since email is already verified
+        const clerkId = result.createdUserId;
+        const response = await fetch('/api/auth?action=register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            clerkID: clerkId,
+            email: data.email,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Failed to sync user to backend:', errorText);
+          setSubmitted(false);
+          return;
+        }
+      }
 
       // Show loading state and redirect after session syncs with Clerk
       setIsRedirecting(true);
 
-      // Wait for auth to load and user to be established in session
-      const checkAuthAndRedirect = async () => {
-        // Give Clerk time to establish the session and auth to load
-        let attempts = 0;
-        const maxAttempts = 5;
-
-        while (attempts < maxAttempts) {
-          // If email is already verified and user is authenticated, go to dashboard
-          if (isEmailVerified && authIsLoaded && userId) {
-            router.push('/');
-            return;
-          }
-
-          // Wait before retrying
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          attempts++;
-        }
-
-        // If we get here, check one more time
-        if (isEmailVerified) {
-          // Session was already created during signup
-          // Do a hard page refresh to let ClerkProvider reinitialize with the new session
-          window.location.href = '/';
-        } else {
-          router.push('/verify-email');
-        }
-      };
-
-      checkAuthAndRedirect();
+      // Redirect based on whether email needs verification
+      if (emailNeedsVerification) {
+        // User needs to verify email - redirect to verify page
+        setIsRedirecting(false);
+        router.push('/verify-email');
+      } else {
+        // First admin user - email already verified, go to dashboard
+        setIsRedirecting(false);
+        window.location.href = '/';
+      }
     } catch (error) {
       console.error('Sign up failed:', error);
       setSubmitted(false);

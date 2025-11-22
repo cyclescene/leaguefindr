@@ -191,6 +191,7 @@ export function LeagueFormButtons({
         {!isEditingTemplate && (
           <Button
             type="submit"
+            onClick={onSubmit}
             disabled={isSubmitting || isSavingDraft}
             className="flex-1"
           >

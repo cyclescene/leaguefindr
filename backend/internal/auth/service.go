@@ -87,8 +87,10 @@ func (s *Service) RegisterUser(ctx context.Context, clerkID, email string) error
 	role := RoleOrganizer
 	adminExists, err := repo.AdminExists(ctx)
 	if err != nil {
+		slog.Error("failed to check admin existence", "clerkID", clerkID, "err", err)
 		return fmt.Errorf("failed to check admin existence: %w", err)
 	}
+	slog.Info("admin existence check", "clerkID", clerkID, "adminExists", adminExists)
 	if !adminExists {
 		role = RoleAdmin
 	}
@@ -104,7 +106,9 @@ func (s *Service) RegisterUser(ctx context.Context, clerkID, email string) error
 
 	// Auto-verify email if this is the first admin user or if SKIP_EMAIL_VERIFICATION is enabled
 	shouldVerifyEmail := role == RoleAdmin || skipEmailVerification
+	slog.Info("email verification check", "clerkID", clerkID, "role", role.String(), "skipEmailVerification", skipEmailVerification, "shouldVerifyEmail", shouldVerifyEmail)
 	if shouldVerifyEmail {
+		slog.Info("auto-verifying email", "clerkID", clerkID, "role", role.String())
 		verifyErr := VerifyUserEmailInClerk(clerkID)
 		if verifyErr != nil {
 			// Log but don't fail - user can verify manually if needed

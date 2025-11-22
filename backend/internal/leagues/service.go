@@ -511,8 +511,8 @@ func (s *Service) ApproveLeagueByUUID(ctx context.Context, userID string, id str
 		}
 	}
 
-	// Update league status to approved
-	err = repo.UpdateStatusByUUID(ctx, id, LeagueStatusApproved, nil)
+	// Update league status to approved and persist any newly created sport/venue IDs
+	err = repo.UpdateStatusByUUID(ctx, id, LeagueStatusApproved, nil, league.SportID, league.VenueID)
 	if err != nil {
 		return err
 	}
@@ -571,7 +571,7 @@ func (s *Service) RejectLeagueByUUID(ctx context.Context, userID string, id stri
 	}
 
 	// Update the league status
-	err = repo.UpdateStatusByUUID(ctx, id, LeagueStatusRejected, &rejectionReason)
+	err = repo.UpdateStatusByUUID(ctx, id, LeagueStatusRejected, &rejectionReason, nil, nil)
 	if err != nil {
 		return err
 	}
