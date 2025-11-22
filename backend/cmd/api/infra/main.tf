@@ -9,8 +9,8 @@ locals {
 module "api_service_account" {
   source = "../../../../infrastructure/modules/service-account"
 
-  account_id   = "leaguefindr-api"
-  display_name = "League Findr API Service Account"
+  account_id   = "api-leaguefindr"
+  display_name = "API - League Findr Service Account"
   description  = "Service account for League Findr API Cloud Run service"
   project_id   = var.project_id
 
