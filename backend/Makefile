@@ -8,10 +8,10 @@ help:
 	@echo "League Findr Backend Makefile"
 	@echo "=============================="
 	@echo ""
-	@echo "Registry & Setup:"
-	@echo "  make setup-registry    - Create Artifact Registry (must run once)"
-	@echo "  make init-backend      - Initialize backend setup (gcloud auth, etc.)"
-	@echo "  make destroy-registry  - Destroy Artifact Registry"
+	@echo "Initial Setup (run once):"
+	@echo "  make init-backend      - Authenticate with GCP"
+	@echo "  make setup-state       - Create Terraform state bucket"
+	@echo "  make setup-registry    - Create Artifact Registry"
 	@echo ""
 	@echo "Service Deployment:"
 	@echo "  make api-deploy        - Deploy API service"
@@ -20,6 +20,7 @@ help:
 	@echo ""
 	@echo "Utilities:"
 	@echo "  make list-images       - List all images in registry"
+	@echo "  make destroy-registry  - Destroy Artifact Registry"
 	@echo "  make clean             - Clean up local artifacts"
 
 # Initialize gcloud and authenticate
@@ -31,6 +32,19 @@ init-backend:
 	@echo "Configuring Docker for Artifact Registry..."
 	gcloud auth configure-docker $(REGION)-docker.pkg.dev --quiet
 	@echo "✓ Backend initialized!"
+
+# Create Terraform state bucket
+setup-state:
+	@echo "Creating Terraform state bucket..."
+	@echo "Project: $(PROJECT_ID)"
+	@echo "Region: $(REGION)"
+	gsutil mb -l $(REGION) gs://$(PROJECT_ID)-terraform-state 2>/dev/null || \
+		echo "State bucket may already exist. Continuing..."
+	@echo "Enabling versioning on state bucket..."
+	gsutil versioning set on gs://$(PROJECT_ID)-terraform-state
+	@echo "✓ Terraform state bucket created!"
+	@echo ""
+	@echo "State bucket: gs://$(PROJECT_ID)-terraform-state"
 
 # Create Artifact Registry repository
 setup-registry:
@@ -94,4 +108,4 @@ clean:
 	cd cmd/api && make clean
 	@echo "✓ Cleaned!"
 
-.PHONY: help setup-registry init-backend destroy-registry list-images api-deploy api-build api-push clean
+.PHONY: help setup-registry init-backend setup-state destroy-registry list-images api-deploy api-build api-push clean

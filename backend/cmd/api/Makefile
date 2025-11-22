@@ -32,8 +32,10 @@ push: build
 
 # Deploy infrastructure with OpenTofu
 deploy:
-	@echo "--- Deploying infrastructure ---"
-	cd infra && tofu init && tofu apply -auto-approve
+	@echo "--- Deploying infrastructure with OpenTofu ---"
+	cd infra && tofu init && tofu apply \
+		-var="image_tag=latest" \
+		-auto-approve
 
 # Full deployment pipeline
 deploy-all: push deploy

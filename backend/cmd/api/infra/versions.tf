@@ -8,11 +8,10 @@ terraform {
   }
 
   # Configure remote state storage in GCS
-  # Uncomment after applying root infrastructure
-  # backend "gcs" {
-  #   bucket = "leaguefindr-dev-terraform-state"
-  #   prefix = "services/api"
-  # }
+  backend "gcs" {
+    bucket = "leaguefindr-dev-terraform-state"
+    prefix = "services/api"
+  }
 }
 
 provider "google" {
