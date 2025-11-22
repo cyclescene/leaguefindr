@@ -67,61 +67,12 @@ export function SignUpForm() {
         // No need to explicitly sign in again
       }
 
-      // Get the created user ID from Clerk
-      const clerkId = signUp.createdUserId;
+      // Show loading state and redirect to email verification
+      setIsRedirecting(true);
+      setIsRedirecting(false);
 
-      if (!clerkId) {
-        console.error('Failed to get Clerk user ID from signup', {
-          signUpCreatedUserId: signUp.createdUserId,
-          userId
-        });
-        setSubmitted(false);
-        return;
-      }
-
-      // Check if this is the first user (which will become admin and skip email verification)
-      // Call backend to register and check if they're admin
-      try {
-        const registerResponse = await fetch('/api/auth?action=register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            clerkID: clerkId,
-            email: data.email,
-          }),
-        });
-
-        if (!registerResponse.ok) {
-          const errorText = await registerResponse.text();
-          console.error('Failed to register user:', errorText);
-          setSubmitted(false);
-          return;
-        }
-
-        // Get response to check if user is admin
-        const registerData = await registerResponse.json();
-        console.log('Registration response:', registerData);
-
-        // Show loading state
-        setIsRedirecting(true);
-
-        // If user is the first admin, they bypass email verification
-        // Otherwise, they need to verify their email
-        if (registerData.isAdmin) {
-          // First admin user - skip email verification, go straight to dashboard
-          setIsRedirecting(false);
-          window.location.href = '/';
-        } else {
-          // Regular user - needs to verify email
-          setIsRedirecting(false);
-          router.push('/verify-email');
-        }
-      } catch (registerError) {
-        console.error('Error during registration:', registerError);
-        setSubmitted(false);
-      }
+      // All users (including first admin) need to verify their email
+      router.push('/verify-email');
     } catch (error) {
       console.error('Sign up failed:', error);
       setSubmitted(false);

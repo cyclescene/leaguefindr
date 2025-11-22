@@ -105,20 +105,8 @@ func (s *Service) RegisterUser(ctx context.Context, clerkID, email string) (bool
 		return false, err
 	}
 
-	// Check if we should skip email verification for all users
-	skipEmailVerification := strings.ToLower(os.Getenv("SKIP_EMAIL_VERIFICATION")) == "true"
-
-	// Auto-verify email if this is the first admin user or if SKIP_EMAIL_VERIFICATION is enabled
-	shouldVerifyEmail := role == RoleAdmin || skipEmailVerification
-	slog.Info("email verification check", "clerkID", clerkID, "role", role.String(), "skipEmailVerification", skipEmailVerification, "shouldVerifyEmail", shouldVerifyEmail)
-	if shouldVerifyEmail {
-		slog.Info("auto-verifying email", "clerkID", clerkID, "role", role.String())
-		verifyErr := VerifyUserEmailInClerk(clerkID)
-		if verifyErr != nil {
-			// Log but don't fail - user can verify manually if needed
-			slog.Error("failed to auto-verify email", "clerkID", clerkID, "err", verifyErr)
-		}
-	}
+	// Note: Email verification is always required for all users, including admins
+	// Users verify via email code during signup flow
 
 	// Sync user metadata to Clerk (best effort - don't fail registration if sync fails)
 	syncErr := SyncUserMetadataToClerk(clerkID, role)
