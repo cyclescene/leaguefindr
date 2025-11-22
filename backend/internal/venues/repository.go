@@ -3,6 +3,7 @@ package venues
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strconv"
 
 	"github.com/supabase-community/postgrest-go"
@@ -90,16 +91,24 @@ func (r *Repository) Create(ctx context.Context, venue *Venue) (*Venue, error) {
 		return nil, fmt.Errorf("failed to create venue: %w", err)
 	}
 
-	venue.Name = venue.Name
-	venue.Address = venue.Address
-	venue.Lat = venue.Lat
-	venue.Lng = venue.Lng
-
 	// Extract ID from result if available
 	if len(result) > 0 && result[0]["id"] != nil {
-		if id, ok := result[0]["id"].(float64); ok {
-			venue.ID = int64(id)
+		idVal := result[0]["id"]
+		slog.Debug("venue create result", "id_value", idVal, "id_type", fmt.Sprintf("%T", idVal))
+
+		// Try multiple type assertions since JSON unmarshaling can produce different types
+		switch v := idVal.(type) {
+		case float64:
+			venue.ID = int64(v)
+		case int:
+			venue.ID = int64(v)
+		case int64:
+			venue.ID = v
+		default:
+			slog.Warn("unexpected type for venue ID", "type", fmt.Sprintf("%T", idVal), "value", idVal)
 		}
+	} else {
+		slog.Warn("no ID in venue create result", "result", result)
 	}
 
 	return venue, nil

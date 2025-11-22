@@ -276,12 +276,20 @@ func (r *Repository) UpdateStatus(ctx context.Context, id int, status LeagueStat
 	return nil
 }
 
-// UpdateStatusByUUID updates a league status by UUID
-func (r *Repository) UpdateStatusByUUID(ctx context.Context, id string, status LeagueStatus, rejectionReason *string) error {
+// UpdateStatusByUUID updates a league status by UUID and optionally updates sport_id and venue_id
+func (r *Repository) UpdateStatusByUUID(ctx context.Context, id string, status LeagueStatus, rejectionReason *string, sportID *int64, venueID *int64) error {
 	updateData := map[string]interface{}{
 		"status":           status.String(),
 		"rejection_reason": rejectionReason,
 		"updated_at":       time.Now(),
+	}
+
+	// Only include sport_id and venue_id if they're provided
+	if sportID != nil {
+		updateData["sport_id"] = *sportID
+	}
+	if venueID != nil {
+		updateData["venue_id"] = *venueID
 	}
 
 	_, err := r.client.From("leagues").

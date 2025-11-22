@@ -113,6 +113,11 @@ export function NotificationCenter({ maxVisible = 5 }: NotificationCenterProps) 
                     className={`px-4 py-3 hover:bg-gray-50 transition-colors ${
                       !notification.read ? 'bg-blue-50' : ''
                     }`}
+                    onMouseEnter={() => {
+                      if (!notification.read) {
+                        handleMarkAsRead(notification.id);
+                      }
+                    }}
                   >
                     <div className="flex gap-3">
                       <div className="flex-shrink-0 mt-1">

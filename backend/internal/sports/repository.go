@@ -3,6 +3,7 @@ package sports
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strconv"
 
 	"github.com/supabase-community/postgrest-go"
@@ -91,9 +92,22 @@ func (r *Repository) Create(ctx context.Context, name string) (*Sport, error) {
 
 	// Extract ID from result if available
 	if len(result) > 0 && result[0]["id"] != nil {
-		if id, ok := result[0]["id"].(float64); ok {
-			sport.ID = int64(id)
+		idVal := result[0]["id"]
+		slog.Debug("sport create result", "id_value", idVal, "id_type", fmt.Sprintf("%T", idVal))
+
+		// Try multiple type assertions since JSON unmarshaling can produce different types
+		switch v := idVal.(type) {
+		case float64:
+			sport.ID = int64(v)
+		case int:
+			sport.ID = int64(v)
+		case int64:
+			sport.ID = v
+		default:
+			slog.Warn("unexpected type for sport ID", "type", fmt.Sprintf("%T", idVal), "value", idVal)
 		}
+	} else {
+		slog.Warn("no ID in sport create result", "result", result)
 	}
 
 	return sport, nil

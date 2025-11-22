@@ -2,6 +2,8 @@
 
 ## Features
 
+> CI/CD pipeline is now live with automatic deployments to Cloud Run
+
 - Authentication
   - Clerk
 
@@ -12,3 +14,5 @@
     - Create Leagues, Venues, Sports,
       - Will be added to queue for admin approval
     - Edit Leagues, Venues, Sports,
+# Deployment trigger
+# Updated for CI/CD

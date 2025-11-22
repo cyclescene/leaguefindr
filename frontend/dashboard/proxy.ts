@@ -21,10 +21,12 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Handle routing based on auth state
   if (!userId) {
-    // Not authenticated: allow auth pages, redirect from protected routes
-    if (isUserDashboard || isAdminRoute || isVerifyPage) {
+    // Not authenticated: allow auth pages and verify page, redirect from protected routes
+    if (isUserDashboard || isAdminRoute) {
       return NextResponse.redirect(new URL('/signin', req.url))
     }
+    // Allow unauthenticated access to verify-email page for new signups
+    // (they just completed signup and don't have a session yet)
   } else if (!isVerified) {
     // Authenticated but unverified: allow verify page, redirect from others
     if (isAuthPage || isUserDashboard || isAdminRoute) {

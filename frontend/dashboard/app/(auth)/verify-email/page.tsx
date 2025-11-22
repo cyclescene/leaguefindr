@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useSignUp, useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -12,7 +11,6 @@ import Link from "next/link";
 export default function VerifyEmailPage() {
   const { signUp, isLoaded: signUpIsLoaded } = useSignUp();
   const { userId } = useAuth();
-  const router = useRouter();
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState("");
@@ -35,10 +33,45 @@ export default function VerifyEmailPage() {
       });
 
       if (result.verifications?.emailAddress?.status === "verified") {
-        // Wait a moment then redirect to dashboard
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 1000);
+        // Email verified! Now sync user to backend
+        try {
+          const clerkId = signUp.createdUserId || userId;
+          const email = signUp.emailAddress || "";
+
+          if (!clerkId) {
+            setError("Failed to get user ID. Please try again.");
+            setVerifying(false);
+            return;
+          }
+
+          const syncResponse = await fetch("/api/auth?action=register", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              clerkID: clerkId,
+              email: email,
+            }),
+          });
+
+          if (!syncResponse.ok) {
+            const errorText = await syncResponse.text();
+            console.error("Failed to sync user to backend:", errorText);
+            setError("Failed to complete registration. Please try again.");
+            setVerifying(false);
+            return;
+          }
+
+          // Successfully synced! Redirect to dashboard
+          setTimeout(() => {
+            window.location.href = "/";
+          }, 1000);
+        } catch (syncError) {
+          console.error("Error syncing user:", syncError);
+          setError("Failed to complete registration. Please try again.");
+          setVerifying(false);
+        }
       } else {
         setError("Verification failed. Please try again.");
       }
