@@ -67,15 +67,22 @@ export function SignUpForm() {
         // No need to explicitly sign in again
       }
 
-      // Check if email is already verified (happens for first admin user)
-      // If unverifiedFields is empty, all fields (including email) are verified
-      const emailNeedsVerification = signUp.unverifiedFields.length > 0;
+      // Get the created user ID from Clerk
+      const clerkId = signUp.createdUserId;
 
-      // Sync user to backend after Clerk signup (but only for first admin users)
-      if (!emailNeedsVerification) {
-        // First admin user - sync immediately since email is already verified
-        const clerkId = result.createdUserId;
-        const response = await fetch('/api/auth?action=register', {
+      if (!clerkId) {
+        console.error('Failed to get Clerk user ID from signup', {
+          signUpCreatedUserId: signUp.createdUserId,
+          userId
+        });
+        setSubmitted(false);
+        return;
+      }
+
+      // Check if this is the first user (which will become admin and skip email verification)
+      // Call backend to register and check if they're admin
+      try {
+        const registerResponse = await fetch('/api/auth?action=register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -86,26 +93,34 @@ export function SignUpForm() {
           }),
         });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Failed to sync user to backend:', errorText);
+        if (!registerResponse.ok) {
+          const errorText = await registerResponse.text();
+          console.error('Failed to register user:', errorText);
           setSubmitted(false);
           return;
         }
-      }
 
-      // Show loading state and redirect after session syncs with Clerk
-      setIsRedirecting(true);
+        // Get response to check if user is admin
+        const registerData = await registerResponse.json();
+        console.log('Registration response:', registerData);
 
-      // Redirect based on whether email needs verification
-      if (emailNeedsVerification) {
-        // User needs to verify email - redirect to verify page
-        setIsRedirecting(false);
-        router.push('/verify-email');
-      } else {
-        // First admin user - email already verified, go to dashboard
-        setIsRedirecting(false);
-        window.location.href = '/';
+        // Show loading state
+        setIsRedirecting(true);
+
+        // If user is the first admin, they bypass email verification
+        // Otherwise, they need to verify their email
+        if (registerData.isAdmin) {
+          // First admin user - skip email verification, go straight to dashboard
+          setIsRedirecting(false);
+          window.location.href = '/';
+        } else {
+          // Regular user - needs to verify email
+          setIsRedirecting(false);
+          router.push('/verify-email');
+        }
+      } catch (registerError) {
+        console.error('Error during registration:', registerError);
+        setSubmitted(false);
       }
     } catch (error) {
       console.error('Sign up failed:', error);

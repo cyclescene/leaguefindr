@@ -64,7 +64,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Register user (no organization assignment yet - user will do that during onboarding)
-	err = h.service.RegisterUser(r.Context(), req.ClerkID, req.Email)
+	isAdmin, err := h.service.RegisterUser(r.Context(), req.ClerkID, req.Email)
 	if err != nil {
 		slog.Error("register error", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -73,9 +73,10 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":  "ok",
 		"clerkID": req.ClerkID,
+		"isAdmin": isAdmin,
 	})
 }
 

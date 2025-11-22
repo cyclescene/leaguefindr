@@ -57,6 +57,7 @@ COMMENT ON TABLE leagues_staging IS 'Staging table for CSV imports of leagues da
 CREATE OR REPLACE FUNCTION trigger_leagues_staging()
 RETURNS TRIGGER AS $$
 DECLARE
+  v_league_id UUID;
   v_org_uuid UUID;
   v_org_name TEXT;
   v_sport_name TEXT;
@@ -153,8 +154,10 @@ BEGIN
     'import_source', 'csv'
   );
 
+  -- Generate a new UUID for the league since CSV data uses sequential INT IDs
+  v_league_id := gen_random_uuid();
+
   -- Insert league with status = 'approved' (CSV imports are pre-vetted)
-  -- Use ON CONFLICT to handle re-imports of the same league IDs
   INSERT INTO leagues (
     id, org_id, sport_id, division,
     registration_deadline, season_start_date, season_end_date,
@@ -163,7 +166,7 @@ BEGIN
     pricing_strategy, pricing_amount, pricing_per_player,
     status, form_data, created_at, updated_at
   ) VALUES (
-    NEW.id,
+    v_league_id,
     v_org_uuid,
     NEW.sport_id,
     NEW.division,
@@ -187,29 +190,9 @@ BEGIN
     v_form_data,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-  )
-  ON CONFLICT (id) DO UPDATE SET
-    org_id = EXCLUDED.org_id,
-    sport_id = EXCLUDED.sport_id,
-    division = EXCLUDED.division,
-    registration_deadline = EXCLUDED.registration_deadline,
-    season_start_date = EXCLUDED.season_start_date,
-    season_end_date = EXCLUDED.season_end_date,
-    venue_id = EXCLUDED.venue_id,
-    gender = EXCLUDED.gender,
-    season_details = EXCLUDED.season_details,
-    registration_url = EXCLUDED.registration_url,
-    duration = EXCLUDED.duration,
-    minimum_team_players = EXCLUDED.minimum_team_players,
-    per_game_fee = EXCLUDED.per_game_fee,
-    pricing_strategy = EXCLUDED.pricing_strategy,
-    pricing_amount = EXCLUDED.pricing_amount,
-    pricing_per_player = EXCLUDED.pricing_per_player,
-    form_data = EXCLUDED.form_data,
-    updated_at = CURRENT_TIMESTAMP;
+  );
 
-  -- Insert game occurrences for each day
-  -- Parse the game_days array and create entries for each day
+  -- Insert game occurrences for each day using the generated league UUID
   IF NEW.game_days IS NOT NULL AND array_length(v_game_days_array, 1) > 0 THEN
     FOREACH v_day IN ARRAY v_game_days_array
     LOOP
@@ -217,7 +200,7 @@ BEGIN
       IF v_day != '' THEN  -- Skip empty strings
         INSERT INTO game_occurrences (league_id, day, start_time, end_time)
         VALUES (
-          NEW.id,
+          v_league_id,
           v_day,
           COALESCE(NEW.game_start_time, '00:00'::TIME),  -- Default to 00:00 if NULL
           COALESCE(NEW.game_end_time, '00:00'::TIME)     -- Default to 00:00 if NULL

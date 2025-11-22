@@ -68,37 +68,41 @@ func (s *Service) getClientWithAuth(ctx context.Context) *postgrest.Client {
 
 // RegisterUser creates a new user account (no organization assignment)
 // User will create or join an organization during onboarding via frontend
-func (s *Service) RegisterUser(ctx context.Context, clerkID, email string) error {
+// Returns isAdmin boolean indicating if this user was made an admin
+func (s *Service) RegisterUser(ctx context.Context, clerkID, email string) (bool, error) {
 	// Use service client for all operations
 	repo := NewRepository(s.serviceClient)
 
 	// Check if user already exists
 	exists, err := repo.UserExists(ctx, clerkID)
 	if err != nil {
-		return fmt.Errorf("failed to check user existence: %w", err)
+		return false, fmt.Errorf("failed to check user existence: %w", err)
 	}
 
 	// User already exists
 	if exists {
-		return fmt.Errorf("user already exists")
+		return false, fmt.Errorf("user already exists")
 	}
 
-	// Determine role: first user is admin, others are regular users
+	// Determine role: first user is admin, others are organizers
 	role := RoleOrganizer
 	adminExists, err := repo.AdminExists(ctx)
 	if err != nil {
 		slog.Error("failed to check admin existence", "clerkID", clerkID, "err", err)
-		return fmt.Errorf("failed to check admin existence: %w", err)
+		return false, fmt.Errorf("failed to check admin existence: %w", err)
 	}
 	slog.Info("admin existence check", "clerkID", clerkID, "adminExists", adminExists)
+
+	isAdmin := false
 	if !adminExists {
 		role = RoleAdmin
+		isAdmin = true
 	}
 
 	// Create new user
 	err = repo.CreateUser(ctx, clerkID, email, role)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Check if we should skip email verification for all users
@@ -124,7 +128,7 @@ func (s *Service) RegisterUser(ctx context.Context, clerkID, email string) error
 		_ = syncErr
 	}
 
-	return nil
+	return isAdmin, nil
 }
 
 // GetUser retrieves user information by ID

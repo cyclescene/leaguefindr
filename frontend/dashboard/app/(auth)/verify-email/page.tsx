@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useSignUp, useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -12,7 +11,6 @@ import Link from "next/link";
 export default function VerifyEmailPage() {
   const { signUp, isLoaded: signUpIsLoaded } = useSignUp();
   const { userId } = useAuth();
-  const router = useRouter();
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState("");
@@ -37,7 +35,7 @@ export default function VerifyEmailPage() {
       if (result.verifications?.emailAddress?.status === "verified") {
         // Email verified! Now sync user to backend
         try {
-          const clerkId = result.createdUserId || userId;
+          const clerkId = signUp.createdUserId || userId;
           const email = signUp.emailAddress || "";
 
           if (!clerkId) {
