@@ -83,4 +83,4 @@ func main() {
 	slog.Info("Starting server...", "port", "8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
-// Workflow deployment successful - CI/CD pipeline is live!
+// Workflow deployment successful - all permissions configured!
