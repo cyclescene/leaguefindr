@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Header } from "@/components/common/Header"
 import { Footer } from "@/components/common/Footer"
 import { NotificationPreferences } from "@/components/NotificationPreferences"
+import { ChangePassword } from "@/components/ChangePassword"
 
 function SettingsContent() {
   return (
@@ -24,6 +25,11 @@ function SettingsContent() {
         </div>
 
         <h1 className="text-3xl font-bold text-brand-dark mb-8">Settings</h1>
+
+        {/* Change Password Section */}
+        <div className="mb-12">
+          <ChangePassword />
+        </div>
 
         {/* Notification Preferences Section */}
         <div className="mb-12">
