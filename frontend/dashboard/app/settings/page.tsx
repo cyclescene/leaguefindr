@@ -8,24 +8,18 @@ import { Header } from "@/components/common/Header"
 import { Footer } from "@/components/common/Footer"
 import { ChangePassword } from "@/components/ChangePassword"
 import { NotificationPreferences } from "@/components/NotificationPreferences"
-import { useOrganization } from "@/hooks/useOrganizations"
-import { useParams } from "next/navigation"
 
 function SettingsContent() {
-  const params = useParams()
-  const orgId = params.orgId as string
-  const { organization } = useOrganization(orgId)
-
   return (
     <div className="flex flex-col min-h-screen bg-neutral-light">
-      <Header organizationName={organization?.org_name || ""} />
+      <Header organizationName="Settings" />
 
       <main className="flex-1 w-full max-w-4xl mx-auto px-6 py-12">
         <div className="flex items-center gap-4 mb-8">
-          <Link href={`/${orgId}`}>
+          <Link href="/">
             <Button variant="outline" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back to Organization
+              Back to Dashboard
             </Button>
           </Link>
         </div>

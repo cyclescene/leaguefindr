@@ -1,4 +1,6 @@
-import { SignOutButton } from "@clerk/nextjs";
+"use client";
+
+import { SignOutButton, useUser } from "@clerk/nextjs";
 import { LucideLogOut, Settings } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -9,6 +11,14 @@ interface HeaderProps {
 }
 
 export function Header({ organizationName = "User" }: HeaderProps) {
+  const { user } = useUser();
+
+  // Get user role from Clerk public metadata
+  const userRole = (user?.publicMetadata?.role as string) || "organizer";
+
+  // Determine settings URL based on user role
+  const settingsUrl = userRole === "admin" ? "/admin/settings" : "/settings";
+
   return (
     <header className="bg-brand-dark text-white shadow-lg">
       <div className="max-w-7xl mx-auto px-6 py-8 flex flex-row items-center justify-between">
@@ -21,7 +31,7 @@ export function Header({ organizationName = "User" }: HeaderProps) {
           <NotificationCenter />
 
           {/* Settings Link */}
-          <Link href="/admin/settings" title="Settings">
+          <Link href={settingsUrl} title="Settings">
             <Button variant="ghost" size="sm" className="text-white hover:text-white hover:bg-brand-dark/80">
               <Settings className="h-5 w-5" />
             </Button>
