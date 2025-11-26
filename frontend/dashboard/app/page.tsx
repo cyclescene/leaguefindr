@@ -60,7 +60,7 @@ function OrganizationHubContent() {
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-light">
-      <Header />
+      <Header email={user?.primaryEmailAddress?.emailAddress || user?.emailAddresses[0]?.emailAddress} />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12">
         <div className="mb-12">

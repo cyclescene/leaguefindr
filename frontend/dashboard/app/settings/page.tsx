@@ -2,6 +2,7 @@
 
 import { Suspense } from "react"
 import Link from "next/link"
+import { useUser } from "@clerk/nextjs"
 import { Loader2, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Header } from "@/components/common/Header"
@@ -10,9 +11,11 @@ import { ChangePassword } from "@/components/ChangePassword"
 import { NotificationPreferences } from "@/components/NotificationPreferences"
 
 function SettingsContent() {
+  const { user } = useUser()
+
   return (
     <div className="flex flex-col min-h-screen bg-neutral-light">
-      <Header organizationName="Settings" />
+      <Header email={user?.primaryEmailAddress?.emailAddress || user?.emailAddresses[0]?.emailAddress} />
 
       <main className="flex-1 w-full max-w-4xl mx-auto px-6 py-12">
         <div className="flex items-center gap-4 mb-8">

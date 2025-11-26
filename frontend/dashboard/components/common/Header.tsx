@@ -8,9 +8,10 @@ import { NotificationCenter } from "@/components/NotificationCenter";
 
 interface HeaderProps {
   organizationName?: string;
+  email?: string;
 }
 
-export function Header({ organizationName = "User" }: HeaderProps) {
+export function Header({ organizationName, email }: HeaderProps) {
   const { user } = useUser();
 
   // Get user role from Clerk public metadata
@@ -19,12 +20,15 @@ export function Header({ organizationName = "User" }: HeaderProps) {
   // Determine settings URL based on user role
   const settingsUrl = userRole === "admin" ? "/admin/settings" : "/settings";
 
+  // Get email from prop or from Clerk user
+  const displayEmail = email || user?.primaryEmailAddress?.emailAddress || user?.emailAddresses[0]?.emailAddress || "User";
+
   return (
     <header className="bg-brand-dark text-white shadow-lg">
       <div className="max-w-7xl mx-auto px-6 py-8 flex flex-row items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold">Dashboard</h1>
-          <p className="text-brand-light mt-2">Welcome, {organizationName}</p>
+          <p className="text-brand-light mt-2">Welcome, {displayEmail}</p>
         </div>
         <div className="flex items-center gap-6">
           {/* Notification Center */}

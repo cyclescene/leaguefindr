@@ -74,7 +74,7 @@ function OrganizationDashboardContent() {
   if (error || (isLoaded && !isLoading && !organization)) {
     return (
       <div className="flex flex-col min-h-screen bg-neutral-light">
-        <Header />
+        <Header email={user?.primaryEmailAddress?.emailAddress || user?.emailAddresses[0]?.emailAddress} />
         <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-brand-dark mb-4">Error Loading Organization</h1>
@@ -107,7 +107,7 @@ function OrganizationDashboardContent() {
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-light">
-      <Header />
+      <Header email={user?.primaryEmailAddress?.emailAddress || user?.emailAddresses[0]?.emailAddress} />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12">
         <OrganizationHeader
