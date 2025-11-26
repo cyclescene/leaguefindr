@@ -20,7 +20,7 @@ import { signInSchema, type SignInFormData } from "@/lib/schemas";
 
 export function SignInForm() {
   const { signIn, isLoaded } = useSignIn();
-  const { userId, isLoaded: isUserLoaded, sessionClaims } = useAuth();
+  const { userId, isLoaded: isUserLoaded } = useAuth();
   const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -33,14 +33,13 @@ export function SignInForm() {
     },
   });
 
-  // Redirect to dashboard if user is already authenticated
+  // Redirect to home if user is already authenticated
+  // The middleware will handle routing based on the user's role
   useEffect(() => {
-    if (isUserLoaded && userId && isRedirecting) {
-      const userRole = (sessionClaims?.appRole as string) || "organizer";
-      const dashboardUrl = userRole === "admin" ? "/admin" : "/";
-      router.push(dashboardUrl);
+    if (isUserLoaded && userId) {
+      router.push('/');
     }
-  }, [isUserLoaded, userId, isRedirecting, sessionClaims, router]);
+  }, [isUserLoaded, userId, router]);
 
   const onSubmit = async (data: SignInFormData) => {
     try {
@@ -71,9 +70,13 @@ export function SignInForm() {
           return;
         }
 
-        // Show loading state and wait for Clerk session to be established
-        // The useEffect above will handle the redirect once Clerk updates
+        // Show loading state and let Clerk session sync
         setIsRedirecting(true);
+        // Wait a moment for Clerk to establish the session, then redirect to home
+        // The middleware will handle role-based routing from there
+        setTimeout(() => {
+          router.push('/');
+        }, 500);
       } else {
         setSubmitted(false);
       }

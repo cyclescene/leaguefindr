@@ -36,23 +36,30 @@ export default clerkMiddleware(async (auth, req) => {
     // Authenticated and verified: handle role-based routing
     const isAdmin = userRole === 'admin'
 
-
     // Redirect auth pages to appropriate dashboard
     if (isAuthPage || isVerifyPage) {
-      const dashboardUrl = isAdmin ? '/admin' : '/'
-      return NextResponse.redirect(new URL(dashboardUrl, req.url))
+      // If role hasn't been synced yet, allow them to proceed to let client-side handle it
+      if (userRole === null) {
+        // Role not yet available, let the request proceed
+        // The client will handle the redirect once Clerk is fully synced
+      } else {
+        const dashboardUrl = isAdmin ? '/admin' : '/'
+        return NextResponse.redirect(new URL(dashboardUrl, req.url))
+      }
     }
 
     // Route based on role
-    if (isAdmin) {
-      // Admin trying to access user dashboard: redirect to admin
-      if (isUserDashboard) {
-        return NextResponse.redirect(new URL('/admin', req.url))
-      }
-    } else {
-      // Regular user trying to access admin routes: redirect to user dashboard
-      if (isAdminRoute) {
-        return NextResponse.redirect(new URL('/', req.url))
+    if (userRole !== null) {
+      if (isAdmin) {
+        // Admin trying to access user dashboard: redirect to admin
+        if (isUserDashboard) {
+          return NextResponse.redirect(new URL('/admin', req.url))
+        }
+      } else {
+        // Regular user trying to access admin routes: redirect to user dashboard
+        if (isAdminRoute) {
+          return NextResponse.redirect(new URL('/', req.url))
+        }
       }
     }
   }

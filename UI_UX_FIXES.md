@@ -9,7 +9,7 @@
 ## Both Admin and League Manager
 
 - [ ] Change dashboard title to "LeagueFindr Dashboard" with logo
-- [ ] Add welcome message showing "Welcome, {email}" on login
+- [x] Add welcome message showing "Welcome, {email}" on login
 - [ ] Show progress spinner wheel while loading on login
 - [ ] Add "Cursor:Pointer" CSS on hover of any clickable buttons
 
