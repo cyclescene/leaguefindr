@@ -20,7 +20,7 @@ import { signInSchema, type SignInFormData } from "@/lib/schemas";
 
 export function SignInForm() {
   const { signIn, isLoaded } = useSignIn();
-  const { userId, isLoaded: isUserLoaded } = useAuth();
+  const { userId, isLoaded: isUserLoaded, sessionClaims } = useAuth();
   const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -35,10 +35,12 @@ export function SignInForm() {
 
   // Redirect to dashboard if user is already authenticated
   useEffect(() => {
-    if (isUserLoaded && userId) {
-      router.push('/');
+    if (isUserLoaded && userId && isRedirecting) {
+      const userRole = (sessionClaims?.appRole as string) || "organizer";
+      const dashboardUrl = userRole === "admin" ? "/admin" : "/";
+      router.push(dashboardUrl);
     }
-  }, [isUserLoaded, userId, router]);
+  }, [isUserLoaded, userId, isRedirecting, sessionClaims, router]);
 
   const onSubmit = async (data: SignInFormData) => {
     try {
@@ -69,12 +71,9 @@ export function SignInForm() {
           return;
         }
 
-        // Show loading state and redirect to dashboard after successful signin
+        // Show loading state and wait for Clerk session to be established
+        // The useEffect above will handle the redirect once Clerk updates
         setIsRedirecting(true);
-        // Wait a moment to ensure Clerk session is fully established, then do a hard refresh
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 500);
       } else {
         setSubmitted(false);
       }
