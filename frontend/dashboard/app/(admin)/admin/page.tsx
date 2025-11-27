@@ -2,7 +2,6 @@
 import { useUser } from "@clerk/nextjs";
 import { Suspense, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import type { ClerkUser } from "@/types/clerk";
 import type { League } from "@/types/leagues";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/common/Header";
@@ -17,13 +16,7 @@ import { usePendingLeagues, useAllLeagues, useAdminLeagueOperations } from "@/ho
 const ITEMS_PER_PAGE = 20
 
 function DashboardContent() {
-  const { user, isLoaded, isSignedIn } = useUser();
-
-  useEffect(() => {
-    user?.reload()
-  }, [isLoaded, isSignedIn])
-
-
+  const { user, isLoaded } = useUser();
   // Pagination state
   const [page, setPage] = useState(0)
   const [activeTab, setActiveTab] = useState('all')

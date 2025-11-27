@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import { useSession, useUser } from '@clerk/nextjs'
+import { useSession } from '@clerk/nextjs'
 import { useEffect, useState, createContext, useContext } from 'react'
 import { toast } from 'sonner'
 
@@ -33,8 +33,14 @@ export default function SupabaseProvider({ children }: Props) {
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [isError, setIsError] = useState(false)
+  const [hasInitialized, setHasInitialized] = useState(false)
 
   useEffect(() => {
+    // Prevent multiple initializations
+    if (hasInitialized) {
+      return
+    }
+
     // Wait for Clerk session to be loaded before attempting Supabase initialization
     if (!isSessionLoaded) {
       return
@@ -43,22 +49,19 @@ export default function SupabaseProvider({ children }: Props) {
     // If no session after loading, just mark as loaded and don't try to initialize Supabase
     if (!session) {
       setIsLoaded(true)
+      setHasInitialized(true)
       return
     }
 
-    // Reload user to ensure latest metadata and token claims are available
-    if (user) {
-      user.reload().catch((err) => {
-        console.error('Failed to reload user:', err)
-      })
-    }
+    // Mark as initializing to prevent re-running this effect
+    setHasInitialized(true)
 
     let timeoutId: NodeJS.Timeout
     let retryTimeoutId: NodeJS.Timeout
     let initTimeoutId: NodeJS.Timeout
     let isMounted = true
     let retryCount = 0
-    const maxRetries = 3
+    const maxRetries = 1
 
     const initSupabase = async () => {
       try {
@@ -133,7 +136,7 @@ export default function SupabaseProvider({ children }: Props) {
       clearTimeout(retryTimeoutId)
       clearTimeout(initTimeoutId)
     }
-  }, [session, isSessionLoaded])
+  }, [isSessionLoaded, hasInitialized])
 
   return (
     <Context.Provider value={{ supabase, isLoaded, isError }}>
