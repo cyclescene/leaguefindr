@@ -1,5 +1,5 @@
 "use client"
-import { useUser } from "@clerk/nextjs";
+import { useUser, useSession } from "@clerk/nextjs";
 import { Suspense, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { League } from "@/types/leagues";
@@ -17,6 +17,12 @@ const ITEMS_PER_PAGE = 20
 
 function DashboardContent() {
   const { user, isLoaded } = useUser();
+  const { session, isLoaded: isSessionLoaded } = useSession();
+
+  useEffect(() => {
+    session?.reload()
+
+  }, [isSessionLoaded]);
   // Pagination state
   const [page, setPage] = useState(0)
   const [activeTab, setActiveTab] = useState('all')

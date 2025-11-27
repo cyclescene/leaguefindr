@@ -36,17 +36,23 @@ export default function SupabaseProvider({ children }: Props) {
   useEffect(() => {
     // Wait for Clerk session to be loaded before attempting Supabase initialization
     if (!isSessionLoaded) {
+      console.log('[SupabaseContext] Waiting for session to load...')
       return
     }
 
     // If no session after loading, just mark as loaded and don't try to initialize Supabase
     if (!session) {
+      console.log('[SupabaseContext] No session available')
       setIsLoaded(true)
       return
     }
 
+    console.log('[SupabaseContext] Current Clerk session ID:', session.id)
+    console.log('[SupabaseContext] Current Clerk user ID:', session.userId)
+
     // Only initialize once per session
     if (initializationAttempted.current) {
+      console.log('[SupabaseContext] Already attempted initialization, skipping')
       return
     }
 
@@ -58,6 +64,8 @@ export default function SupabaseProvider({ children }: Props) {
           throw new Error(`Missing Supabase config: url=${!!supabaseUrl}, key=${!!supabaseKey}`)
         }
 
+        console.log('[SupabaseContext] Initializing Supabase with session ID:', session.id)
+
         // Create client with dynamic accessToken callback
         // The token will be retrieved on-demand when queries are made
         const client = createClient(
@@ -68,20 +76,22 @@ export default function SupabaseProvider({ children }: Props) {
               try {
                 // Use cached token by default (caches for 60 seconds)
                 const token = await session?.getToken()
+                console.log('[SupabaseContext] Retrieved token for session:', session.id, 'Token exists:', !!token)
                 return token
               } catch (tokenErr) {
-                console.error('[Supabase] Error getting token:', tokenErr)
+                console.error('[SupabaseContext] Error getting token for session:', session.id, tokenErr)
                 throw tokenErr
               }
             }
           }
         )
 
+        console.log('[SupabaseContext] ✓ Supabase client created successfully for session:', session.id)
         setSupabase(client)
         setIsLoaded(true)
         setIsError(false)
       } catch (error) {
-        console.error('[Supabase] Initialization error:', error)
+        console.error('[SupabaseContext] Initialization error:', error)
         setIsError(true)
         setIsLoaded(true)
         toast.error('Failed to initialize database connection.')

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSignIn, useAuth } from "@clerk/nextjs";
+import { useSignIn, useAuth, useSession } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
@@ -21,7 +21,8 @@ import { signInSchema, type SignInFormData } from "@/lib/schemas";
 export function SignInForm() {
   const { signIn, isLoaded, setActive
   } = useSignIn();
-  const { userId, isLoaded: isUserLoaded, getToken } = useAuth();
+  const { userId, isLoaded: isUserLoaded, getToken, } = useAuth();
+  const { session, isLoaded: isSessionLoaded } = useSession();
   const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -59,7 +60,7 @@ export function SignInForm() {
 
       if (result.status === "complete") {
         console.log('=== Sign-in Complete ===');
-        console.log('Created Session ID:', result.createdSessionId);
+        console.log('New Session ID created:', result.createdSessionId);
 
         // Record login to backend
         const response = await fetch('/api/auth?action=login', {
@@ -84,10 +85,10 @@ export function SignInForm() {
         setIsRedirecting(true);
 
         // Set the session as active to load session claims (including appRole)
-        console.log('Setting session as active...');
+        console.log('Setting session as active:', result.createdSessionId);
         try {
           await setActive({ session: result.createdSessionId });
-          console.log('✓ Session set as active');
+          console.log('✓ Session set as active:', result.createdSessionId);
         } catch (error) {
           console.error('✗ Failed to set session as active:', error);
           setSubmitted(false);
