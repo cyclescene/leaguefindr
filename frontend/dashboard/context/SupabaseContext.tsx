@@ -28,10 +28,12 @@ type Props = {
 export default function SupabaseProvider({ children }: Props) {
   const { session, isLoaded: isSessionLoaded } = useSession()
   const initializationAttempted = useRef<string | null>(null)
+  const tokenRefreshInterval = useRef<NodeJS.Timeout | null>(null)
 
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [isError, setIsError] = useState(false)
+  const [authToken, setAuthToken] = useState<string | null>(null)
 
   useEffect(() => {
     // Wait for Clerk session to be loaded before attempting Supabase initialization
@@ -71,34 +73,43 @@ export default function SupabaseProvider({ children }: Props) {
         // Create a reference to the current session that won't change
         const currentSession = session
 
-        // Create client with dynamic accessToken callback
-        // The token will be retrieved on-demand when queries are made
+        // Get initial token
+        const initialToken = await currentSession?.getToken()
+        if (!initialToken) {
+          throw new Error('Failed to retrieve initial token from Clerk')
+        }
+        console.log('[SupabaseContext] ✓ Initial token retrieved for session:', session.id)
+        setAuthToken(initialToken)
+
+        // Create client with the initial token
         const client = createClient(
           supabaseUrl,
           supabaseKey,
           {
-            accessToken: async () => {
-              try {
-                // Always use the current session reference
-                const token = await currentSession?.getToken()
-                console.log('[SupabaseContext] Retrieved token for session:', currentSession.id, 'Token exists:', !!token)
-                return token
-              } catch (tokenErr: any) {
-                console.error('[SupabaseContext] Error getting token for session:', currentSession.id, tokenErr)
-
-                // If it's a 401/auth error, the session is invalid
-                if (tokenErr?.status === 401 || tokenErr?.message?.includes('Unauthorized') || tokenErr?.message?.includes('authentication')) {
-                  console.error('[SupabaseContext] Session is invalid (401), clearing client and resetting')
-                  // Reset the initialization ref to force a new client creation
-                  initializationAttempted.current = false
-                  setSupabase(null)
-                  // Don't try to end session - it's likely already invalid
-                }
-                throw tokenErr
+            global: {
+              headers: {
+                Authorization: `Bearer ${initialToken}`
               }
             }
           }
         )
+
+        // Set up token refresh every 55 seconds (token expires in 60 seconds)
+        if (tokenRefreshInterval.current) {
+          clearInterval(tokenRefreshInterval.current)
+        }
+
+        tokenRefreshInterval.current = setInterval(async () => {
+          try {
+            const newToken = await currentSession?.getToken()
+            if (newToken) {
+              console.log('[SupabaseContext] ✓ Token refreshed for session:', session.id)
+              setAuthToken(newToken)
+            }
+          } catch (refreshErr) {
+            console.error('[SupabaseContext] Token refresh failed:', refreshErr)
+          }
+        }, 55000) // Refresh every 55 seconds
 
         console.log('[SupabaseContext] ✓ Supabase client created successfully for session:', session.id)
         setSupabase(client)
@@ -113,9 +124,32 @@ export default function SupabaseProvider({ children }: Props) {
     }
 
     return () => {
-      // Cleanup
+      // Cleanup interval on unmount or session change
+      if (tokenRefreshInterval.current) {
+        clearInterval(tokenRefreshInterval.current)
+      }
     }
   }, [isSessionLoaded, session?.id])
+
+  // Update Supabase client when token changes
+  useEffect(() => {
+    if (supabase && authToken && supabase.rest?.headers) {
+      // Recreate Supabase client with new token
+      console.log('[SupabaseContext] Recreating Supabase client with refreshed token')
+      const updatedClient = createClient(
+        supabaseUrl!,
+        supabaseKey!,
+        {
+          global: {
+            headers: {
+              Authorization: `Bearer ${authToken}`
+            }
+          }
+        }
+      )
+      setSupabase(updatedClient)
+    }
+  }, [authToken])
 
   return (
     <Context.Provider value={{ supabase, isLoaded, isError }}>
