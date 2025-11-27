@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import { useSession } from '@clerk/nextjs'
+import { useSession, useUser } from '@clerk/nextjs'
 import { useEffect, useState, createContext, useContext } from 'react'
 import { toast } from 'sonner'
 
@@ -29,6 +29,7 @@ type Props = {
 
 export default function SupabaseProvider({ children }: Props) {
   const { session, isLoaded: isSessionLoaded } = useSession()
+  const { user } = useUser()
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [isError, setIsError] = useState(false)
@@ -43,6 +44,13 @@ export default function SupabaseProvider({ children }: Props) {
     if (!session) {
       setIsLoaded(true)
       return
+    }
+
+    // Reload user to ensure latest metadata and token claims are available
+    if (user) {
+      user.reload().catch((err) => {
+        console.error('Failed to reload user:', err)
+      })
     }
 
     let timeoutId: NodeJS.Timeout
