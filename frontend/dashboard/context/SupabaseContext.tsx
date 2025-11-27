@@ -46,14 +46,18 @@ export default function SupabaseProvider({ children }: Props) {
     }
 
     let timeoutId: NodeJS.Timeout
+    let retryTimeoutId: NodeJS.Timeout
+    let initTimeoutId: NodeJS.Timeout
     let isMounted = true
+    let retryCount = 0
+    const maxRetries = 3
 
     const initSupabase = async () => {
       try {
         const client = createClient(
           supabaseUrl!,
           supabaseKey!, {
-          accessToken: () => session?.getToken()
+          accessToken: () => session?.getToken({ skipCache: true })
         })
 
         // Set a timeout - if Supabase doesn't load in time, show error and continue anyway
@@ -78,9 +82,23 @@ export default function SupabaseProvider({ children }: Props) {
             setIsLoaded(true)
             setIsError(false)
           }
-        } catch (err) {
+        } catch (err: any) {
           if (isMounted) {
             clearTimeout(timeoutId)
+
+            // If it's an auth error and we haven't exceeded max retries, retry
+            if (err?.message?.includes('authentication') && retryCount < maxRetries) {
+              retryCount++
+              console.warn(`Supabase auth error, retrying (${retryCount}/${maxRetries})...`, err)
+              // Retry after a short delay to allow token to be refreshed
+              retryTimeoutId = setTimeout(() => {
+                if (isMounted) {
+                  initSupabase()
+                }
+              }, 1000)
+              return
+            }
+
             setIsError(true)
             setIsLoaded(true)
             toast.error('Failed to connect to database. Please try again.')
@@ -98,11 +116,14 @@ export default function SupabaseProvider({ children }: Props) {
       }
     }
 
+    // Initialize Supabase with the current session
     initSupabase()
 
     return () => {
       isMounted = false
       clearTimeout(timeoutId)
+      clearTimeout(retryTimeoutId)
+      clearTimeout(initTimeoutId)
     }
   }, [session, isSessionLoaded])
 

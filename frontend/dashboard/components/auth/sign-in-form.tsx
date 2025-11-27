@@ -29,8 +29,8 @@ export function SignInForm() {
   const form = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: "admin@leaguefindr.com",
+      password: "pB7-aKZ$kjFgvN8",
     },
   });
 
@@ -94,12 +94,9 @@ export function SignInForm() {
           return;
         }
 
-        // Wait a moment for Clerk hooks to update with the new session
-        setTimeout(() => {
-          // Redirect to home - middleware will handle role-based routing
-          console.log('Redirecting to home...');
-          router.push('/');
-        }, 500);
+        // Redirect immediately - the session is now active
+        console.log('Redirecting to home...');
+        router.push('/');
       } else {
         setSubmitted(false);
       }
