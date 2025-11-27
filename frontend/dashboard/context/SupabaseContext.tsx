@@ -65,62 +65,66 @@ export default function SupabaseProvider({ children }: Props) {
       console.log('[SupabaseContext] Initializing Supabase with session ID:', session.id)
       initializationAttempted.current = session.id
 
-      try {
-        if (!supabaseUrl || !supabaseKey) {
-          throw new Error(`Missing Supabase config: url=${!!supabaseUrl}, key=${!!supabaseKey}`)
-        }
+      const initializeSupabase = async () => {
+        try {
+          if (!supabaseUrl || !supabaseKey) {
+            throw new Error(`Missing Supabase config: url=${!!supabaseUrl}, key=${!!supabaseKey}`)
+          }
 
-        // Create a reference to the current session that won't change
-        const currentSession = session
+          // Create a reference to the current session that won't change
+          const currentSession = session
 
-        // Get initial token
-        const initialToken = await currentSession?.getToken()
-        if (!initialToken) {
-          throw new Error('Failed to retrieve initial token from Clerk')
-        }
-        console.log('[SupabaseContext] ✓ Initial token retrieved for session:', session.id)
-        setAuthToken(initialToken)
+          // Get initial token
+          const initialToken = await currentSession?.getToken()
+          if (!initialToken) {
+            throw new Error('Failed to retrieve initial token from Clerk')
+          }
+          console.log('[SupabaseContext] ✓ Initial token retrieved for session:', session.id)
+          setAuthToken(initialToken)
 
-        // Create client with the initial token
-        const client = createClient(
-          supabaseUrl,
-          supabaseKey,
-          {
-            global: {
-              headers: {
-                Authorization: `Bearer ${initialToken}`
+          // Create client with the initial token
+          const client = createClient(
+            supabaseUrl,
+            supabaseKey,
+            {
+              global: {
+                headers: {
+                  Authorization: `Bearer ${initialToken}`
+                }
               }
             }
+          )
+
+          // Set up token refresh every 55 seconds (token expires in 60 seconds)
+          if (tokenRefreshInterval.current) {
+            clearInterval(tokenRefreshInterval.current)
           }
-        )
 
-        // Set up token refresh every 55 seconds (token expires in 60 seconds)
-        if (tokenRefreshInterval.current) {
-          clearInterval(tokenRefreshInterval.current)
-        }
-
-        tokenRefreshInterval.current = setInterval(async () => {
-          try {
-            const newToken = await currentSession?.getToken()
-            if (newToken) {
-              console.log('[SupabaseContext] ✓ Token refreshed for session:', session.id)
-              setAuthToken(newToken)
+          tokenRefreshInterval.current = setInterval(async () => {
+            try {
+              const newToken = await currentSession?.getToken()
+              if (newToken) {
+                console.log('[SupabaseContext] ✓ Token refreshed for session:', session.id)
+                setAuthToken(newToken)
+              }
+            } catch (refreshErr) {
+              console.error('[SupabaseContext] Token refresh failed:', refreshErr)
             }
-          } catch (refreshErr) {
-            console.error('[SupabaseContext] Token refresh failed:', refreshErr)
-          }
-        }, 55000) // Refresh every 55 seconds
+          }, 55000) // Refresh every 55 seconds
 
-        console.log('[SupabaseContext] ✓ Supabase client created successfully for session:', session.id)
-        setSupabase(client)
-        setIsLoaded(true)
-        setIsError(false)
-      } catch (error) {
-        console.error('[SupabaseContext] Initialization error:', error)
-        setIsError(true)
-        setIsLoaded(true)
-        toast.error('Failed to initialize database connection.')
+          console.log('[SupabaseContext] ✓ Supabase client created successfully for session:', session.id)
+          setSupabase(client)
+          setIsLoaded(true)
+          setIsError(false)
+        } catch (error) {
+          console.error('[SupabaseContext] Initialization error:', error)
+          setIsError(true)
+          setIsLoaded(true)
+          toast.error('Failed to initialize database connection.')
+        }
       }
+
+      initializeSupabase()
     }
 
     return () => {
