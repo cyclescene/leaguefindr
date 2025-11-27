@@ -29,11 +29,11 @@ export default function SupabaseProvider({ children }: Props) {
   const { session, isLoaded: isSessionLoaded } = useSession()
   const initializationAttempted = useRef<string | null>(null)
   const tokenRefreshInterval = useRef<NodeJS.Timeout | null>(null)
+  const cachedToken = useRef<string | null>(null)
 
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [isError, setIsError] = useState(false)
-  const [authToken, setAuthToken] = useState<string | null>(null)
 
   useEffect(() => {
     // Wait for Clerk session to be loaded before attempting Supabase initialization
@@ -80,17 +80,20 @@ export default function SupabaseProvider({ children }: Props) {
             throw new Error('Failed to retrieve initial token from Clerk')
           }
           console.log('[SupabaseContext] ✓ Initial token retrieved for session:', session.id)
-          setAuthToken(initialToken)
+          cachedToken.current = initialToken
 
-          // Create client with the initial token
+          // Create client with accessToken callback that uses cached token
           const client = createClient(
             supabaseUrl,
             supabaseKey,
             {
-              global: {
-                headers: {
-                  Authorization: `Bearer ${initialToken}`
+              accessToken: async () => {
+                // Return cached token first (instant, no API call)
+                if (cachedToken.current) {
+                  return cachedToken.current
                 }
+                // Fallback: fetch new token (shouldn't happen often)
+                return await currentSession?.getToken()
               }
             }
           )
@@ -105,7 +108,7 @@ export default function SupabaseProvider({ children }: Props) {
               const newToken = await currentSession?.getToken()
               if (newToken) {
                 console.log('[SupabaseContext] ✓ Token refreshed for session:', session.id)
-                setAuthToken(newToken)
+                cachedToken.current = newToken
               }
             } catch (refreshErr) {
               console.error('[SupabaseContext] Token refresh failed:', refreshErr)
@@ -134,26 +137,6 @@ export default function SupabaseProvider({ children }: Props) {
       }
     }
   }, [isSessionLoaded, session?.id])
-
-  // Update Supabase client when token changes
-  useEffect(() => {
-    if (supabase && authToken && supabase.rest?.headers) {
-      // Recreate Supabase client with new token
-      console.log('[SupabaseContext] Recreating Supabase client with refreshed token')
-      const updatedClient = createClient(
-        supabaseUrl!,
-        supabaseKey!,
-        {
-          global: {
-            headers: {
-              Authorization: `Bearer ${authToken}`
-            }
-          }
-        }
-      )
-      setSupabase(updatedClient)
-    }
-  }, [authToken])
 
   return (
     <Context.Provider value={{ supabase, isLoaded, isError }}>
