@@ -14,8 +14,6 @@ type SupabaseContext = {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
 
-// 5 second timeout for Supabase initialization
-const SUPABASE_TIMEOUT = 5000;
 
 const Context = createContext<SupabaseContext>({
   supabase: null,
@@ -29,6 +27,8 @@ type Props = {
 
 export default function SupabaseProvider({ children }: Props) {
   const { session, isLoaded: isSessionLoaded } = useSession()
+
+
 
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
@@ -59,125 +59,69 @@ export default function SupabaseProvider({ children }: Props) {
     }
 
     // Mark as initializing to prevent re-running this effect
-    console.log('[SupabaseContext] Starting Supabase initialization...')
+    console.log('[SupabaseContext] Starting Supabase initialization with valid session...')
     setHasInitialized(true)
-
-    let timeoutId: NodeJS.Timeout
-    let retryTimeoutId: NodeJS.Timeout
-    let initTimeoutId: NodeJS.Timeout
-    let isMounted = true
-    let retryCount = 0
-    const maxRetries = 1
 
     const initSupabase = async () => {
       try {
-        console.log('[Supabase] Starting initialization...')
+        console.log('[Supabase] Creating client with accessToken callback...')
 
         if (!supabaseUrl || !supabaseKey) {
           throw new Error(`Missing Supabase config: url=${!!supabaseUrl}, key=${!!supabaseKey}`)
         }
 
+        // Reload session to get fresh session data
+        console.log('[Supabase] Reloading session...')
+        try {
+          await session?.reload?.()
+          console.log('[Supabase] Session reloaded')
+        } catch (reloadErr) {
+          console.warn('[Supabase] Session reload failed (non-blocking):', reloadErr)
+        }
+
+        // Create client with dynamic accessToken callback
+        // The token will be retrieved on-demand when queries are made
         const client = createClient(
           supabaseUrl,
-          supabaseKey, {
-          accessToken: async () => {
-            console.log('[Supabase] Getting access token...')
-            try {
-              const token = await session?.getToken({ skipCache: true })
-              console.log('[Supabase] Token retrieved:', !!token)
-              return token
-            } catch (tokenErr) {
-              console.error('[Supabase] Error getting token:', tokenErr)
-              throw tokenErr
-            }
-          }
-        })
-
-        console.log('[Supabase] Client created, setting timeout...')
-
-        // Set a timeout - if Supabase doesn't load in time, show error and continue anyway
-        timeoutId = setTimeout(() => {
-          if (isMounted) {
-            console.warn('[Supabase] Timeout reached (5s), marking as loaded with error')
-            setIsError(true)
-            setIsLoaded(true)
-            toast.error('Supabase is taking longer than expected. Some features may be unavailable.')
-          }
-        }, SUPABASE_TIMEOUT)
-
-        // Try to verify connection with a simple query
-        console.log('[Supabase] Testing connection with query...')
-        try {
-          const { data, error } = await client
-            .from('users')
-            .select('id')
-            .limit(1)
-
-          if (error) {
-            throw error
-          }
-
-          if (isMounted) {
-            console.log('[Supabase] ✓ Connection successful, data:', data)
-            clearTimeout(timeoutId)
-            setSupabase(client)
-            setIsLoaded(true)
-            setIsError(false)
-          }
-        } catch (err: any) {
-          if (isMounted) {
-            clearTimeout(timeoutId)
-
-            const errorMessage = err?.message || String(err)
-            const errorCode = err?.code || err?.status
-            console.error('[Supabase] Query failed:', { message: errorMessage, code: errorCode, fullError: err })
-
-            // If it's an auth error and we haven't exceeded max retries, retry
-            if ((errorMessage.includes('authentication') || errorMessage.includes('401')) && retryCount < maxRetries) {
-              retryCount++
-              console.warn(`[Supabase] Auth error, retrying (${retryCount}/${maxRetries})...`)
-              // Retry after a short delay to allow token to be refreshed
-              retryTimeoutId = setTimeout(() => {
-                if (isMounted) {
-                  initSupabase()
+          supabaseKey,
+          {
+            accessToken: async () => {
+              console.log('[Supabase] Getting access token for query...')
+              try {
+                const token = await session?.getToken({ skipCache: true })
+                console.log('[Supabase] Token retrieved:', !!token)
+                if (token) {
+                  console.log('[Supabase] Token value:', token)
+                } else {
+                  console.warn('[Supabase] Token is undefined!')
                 }
-              }, 1000)
-              return
-            }
-
-            // For non-auth errors, still set the client but mark error
-            // This allows the app to continue even if test query fails
-            if (isMounted) {
-              console.warn('[Supabase] Test query failed but continuing anyway:', errorMessage)
-              clearTimeout(timeoutId)
-              setSupabase(client)
-              setIsLoaded(true)
-              setIsError(true)
-              toast.warning('Database connection established but test query failed. Some features may be limited.')
+                return token
+              } catch (tokenErr) {
+                console.error('[Supabase] Error getting token:', tokenErr)
+                throw tokenErr
+              }
             }
           }
-        }
+        )
+
+        console.log('[Supabase] ✓ Client created successfully')
+        setSupabase(client)
+        setIsLoaded(true)
+        setIsError(false)
       } catch (error) {
-        if (isMounted) {
-          clearTimeout(timeoutId)
-          console.error('[Supabase] Initialization error:', error)
-          setIsError(true)
-          setIsLoaded(true)
-          toast.error('Database connection error. Please try again.')
-        }
+        console.error('[Supabase] Initialization error:', error)
+        setIsError(true)
+        setIsLoaded(true)
+        toast.error('Failed to initialize database connection.')
       }
     }
 
-    // Initialize Supabase with the current session
     initSupabase()
 
     return () => {
-      isMounted = false
-      clearTimeout(timeoutId)
-      clearTimeout(retryTimeoutId)
-      clearTimeout(initTimeoutId)
+      // Cleanup
     }
-  }, [isSessionLoaded, hasInitialized])
+  }, [isSessionLoaded, session])
 
   return (
     <Context.Provider value={{ supabase, isLoaded, isError }}>
