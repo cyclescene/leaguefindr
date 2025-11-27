@@ -54,21 +54,20 @@ export default function SupabaseProvider({ children }: Props) {
       user: session.user ? { id: session.user.id, email: session.user.primaryEmailAddress?.emailAddress } : null
     })
 
-    // Only initialize once per session
-    if (initializationAttempted.current) {
-      console.log('[SupabaseContext] Already attempted initialization, skipping')
-      return
-    }
+    // Always create a new client if session ID changed
+    const shouldInitialize = session.id !== initializationAttempted.current
 
-    initializationAttempted.current = true
+    if (shouldInitialize) {
+      console.log('[SupabaseContext] Initializing Supabase with session ID:', session.id)
+      initializationAttempted.current = session.id
 
-    const initSupabase = async () => {
       try {
         if (!supabaseUrl || !supabaseKey) {
           throw new Error(`Missing Supabase config: url=${!!supabaseUrl}, key=${!!supabaseKey}`)
         }
 
-        console.log('[SupabaseContext] Initializing Supabase with session ID:', session.id)
+        // Create a reference to the current session that won't change
+        const currentSession = session
 
         // Create client with dynamic accessToken callback
         // The token will be retrieved on-demand when queries are made
@@ -78,12 +77,21 @@ export default function SupabaseProvider({ children }: Props) {
           {
             accessToken: async () => {
               try {
-                // Use cached token by default (caches for 60 seconds)
-                const token = await session?.getToken()
-                console.log('[SupabaseContext] Retrieved token for session:', session.id, 'Token exists:', !!token)
+                // Always use the current session reference
+                const token = await currentSession?.getToken()
+                console.log('[SupabaseContext] Retrieved token for session:', currentSession.id, 'Token exists:', !!token)
                 return token
-              } catch (tokenErr) {
-                console.error('[SupabaseContext] Error getting token for session:', session.id, tokenErr)
+              } catch (tokenErr: any) {
+                console.error('[SupabaseContext] Error getting token for session:', currentSession.id, tokenErr)
+
+                // If it's a 401/auth error, the session is invalid
+                if (tokenErr?.status === 401 || tokenErr?.message?.includes('Unauthorized') || tokenErr?.message?.includes('authentication')) {
+                  console.error('[SupabaseContext] Session is invalid (401), clearing client and resetting')
+                  // Reset the initialization ref to force a new client creation
+                  initializationAttempted.current = false
+                  setSupabase(null)
+                  // Don't try to end session - it's likely already invalid
+                }
                 throw tokenErr
               }
             }
@@ -102,12 +110,10 @@ export default function SupabaseProvider({ children }: Props) {
       }
     }
 
-    initSupabase()
-
     return () => {
       // Cleanup
     }
-  }, [isSessionLoaded])
+  }, [isSessionLoaded, session?.id])
 
   return (
     <Context.Provider value={{ supabase, isLoaded, isError }}>

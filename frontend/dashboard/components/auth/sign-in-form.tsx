@@ -22,7 +22,6 @@ export function SignInForm() {
   const { signIn, isLoaded, setActive
   } = useSignIn();
   const { userId, isLoaded: isUserLoaded, getToken, } = useAuth();
-  const { session, isLoaded: isSessionLoaded } = useSession();
   const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -89,23 +88,16 @@ export function SignInForm() {
         try {
           await setActive({ session: result.createdSessionId });
           console.log('✓ Session set as active:', result.createdSessionId);
+
+          // Give the session a moment to be fully ready
+          await new Promise(resolve => setTimeout(resolve, 200));
         } catch (error) {
           console.error('✗ Failed to set session as active:', error);
           setSubmitted(false);
           return;
         }
 
-        // Verify token is accessible (don't use skipCache to avoid rate limiting)
-        try {
-          const token = await getToken();
-          if (!token) {
-            console.warn('⚠ Token is null/undefined after sign-in');
-          }
-        } catch (tokenErr) {
-          console.error('✗ Failed to get token after sign-in:', tokenErr);
-        }
-
-        // Redirect immediately - the session is now active
+        // Redirect - Supabase context will initialize with the new session
         console.log('Redirecting to home...');
         router.push('/');
       } else {
