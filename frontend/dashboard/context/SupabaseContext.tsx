@@ -28,13 +28,18 @@ type Props = {
 }
 
 export default function SupabaseProvider({ children }: Props) {
-  const { session } = useSession()
+  const { session, isLoaded: isSessionLoaded } = useSession()
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [isError, setIsError] = useState(false)
 
   useEffect(() => {
-    // If no session, just mark as loaded and don't try to initialize Supabase
+    // Wait for Clerk session to be loaded before attempting Supabase initialization
+    if (!isSessionLoaded) {
+      return
+    }
+
+    // If no session after loading, just mark as loaded and don't try to initialize Supabase
     if (!session) {
       setIsLoaded(true)
       return
@@ -99,7 +104,7 @@ export default function SupabaseProvider({ children }: Props) {
       isMounted = false
       clearTimeout(timeoutId)
     }
-  }, [session, isLoaded])
+  }, [session, isSessionLoaded])
 
   return (
     <Context.Provider value={{ supabase, isLoaded, isError }}>
