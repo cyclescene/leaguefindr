@@ -33,16 +33,9 @@ export default function SupabaseProvider({ children }: Props) {
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [isError, setIsError] = useState(false)
-  const [hasInitialized, setHasInitialized] = useState(false)
 
   useEffect(() => {
-    console.log('[SupabaseContext] Effect running:', { hasInitialized, isSessionLoaded, hasSession: !!session })
-
-    // Prevent multiple initializations
-    if (hasInitialized) {
-      console.log('[SupabaseContext] Already initialized, skipping')
-      return
-    }
+    console.log('[SupabaseContext] Effect running:', { isSessionLoaded, hasSession: !!session })
 
     // Wait for Clerk session to be loaded before attempting Supabase initialization
     if (!isSessionLoaded) {
@@ -54,13 +47,10 @@ export default function SupabaseProvider({ children }: Props) {
     if (!session) {
       console.log('[SupabaseContext] No session found, marking as loaded without Supabase')
       setIsLoaded(true)
-      setHasInitialized(true)
       return
     }
 
-    // Mark as initializing to prevent re-running this effect
     console.log('[SupabaseContext] Starting Supabase initialization with valid session...')
-    setHasInitialized(true)
 
     const initSupabase = async () => {
       try {

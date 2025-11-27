@@ -21,7 +21,7 @@ import { signInSchema, type SignInFormData } from "@/lib/schemas";
 export function SignInForm() {
   const { signIn, isLoaded, setActive
   } = useSignIn();
-  const { userId, isLoaded: isUserLoaded } = useAuth();
+  const { userId, isLoaded: isUserLoaded, getToken } = useAuth();
   const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -92,6 +92,20 @@ export function SignInForm() {
           console.error('✗ Failed to set session as active:', error);
           setSubmitted(false);
           return;
+        }
+
+        // Test token retrieval immediately after setActive
+        console.log('Testing token retrieval...');
+        try {
+          const token = await getToken({ skipCache: true });
+          if (token) {
+            console.log('✓ Token retrieved successfully');
+            console.log('Token value:', token);
+          } else {
+            console.warn('⚠ Token is null/undefined');
+          }
+        } catch (tokenErr) {
+          console.error('✗ Failed to get token:', tokenErr);
         }
 
         // Redirect immediately - the session is now active
