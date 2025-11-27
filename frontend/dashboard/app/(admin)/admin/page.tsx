@@ -1,6 +1,6 @@
 "use client"
 import { useUser } from "@clerk/nextjs";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { ClerkUser } from "@/types/clerk";
 import type { League } from "@/types/leagues";
@@ -17,7 +17,11 @@ import { usePendingLeagues, useAllLeagues, useAdminLeagueOperations } from "@/ho
 const ITEMS_PER_PAGE = 20
 
 function DashboardContent() {
-  const { user, isLoaded } = useUser() as { user: ClerkUser | null; isLoaded: boolean };
+  const { user, isLoaded, isSignedIn } = useUser();
+
+  useEffect(() => {
+    user?.reload()
+  }, [isLoaded, isSignedIn])
 
 
   // Pagination state

@@ -19,9 +19,7 @@ import { signUpSchema, type SignUpFormData } from "@/lib/schemas";
 import { Loader2 } from "lucide-react";
 
 export function SignUpForm() {
-  const { signUp, isLoaded: signUpIsLoaded } = useSignUp();
-  const { signIn, isLoaded: signInIsLoaded } = useSignIn();
-  const { userId, isLoaded: authIsLoaded } = useAuth();
+  const { signUp, isLoaded: signUpIsLoaded, setActive } = useSignUp();
   const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -48,31 +46,39 @@ export function SignUpForm() {
         password: data.password,
       });
 
-      // Prepare email verification with code strategy (user stays on page)
+      // Prepare email verification with code strategy
       if (result.status === "missing_requirements") {
         try {
           await signUp.prepareEmailAddressVerification({
             strategy: "email_code",
           });
+          // Show loading state and redirect to email verification
+          setIsRedirecting(true);
+          router.push('/verify-email');
         } catch (err) {
           console.error('Failed to prepare email verification:', err);
           setSubmitted(false);
           return;
         }
+      } else if (result.status === "complete") {
+        // Sign-up is complete and session is created
+        setIsRedirecting(true);
+
+        // Set the session as active
+        try {
+          await setActive({ session: result.createdSessionId });
+          console.log('✓ Session set as active');
+        } catch (error) {
+          console.error('✗ Failed to set session as active:', error);
+          setSubmitted(false);
+          return;
+        }
+
+        // Redirect to verify email - all users need email verification
+        router.push('/verify-email');
+      } else {
+        setSubmitted(false);
       }
-
-      // If signup is complete, Clerk has already created the session
-      if (result.status === "complete") {
-        // The user is already signed in from the signup process
-        // No need to explicitly sign in again
-      }
-
-      // Show loading state and redirect to email verification
-      setIsRedirecting(true);
-      setIsRedirecting(false);
-
-      // All users (including first admin) need to verify their email
-      router.push('/verify-email');
     } catch (error) {
       console.error('Sign up failed:', error);
       setSubmitted(false);

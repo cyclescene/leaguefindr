@@ -19,7 +19,8 @@ import { Input } from "@/components/ui/input";
 import { signInSchema, type SignInFormData } from "@/lib/schemas";
 
 export function SignInForm() {
-  const { signIn, isLoaded } = useSignIn();
+  const { signIn, isLoaded, setActive
+  } = useSignIn();
   const { userId, isLoaded: isUserLoaded } = useAuth();
   const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
@@ -50,10 +51,16 @@ export function SignInForm() {
       // Sign in with Clerk
       const result = await signIn.create({
         identifier: data.email,
+        strategy: "password",
         password: data.password,
       });
 
+
+
       if (result.status === "complete") {
+        console.log('=== Sign-in Complete ===');
+        console.log('Created Session ID:', result.createdSessionId);
+
         // Record login to backend
         const response = await fetch('/api/auth?action=login', {
           method: 'POST',
@@ -65,16 +72,32 @@ export function SignInForm() {
           }),
         });
 
+        console.log('Backend login response status:', response.status);
+
         if (!response.ok) {
+          console.error('Backend login failed');
           setSubmitted(false);
           return;
         }
 
-        // Show loading state and let Clerk session sync
+        // Show loading state
         setIsRedirecting(true);
-        // Wait a moment for Clerk to establish the session, then redirect to home
-        // The middleware will handle role-based routing from there
+
+        // Set the session as active to load session claims (including appRole)
+        console.log('Setting session as active...');
+        try {
+          await setActive({ session: result.createdSessionId });
+          console.log('✓ Session set as active');
+        } catch (error) {
+          console.error('✗ Failed to set session as active:', error);
+          setSubmitted(false);
+          return;
+        }
+
+        // Wait a moment for Clerk hooks to update with the new session
         setTimeout(() => {
+          // Redirect to home - middleware will handle role-based routing
+          console.log('Redirecting to home...');
           router.push('/');
         }, 500);
       } else {
