@@ -35,38 +35,21 @@ export default function SupabaseProvider({ children }: Props) {
   const [isError, setIsError] = useState(false)
 
   useEffect(() => {
-    console.log('[SupabaseContext] Effect running:', { isSessionLoaded, hasSession: !!session })
-
     // Wait for Clerk session to be loaded before attempting Supabase initialization
     if (!isSessionLoaded) {
-      console.log('[SupabaseContext] Waiting for session to load...')
       return
     }
 
     // If no session after loading, just mark as loaded and don't try to initialize Supabase
     if (!session) {
-      console.log('[SupabaseContext] No session found, marking as loaded without Supabase')
       setIsLoaded(true)
       return
     }
 
-    console.log('[SupabaseContext] Starting Supabase initialization with valid session...')
-
     const initSupabase = async () => {
       try {
-        console.log('[Supabase] Creating client with accessToken callback...')
-
         if (!supabaseUrl || !supabaseKey) {
           throw new Error(`Missing Supabase config: url=${!!supabaseUrl}, key=${!!supabaseKey}`)
-        }
-
-        // Reload session to get fresh session data
-        console.log('[Supabase] Reloading session...')
-        try {
-          await session?.reload?.()
-          console.log('[Supabase] Session reloaded')
-        } catch (reloadErr) {
-          console.warn('[Supabase] Session reload failed (non-blocking):', reloadErr)
         }
 
         // Create client with dynamic accessToken callback
@@ -76,15 +59,9 @@ export default function SupabaseProvider({ children }: Props) {
           supabaseKey,
           {
             accessToken: async () => {
-              console.log('[Supabase] Getting access token for query...')
               try {
-                const token = await session?.getToken({ skipCache: true })
-                console.log('[Supabase] Token retrieved:', !!token)
-                if (token) {
-                  console.log('[Supabase] Token value:', token)
-                } else {
-                  console.warn('[Supabase] Token is undefined!')
-                }
+                // Use cached token by default (caches for 60 seconds)
+                const token = await session?.getToken()
                 return token
               } catch (tokenErr) {
                 console.error('[Supabase] Error getting token:', tokenErr)
@@ -94,7 +71,6 @@ export default function SupabaseProvider({ children }: Props) {
           }
         )
 
-        console.log('[Supabase] ✓ Client created successfully')
         setSupabase(client)
         setIsLoaded(true)
         setIsError(false)

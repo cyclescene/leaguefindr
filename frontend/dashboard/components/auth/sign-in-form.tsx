@@ -94,18 +94,14 @@ export function SignInForm() {
           return;
         }
 
-        // Test token retrieval immediately after setActive
-        console.log('Testing token retrieval...');
+        // Verify token is accessible (don't use skipCache to avoid rate limiting)
         try {
-          const token = await getToken({ skipCache: true });
-          if (token) {
-            console.log('✓ Token retrieved successfully');
-            console.log('Token value:', token);
-          } else {
-            console.warn('⚠ Token is null/undefined');
+          const token = await getToken();
+          if (!token) {
+            console.warn('⚠ Token is null/undefined after sign-in');
           }
         } catch (tokenErr) {
-          console.error('✗ Failed to get token:', tokenErr);
+          console.error('✗ Failed to get token after sign-in:', tokenErr);
         }
 
         // Redirect immediately - the session is now active
