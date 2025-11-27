@@ -29,31 +29,37 @@ type Props = {
 
 export default function SupabaseProvider({ children }: Props) {
   const { session, isLoaded: isSessionLoaded } = useSession()
-  const { user } = useUser()
+
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [isError, setIsError] = useState(false)
   const [hasInitialized, setHasInitialized] = useState(false)
 
   useEffect(() => {
+    console.log('[SupabaseContext] Effect running:', { hasInitialized, isSessionLoaded, hasSession: !!session })
+
     // Prevent multiple initializations
     if (hasInitialized) {
+      console.log('[SupabaseContext] Already initialized, skipping')
       return
     }
 
     // Wait for Clerk session to be loaded before attempting Supabase initialization
     if (!isSessionLoaded) {
+      console.log('[SupabaseContext] Waiting for session to load...')
       return
     }
 
     // If no session after loading, just mark as loaded and don't try to initialize Supabase
     if (!session) {
+      console.log('[SupabaseContext] No session found, marking as loaded without Supabase')
       setIsLoaded(true)
       setHasInitialized(true)
       return
     }
 
     // Mark as initializing to prevent re-running this effect
+    console.log('[SupabaseContext] Starting Supabase initialization...')
     setHasInitialized(true)
 
     let timeoutId: NodeJS.Timeout
@@ -65,15 +71,34 @@ export default function SupabaseProvider({ children }: Props) {
 
     const initSupabase = async () => {
       try {
+        console.log('[Supabase] Starting initialization...')
+
+        if (!supabaseUrl || !supabaseKey) {
+          throw new Error(`Missing Supabase config: url=${!!supabaseUrl}, key=${!!supabaseKey}`)
+        }
+
         const client = createClient(
-          supabaseUrl!,
-          supabaseKey!, {
-          accessToken: () => session?.getToken({ skipCache: true })
+          supabaseUrl,
+          supabaseKey, {
+          accessToken: async () => {
+            console.log('[Supabase] Getting access token...')
+            try {
+              const token = await session?.getToken({ skipCache: true })
+              console.log('[Supabase] Token retrieved:', !!token)
+              return token
+            } catch (tokenErr) {
+              console.error('[Supabase] Error getting token:', tokenErr)
+              throw tokenErr
+            }
+          }
         })
+
+        console.log('[Supabase] Client created, setting timeout...')
 
         // Set a timeout - if Supabase doesn't load in time, show error and continue anyway
         timeoutId = setTimeout(() => {
-          if (isMounted && !isLoaded) {
+          if (isMounted) {
+            console.warn('[Supabase] Timeout reached (5s), marking as loaded with error')
             setIsError(true)
             setIsLoaded(true)
             toast.error('Supabase is taking longer than expected. Some features may be unavailable.')
@@ -81,13 +106,19 @@ export default function SupabaseProvider({ children }: Props) {
         }, SUPABASE_TIMEOUT)
 
         // Try to verify connection with a simple query
+        console.log('[Supabase] Testing connection with query...')
         try {
-          await client
+          const { data, error } = await client
             .from('users')
             .select('id')
             .limit(1)
 
+          if (error) {
+            throw error
+          }
+
           if (isMounted) {
+            console.log('[Supabase] ✓ Connection successful, data:', data)
             clearTimeout(timeoutId)
             setSupabase(client)
             setIsLoaded(true)
@@ -97,10 +128,14 @@ export default function SupabaseProvider({ children }: Props) {
           if (isMounted) {
             clearTimeout(timeoutId)
 
+            const errorMessage = err?.message || String(err)
+            const errorCode = err?.code || err?.status
+            console.error('[Supabase] Query failed:', { message: errorMessage, code: errorCode, fullError: err })
+
             // If it's an auth error and we haven't exceeded max retries, retry
-            if (err?.message?.includes('authentication') && retryCount < maxRetries) {
+            if ((errorMessage.includes('authentication') || errorMessage.includes('401')) && retryCount < maxRetries) {
               retryCount++
-              console.warn(`Supabase auth error, retrying (${retryCount}/${maxRetries})...`, err)
+              console.warn(`[Supabase] Auth error, retrying (${retryCount}/${maxRetries})...`)
               // Retry after a short delay to allow token to be refreshed
               retryTimeoutId = setTimeout(() => {
                 if (isMounted) {
@@ -110,19 +145,25 @@ export default function SupabaseProvider({ children }: Props) {
               return
             }
 
-            setIsError(true)
-            setIsLoaded(true)
-            toast.error('Failed to connect to database. Please try again.')
-            console.error('Supabase connection error:', err)
+            // For non-auth errors, still set the client but mark error
+            // This allows the app to continue even if test query fails
+            if (isMounted) {
+              console.warn('[Supabase] Test query failed but continuing anyway:', errorMessage)
+              clearTimeout(timeoutId)
+              setSupabase(client)
+              setIsLoaded(true)
+              setIsError(true)
+              toast.warning('Database connection established but test query failed. Some features may be limited.')
+            }
           }
         }
       } catch (error) {
         if (isMounted) {
           clearTimeout(timeoutId)
+          console.error('[Supabase] Initialization error:', error)
           setIsError(true)
           setIsLoaded(true)
           toast.error('Database connection error. Please try again.')
-          console.error('Supabase initialization error:', error)
         }
       }
     }
