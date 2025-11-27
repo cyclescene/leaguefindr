@@ -47,8 +47,12 @@ export default function SupabaseProvider({ children }: Props) {
       return
     }
 
-    console.log('[SupabaseContext] Current Clerk session ID:', session.id)
-    console.log('[SupabaseContext] Current Clerk user ID:', session.userId)
+    console.log('[SupabaseContext] Current Clerk session:', {
+      id: session.id,
+      userId: session.userId,
+      status: session.status,
+      user: session.user ? { id: session.user.id, email: session.user.primaryEmailAddress?.emailAddress } : null
+    })
 
     // Only initialize once per session
     if (initializationAttempted.current) {
