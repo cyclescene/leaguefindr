@@ -2,7 +2,7 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { useSession } from '@clerk/nextjs'
-import { useEffect, useState, createContext, useContext } from 'react'
+import { useEffect, useState, createContext, useContext, useRef } from 'react'
 import { toast } from 'sonner'
 
 type SupabaseContext = {
@@ -27,8 +27,7 @@ type Props = {
 
 export default function SupabaseProvider({ children }: Props) {
   const { session, isLoaded: isSessionLoaded } = useSession()
-
-
+  const initializationAttempted = useRef(false)
 
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
@@ -45,6 +44,13 @@ export default function SupabaseProvider({ children }: Props) {
       setIsLoaded(true)
       return
     }
+
+    // Only initialize once per session
+    if (initializationAttempted.current) {
+      return
+    }
+
+    initializationAttempted.current = true
 
     const initSupabase = async () => {
       try {
@@ -87,7 +93,7 @@ export default function SupabaseProvider({ children }: Props) {
     return () => {
       // Cleanup
     }
-  }, [isSessionLoaded, session])
+  }, [isSessionLoaded])
 
   return (
     <Context.Provider value={{ supabase, isLoaded, isError }}>
