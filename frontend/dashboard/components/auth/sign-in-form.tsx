@@ -89,8 +89,9 @@ export function SignInForm() {
           await setActive({ session: result.createdSessionId });
           console.log('✓ Session set as active:', result.createdSessionId);
 
-          // Give the session a moment to be fully ready
-          await new Promise(resolve => setTimeout(resolve, 200));
+          // Give the session time to fully propagate in Clerk
+          // This is especially important for sign-out/sign-in cycles without hard refresh
+          await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (error) {
           console.error('✗ Failed to set session as active:', error);
           setSubmitted(false);

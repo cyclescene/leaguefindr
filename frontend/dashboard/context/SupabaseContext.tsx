@@ -27,7 +27,7 @@ type Props = {
 
 export default function SupabaseProvider({ children }: Props) {
   const { session, isLoaded: isSessionLoaded } = useSession()
-  const initializationAttempted = useRef(false)
+  const initializationAttempted = useRef<string | null>(null)
 
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
@@ -42,8 +42,10 @@ export default function SupabaseProvider({ children }: Props) {
 
     // If no session after loading, just mark as loaded and don't try to initialize Supabase
     if (!session) {
-      console.log('[SupabaseContext] No session available')
+      console.log('[SupabaseContext] No session available, clearing client')
+      setSupabase(null)
       setIsLoaded(true)
+      initializationAttempted.current = null
       return
     }
 
