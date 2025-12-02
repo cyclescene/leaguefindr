@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 // Dynamically import AddressAutofill to avoid SSR issues
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const AddressAutofill = dynamic(
   () => import('@mapbox/search-js-react').then(mod => mod.AddressAutofill),
   { ssr: false }
@@ -107,6 +108,7 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
   }, [onMapboxDropdownStateChange])
 
   // Handle address selection from Mapbox AddressAutofill
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleAddressChange = (featureCollection: any) => {
     // Extract the first feature from the FeatureCollection
     const feature = featureCollection?.features?.[0]

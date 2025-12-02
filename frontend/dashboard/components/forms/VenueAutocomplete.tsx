@@ -8,6 +8,7 @@ import { useVenueSearch } from '@/hooks/useVenueSearch'
 import dynamic from 'next/dynamic'
 
 // Dynamically import AddressAutofill to avoid SSR issues
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const AddressAutofill = dynamic(
   () => import('@mapbox/search-js-react').then(mod => mod.AddressAutofill),
   { ssr: false }
@@ -31,6 +32,7 @@ interface VenueAutocompleteProps {
   venueSearchInput: string
   onVenueChange: (venue: Venue | null) => void
   onVenueSearchChange: (input: string) => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onVenueAddressChange: (featureCollection: any) => void
   venueError?: string
   isViewingLeague?: boolean

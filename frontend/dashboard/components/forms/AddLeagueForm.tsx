@@ -69,6 +69,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     setValue,
     watch,
   } = useForm<AddLeagueFormData>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(addLeagueSchema) as any,
     defaultValues: {
       sport_id: undefined,
@@ -79,8 +80,8 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       venue_lat: undefined,
       venue_lng: undefined,
       league_name: '',
-      division: '' as any,
-      gender: '' as any,
+      division: '',
+      gender: 'co-ed',
       registration_deadline: '',
       season_start_date: '',
       season_end_date: '',
@@ -168,6 +169,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
           setGameOccurrences(value as GameOccurrence[])
           setValue('game_occurrences', value as GameOccurrence[])
         } else if (key !== 'game_occurrences' && key !== 'registration_deadline' && key !== 'season_start_date' && key !== 'season_end_date') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           setValue(key as keyof AddLeagueFormData, value as any)
         }
       })
@@ -197,6 +199,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
   }
 
   // Handle venue address selection from Mapbox AddressAutofill
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleVenueAddressChange = (featureCollection: any) => {
     const feature = featureCollection?.features?.[0]
 
@@ -206,6 +209,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
 
       // Mark venue as not selected since we're using a custom address
       setSelectedVenue(null)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setValue('venue_id', null as any)
       // venue_name is already updated via handleVenueSearchChange as user types
       setValue('venue_address', address)
@@ -234,6 +238,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     if (date) {
       setValue('season_end_date', format(date, 'yyyy-MM-dd'))
     } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setValue('season_end_date', null as any)
     }
   }
@@ -750,10 +755,13 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
               setValue('venue_lat', venue.lat)
               setValue('venue_lng', venue.lng)
             } else {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               setValue('venue_id', null as any)
               setValue('venue_name', '')
               setValue('venue_address', '')
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               setValue('venue_lat', null as any)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               setValue('venue_lng', null as any)
             }
           }}

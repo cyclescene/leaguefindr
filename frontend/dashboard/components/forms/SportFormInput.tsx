@@ -12,6 +12,7 @@ interface SportFormInputProps {
   loading: boolean;
   error?: FieldError;
   showAutocomplete: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filteredSuggestions: any[];
   children: React.ReactNode; // Autocomplete dropdown
 }
