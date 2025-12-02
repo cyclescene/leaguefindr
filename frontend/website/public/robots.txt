@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Optimize crawl budget
+Disallow: /api/
+Disallow: /_next/
+Disallow: /debug/
+
+# Sitemap location
+Sitemap: https://leaguefindr.com/sitemap.xml 
