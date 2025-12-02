@@ -5,11 +5,10 @@ import { stringifyError } from '@/hooks/useReadOnlyData'
 export interface AdminDraft {
   id: number
   org_id: string
-  type: 'draft' | 'template'
+  type: string
   name?: string
   form_data: Record<string, any>
   created_at: string
-  updated_at: string
   created_by?: string
 }
 
@@ -21,7 +20,8 @@ export function useAdminDrafts(
   offset: number = 0,
   filters?: { name?: string; type?: 'draft' | 'template'; sport?: string },
   sortBy?: 'name' | 'date',
-  sortOrder?: 'asc' | 'desc'
+  sortOrder?: 'asc' | 'desc',
+  userId?: string
 ) {
   const { supabase, isLoaded } = useSupabase()
   const [state, setState] = useState({
@@ -32,12 +32,13 @@ export function useAdminDrafts(
   })
 
   const fetch = useCallback(async () => {
-    if (!supabase) return
+    if (!supabase || !userId) return
 
     try {
       let query = supabase
         .from('leagues_drafts')
         .select('*', { count: 'exact' })
+        .eq('created_by', userId)
 
       // Apply filters
       if (filters?.name) {
@@ -81,12 +82,72 @@ export function useAdminDrafts(
         error: error instanceof Error ? error : new Error(stringifyError(error)),
       }))
     }
-  }, [supabase, offset, limit, filters?.name, filters?.type, filters?.sport, sortBy, sortOrder])
+  }, [supabase, offset, limit, filters?.name, filters?.type, filters?.sport, sortBy, sortOrder, userId])
 
   useEffect(() => {
-    if (!isLoaded) return
+    if (!isLoaded || !supabase || !userId) return
+
+    // Initial fetch
     fetch()
-  }, [isLoaded, fetch])
+
+    // Subscribe to realtime updates
+    const subscription = supabase
+      .channel(`leagues_drafts:created_by=eq.${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leagues_drafts',
+          filter: `created_by=eq.${userId}`,
+        },
+        (payload) => {
+          setState((prevState) => {
+            if (!prevState.data) return prevState
+
+            // Handle INSERT
+            if (payload.eventType === 'INSERT') {
+              const newDraft = payload.new as AdminDraft
+              return {
+                ...prevState,
+                data: [newDraft, ...prevState.data],
+                total: prevState.total + 1,
+              }
+            }
+
+            // Handle UPDATE
+            if (payload.eventType === 'UPDATE') {
+              const updatedDraft = payload.new as AdminDraft
+              return {
+                ...prevState,
+                data: prevState.data.map((draft) =>
+                  draft.id === updatedDraft.id ? updatedDraft : draft
+                ),
+              }
+            }
+
+            // Handle DELETE
+            if (payload.eventType === 'DELETE') {
+              const deletedDraft = payload.old as AdminDraft
+              return {
+                ...prevState,
+                data: prevState.data.filter(
+                  (draft) => draft.id !== deletedDraft.id
+                ),
+                total: Math.max(0, prevState.total - 1),
+              }
+            }
+
+            return prevState
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [isLoaded, supabase, userId, fetch])
 
   return { ...state, refetch: fetch }
 }

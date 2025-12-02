@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import { useSession } from '@clerk/nextjs'
+import { useSession, useUser } from '@clerk/nextjs'
 import { useEffect, useState, createContext, useContext, useRef } from 'react'
 import { toast } from 'sonner'
 
@@ -27,6 +27,7 @@ type Props = {
 
 export default function SupabaseProvider({ children }: Props) {
   const { session, isLoaded: isSessionLoaded } = useSession()
+  const { user, isLoaded: isUserLoaded } = useUser()
   const initializationAttempted = useRef<string | null>(null)
   const tokenRefreshInterval = useRef<NodeJS.Timeout | null>(null)
   const cachedToken = useRef<string | null>(null)
@@ -38,31 +39,21 @@ export default function SupabaseProvider({ children }: Props) {
   useEffect(() => {
     // Wait for Clerk session to be loaded before attempting Supabase initialization
     if (!isSessionLoaded) {
-      console.log('[SupabaseContext] Waiting for session to load...')
       return
     }
 
     // If no session after loading, just mark as loaded and don't try to initialize Supabase
     if (!session) {
-      console.log('[SupabaseContext] No session available, clearing client')
       setSupabase(null)
       setIsLoaded(true)
       initializationAttempted.current = null
       return
     }
 
-    console.log('[SupabaseContext] Current Clerk session:', {
-      id: session.id,
-      userId: session.userId,
-      status: session.status,
-      user: session.user ? { id: session.user.id, email: session.user.primaryEmailAddress?.emailAddress } : null
-    })
-
     // Always create a new client if session ID changed
     const shouldInitialize = session.id !== initializationAttempted.current
 
     if (shouldInitialize) {
-      console.log('[SupabaseContext] Initializing Supabase with session ID:', session.id)
       initializationAttempted.current = session.id
 
       const initializeSupabase = async () => {
@@ -79,7 +70,6 @@ export default function SupabaseProvider({ children }: Props) {
           if (!initialToken) {
             throw new Error('Failed to retrieve initial token from Clerk')
           }
-          console.log('[SupabaseContext] ✓ Initial token retrieved for session:', session.id)
           cachedToken.current = initialToken
 
           // Create client with accessToken callback that uses cached token
@@ -98,7 +88,7 @@ export default function SupabaseProvider({ children }: Props) {
             }
           )
 
-          // Set up token refresh every 55 seconds (token expires in 60 seconds)
+          // Set up token refresh every 50 seconds (token expires in 60 seconds)
           if (tokenRefreshInterval.current) {
             clearInterval(tokenRefreshInterval.current)
           }
@@ -107,15 +97,13 @@ export default function SupabaseProvider({ children }: Props) {
             try {
               const newToken = await currentSession?.getToken()
               if (newToken) {
-                console.log('[SupabaseContext] ✓ Token refreshed for session:', session.id)
                 cachedToken.current = newToken
               }
             } catch (refreshErr) {
               console.error('[SupabaseContext] Token refresh failed:', refreshErr)
             }
-          }, 55000) // Refresh every 55 seconds
+          }, 50000) // Refresh every 55 seconds
 
-          console.log('[SupabaseContext] ✓ Supabase client created successfully for session:', session.id)
           setSupabase(client)
           setIsLoaded(true)
           setIsError(false)
@@ -136,7 +124,7 @@ export default function SupabaseProvider({ children }: Props) {
         clearInterval(tokenRefreshInterval.current)
       }
     }
-  }, [isSessionLoaded, session?.id])
+  }, [isSessionLoaded, session?.id, user?.id, isUserLoaded])
 
   return (
     <Context.Provider value={{ supabase, isLoaded, isError }}>

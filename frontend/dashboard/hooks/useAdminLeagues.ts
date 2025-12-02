@@ -92,8 +92,77 @@ export function usePendingLeagues(limit: number = 20, offset: number = 0) {
   }, [supabase, offset, limit])
 
   useEffect(() => {
-    if (isLoaded && supabase) {
-      fetch()
+    if (!isLoaded || !supabase) return
+
+    // Initial fetch
+    fetch()
+
+    // Subscribe to realtime updates for pending leagues
+    const subscription = supabase
+      .channel(`leagues:status=eq.pending`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leagues',
+          filter: `status=eq.pending`,
+        },
+        (payload) => {
+          setState((prevState) => {
+            if (!prevState.data) return prevState
+
+            // Handle INSERT
+            if (payload.eventType === 'INSERT') {
+              const newLeague = payload.new as PendingLeague
+              return {
+                ...prevState,
+                data: [newLeague, ...prevState.data],
+                total: prevState.total + 1,
+              }
+            }
+
+            // Handle UPDATE
+            if (payload.eventType === 'UPDATE') {
+              const updatedLeague = payload.new as PendingLeague
+              // If status changed away from pending, remove it
+              if (updatedLeague.status !== 'pending') {
+                return {
+                  ...prevState,
+                  data: prevState.data.filter(
+                    (league) => league.id !== updatedLeague.id
+                  ),
+                  total: Math.max(0, prevState.total - 1),
+                }
+              }
+              return {
+                ...prevState,
+                data: prevState.data.map((league) =>
+                  league.id === updatedLeague.id ? updatedLeague : league
+                ),
+              }
+            }
+
+            // Handle DELETE
+            if (payload.eventType === 'DELETE') {
+              const deletedLeague = payload.old as PendingLeague
+              return {
+                ...prevState,
+                data: prevState.data.filter(
+                  (league) => league.id !== deletedLeague.id
+                ),
+                total: Math.max(0, prevState.total - 1),
+              }
+            }
+
+            return prevState
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
     }
   }, [isLoaded, supabase, fetch])
 
@@ -109,9 +178,9 @@ export function usePendingLeagues(limit: number = 20, offset: number = 0) {
 }
 
 /**
- * Hook to fetch all leagues (all statuses) for admin view with pagination
+ * Hook to fetch all leagues (all statuses) for admin view with pagination and filtering
  */
-export function useAllLeagues(limit: number = 20, offset: number = 0) {
+export function useAllLeagues(limit: number = 20, offset: number = 0, status?: 'pending' | 'approved' | 'rejected') {
   const { supabase, isLoaded } = useSupabase()
   const [state, setState] = useState({
     data: null as PendingLeague[] | null,
@@ -124,9 +193,16 @@ export function useAllLeagues(limit: number = 20, offset: number = 0) {
     if (!supabase) return
 
     try {
-      const { data, count, error } = await supabase
+      let query = supabase
         .from('leagues')
         .select('*', { count: 'exact' })
+
+      // Apply status filter if provided
+      if (status) {
+        query = query.eq('status', status)
+      }
+
+      const { data, count, error } = await query
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1)
 
@@ -148,13 +224,93 @@ export function useAllLeagues(limit: number = 20, offset: number = 0) {
         error: new Error(errorMessage),
       })
     }
-  }, [supabase, offset, limit])
+  }, [supabase, offset, limit, status])
 
   useEffect(() => {
-    if (isLoaded && supabase) {
-      fetch()
+    if (!isLoaded || !supabase) return
+
+    // Initial fetch
+    fetch()
+
+    // Build filter for realtime subscription
+    const filter = status ? `status=eq.${status}` : undefined
+
+    // Subscribe to realtime updates for all leagues
+    const subscription = supabase
+      .channel(`leagues:all`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leagues',
+          ...(filter && { filter }),
+        },
+        (payload) => {
+          setState((prevState) => {
+            if (!prevState.data) return prevState
+
+            // Handle INSERT
+            if (payload.eventType === 'INSERT') {
+              const newLeague = payload.new as PendingLeague
+              // Only add if matches status filter or no filter
+              if (!status || newLeague.status === status) {
+                return {
+                  ...prevState,
+                  data: [newLeague, ...prevState.data],
+                  total: prevState.total + 1,
+                }
+              }
+              return prevState
+            }
+
+            // Handle UPDATE
+            if (payload.eventType === 'UPDATE') {
+              const updatedLeague = payload.new as PendingLeague
+              // If status filter is set and status changed, remove it
+              if (status && updatedLeague.status !== status) {
+                return {
+                  ...prevState,
+                  data: prevState.data.filter(
+                    (league) => league.id !== updatedLeague.id
+                  ),
+                  total: Math.max(0, prevState.total - 1),
+                }
+              }
+              // If no status filter or status matches, update
+              if (!status || updatedLeague.status === status) {
+                return {
+                  ...prevState,
+                  data: prevState.data.map((league) =>
+                    league.id === updatedLeague.id ? updatedLeague : league
+                  ),
+                }
+              }
+              return prevState
+            }
+
+            // Handle DELETE
+            if (payload.eventType === 'DELETE') {
+              const deletedLeague = payload.old as PendingLeague
+              return {
+                ...prevState,
+                data: prevState.data.filter(
+                  (league) => league.id !== deletedLeague.id
+                ),
+                total: Math.max(0, prevState.total - 1),
+              }
+            }
+
+            return prevState
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
     }
-  }, [isLoaded, supabase, fetch])
+  }, [isLoaded, supabase, fetch, status])
 
   return {
     allLeagues: state.data || [],
@@ -207,8 +363,48 @@ export function useLeague(leagueId: number | null) {
   }, [supabase, leagueId])
 
   useEffect(() => {
-    if (isLoaded && supabase && leagueId) {
-      fetch()
+    if (!isLoaded || !supabase || !leagueId) return
+
+    // Initial fetch
+    fetch()
+
+    // Subscribe to realtime updates for this specific league
+    const subscription = supabase
+      .channel(`leagues:id=eq.${leagueId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leagues',
+          filter: `id=eq.${leagueId}`,
+        },
+        (payload) => {
+          setState((prevState) => {
+            // Handle UPDATE
+            if (payload.eventType === 'UPDATE') {
+              return {
+                ...prevState,
+                data: payload.new as PendingLeague,
+              }
+            }
+
+            // Handle DELETE
+            if (payload.eventType === 'DELETE') {
+              return {
+                ...prevState,
+                data: null,
+              }
+            }
+
+            return prevState
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
     }
   }, [isLoaded, supabase, leagueId, fetch])
 

@@ -85,12 +85,26 @@ func (s *Service) CreateOrganization(ctx context.Context, orgName, orgURL, orgEm
 	if orgName == "" {
 		return "", fmt.Errorf("organization name is required")
 	}
+	if orgURL == "" {
+		return "", fmt.Errorf("organization website URL is required")
+	}
 
 	client := s.getClientWithAuth(ctx)
 	repo := NewRepository(client)
 
+	// Check if organization with this URL already exists
+	existingOrg, err := repo.GetOrganizationByURL(ctx, orgURL)
+	if err == nil && existingOrg != nil {
+		// Organization with this URL already exists
+		return "", fmt.Errorf("organization with this URL already exists")
+	}
+
 	orgID, err := repo.CreateOrganization(ctx, orgName, orgURL, orgEmail, orgPhone, orgAddress, createdBy)
 	if err != nil {
+		// Check if it's a unique constraint violation (duplicate URL)
+		if err.Error() == "failed to create organization: pq: duplicate key value violates unique constraint \"unique_org_url\"" {
+			return "", fmt.Errorf("organization with this URL already exists")
+		}
 		return "", err
 	}
 
@@ -163,6 +177,15 @@ func (s *Service) UpdateOrganization(ctx context.Context, userID, orgID string, 
 	// Verify at least one field is being updated
 	if orgName == nil && orgURL == nil && orgEmail == nil && orgPhone == nil && orgAddress == nil {
 		return fmt.Errorf("at least one field must be provided to update")
+	}
+
+	// If updating URL, check if another organization already has this URL
+	if orgURL != nil && *orgURL != "" {
+		existingOrg, err := repo.GetOrganizationByURL(ctx, *orgURL)
+		if err == nil && existingOrg != nil && existingOrg.ID != orgID {
+			// Another organization already has this URL
+			return fmt.Errorf("organization with this URL already exists")
+		}
 	}
 
 	return repo.UpdateOrganization(ctx, orgID, orgName, orgURL, orgEmail, orgPhone, orgAddress)

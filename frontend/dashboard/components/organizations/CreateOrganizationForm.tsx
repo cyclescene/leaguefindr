@@ -73,7 +73,7 @@ export function CreateOrganizationForm({ onSuccess, onClose, organization }: Cre
         },
         body: JSON.stringify({
           org_name: data.name,
-          org_url: data.url || null,
+          org_url: data.url,
           org_email: data.email || null,
           org_phone: data.phone || null,
           org_address: data.address || null,
@@ -81,8 +81,20 @@ export function CreateOrganizationForm({ onSuccess, onClose, organization }: Cre
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to ${isEditMode ? "update" : "create"} organization`);
+        let errorMessage = `Failed to ${isEditMode ? "update" : "create"} organization`;
+
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch {
+          // If response body is not JSON, use the response text or default message
+          const text = await response.text();
+          if (text) {
+            errorMessage = text;
+          }
+        }
+
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -91,7 +103,13 @@ export function CreateOrganizationForm({ onSuccess, onClose, organization }: Cre
       onSuccess(orgId, orgName);
       onClose();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "An error occurred";
+      let message = err instanceof Error ? err.message : "An error occurred";
+
+      // Add contact email for duplicate organization errors
+      if (message.toLowerCase().includes("duplicate") || message.toLowerCase().includes("already exists")) {
+        message = `${message}. Please contact info@leaguefindr.com if you believe this is an error.`;
+      }
+
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -99,7 +117,7 @@ export function CreateOrganizationForm({ onSuccess, onClose, organization }: Cre
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 pr-2">
       {error && (
         <div className="rounded-md bg-red-100 p-3 text-sm text-red-700">
           {error}
@@ -107,7 +125,7 @@ export function CreateOrganizationForm({ onSuccess, onClose, organization }: Cre
       )}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-2">
           <FormField
             control={form.control}
             name="name"
@@ -173,12 +191,12 @@ export function CreateOrganizationForm({ onSuccess, onClose, organization }: Cre
             name="url"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-brand-dark">Website</FormLabel>
+                <FormLabel className="text-brand-dark">Website URL *</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="https://www.organization.com"
-                    type="url"
-                    className="border-brand-light focus:ring-brand-dark focus:border-brand-dark"
+                    placeholder="example.com or https://www.example.com"
+                    type="text"
+                    className="border-brand-light focus:ring-red-500 focus:border-red-500"
                     {...field}
                     disabled={isSubmitting}
                   />

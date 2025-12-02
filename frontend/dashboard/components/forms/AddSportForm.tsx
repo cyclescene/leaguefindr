@@ -7,7 +7,6 @@ import { useAuth } from "@clerk/nextjs";
 import { Label } from "@/components/ui/label";
 import { addSportSchema, type AddSportFormData } from "@/lib/schemas";
 import { useSportSearch } from "@/hooks/useSportSearch";
-import { useSportExistenceCheck } from "@/hooks/useSportExistenceCheck";
 import { useAutocompleteLogic } from "@/hooks/useAutocompleteLogic";
 import { SportAutocompleteDropdown } from "./SportAutocompleteDropdown";
 import { SportStatusFeedback } from "./SportStatusFeedback";
@@ -59,13 +58,14 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
 
   // Custom hooks
   const { approvedSports } = useSportSearch();
-  const { sportCheckData, isCheckingExistence } = useSportExistenceCheck(
-    debouncedSportName,
-    !!selectedSport
-  );
   const { autocompleteRef } = useAutocompleteLogic(
     showAutocomplete,
     setShowAutocomplete
+  );
+
+  // Check if sport exists in approved sports (case-insensitive)
+  const sportExists = approvedSports.some(
+    (sport) => sport.name.toLowerCase() === debouncedSportName.toLowerCase()
   );
 
   // Filter approved sports for autocomplete
@@ -146,15 +146,9 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
     );
   }
 
-  // Check if sport is rejected (from API check or from selected sport)
-  const isRejectedSport =
-    (sportCheckData && sportCheckData.exists && sportCheckData.status === "rejected") ||
-    (selectedSport?.status === "rejected");
-
-  // Check if sport is approved (from API check or from selected sport)
-  const isApprovedSport =
-    (sportCheckData && sportCheckData.exists && sportCheckData.status === "approved") ||
-    (selectedSport?.status === "approved");
+  // Check if sport exists (either typed and found in list, or selected from dropdown)
+  // When selected from dropdown, immediately mark as existing
+  const isSportExists = !!selectedSport || sportExists;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
@@ -184,8 +178,7 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
         <SportStatusFeedback
           debouncedSportName={debouncedSportName}
           isSelected={!!selectedSport}
-          isCheckingExistence={isCheckingExistence}
-          sportCheckData={sportCheckData}
+          sportExists={sportExists}
           selectedSportStatus={selectedSport?.status}
         />
       </div>
@@ -193,8 +186,7 @@ export function AddSportForm({ onSuccess, onClose }: AddSportFormProps) {
       <SportFormActions
         loading={loading}
         sportName={sportName}
-        isRejectedSport={isRejectedSport}
-        isApprovedSport={isApprovedSport}
+        isSportExists={isSportExists}
         onClose={onClose || (() => { })}
       />
     </form>

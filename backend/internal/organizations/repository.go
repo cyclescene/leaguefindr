@@ -17,6 +17,7 @@ type RepositoryInterface interface {
 	GetAllOrganizations(ctx context.Context) ([]Organization, error)
 	LinkUserToOrganization(ctx context.Context, userID, orgID, roleInOrg string) error
 	GetOrganizationByID(ctx context.Context, orgID string) (*Organization, error)
+	GetOrganizationByURL(ctx context.Context, orgURL string) (*Organization, error)
 	GetOrganizationMembers(ctx context.Context, orgID string) ([]UserOrganization, error)
 	IsUserOrgAdmin(ctx context.Context, userID, orgID string) (bool, error)
 	RemoveUserFromOrganization(ctx context.Context, userID, orgID string) error
@@ -235,6 +236,27 @@ func (r *Repository) GetOrganizationByID(ctx context.Context, orgID string) (*Or
 
 	if err != nil || len(orgs) == 0 {
 		return nil, fmt.Errorf("organization not found")
+	}
+
+	return &orgs[0], nil
+}
+
+// GetOrganizationByURL retrieves an organization by its website URL
+func (r *Repository) GetOrganizationByURL(ctx context.Context, orgURL string) (*Organization, error) {
+	var orgs []Organization
+
+	_, err := r.client.From("organizations").
+		Select("*", "", false).
+		Eq("org_url", orgURL).
+		Eq("is_deleted", "false").
+		ExecuteToWithContext(ctx, &orgs)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to check organization by URL: %w", err)
+	}
+
+	if len(orgs) == 0 {
+		return nil, nil
 	}
 
 	return &orgs[0], nil

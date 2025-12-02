@@ -4,10 +4,7 @@ import { stringifyError } from '@/hooks/useReadOnlyData'
 
 export interface AdminSport {
   id: number
-  sport_name: string
-  sport_description?: string
-  created_at: string
-  updated_at: string
+  name: string
 }
 
 /**
@@ -38,12 +35,12 @@ export function useAdminSports(
 
       // Apply filters
       if (filters?.name) {
-        query = query.ilike('sport_name', `%${filters.name}%`)
+        query = query.ilike('name', `%${filters.name}%`)
       }
 
       // Apply sorting (default by name)
       const ascending = sortOrder === 'asc'
-      query = query.order('sport_name', { ascending })
+      query = query.order('name', { ascending })
 
       // Apply pagination
       const { data, count, error } = await query.range(offset, offset + limit - 1)

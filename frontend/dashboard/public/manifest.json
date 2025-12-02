@@ -1,0 +1,14 @@
+{
+  "name": "LeagueFindr",
+  "short_name": "LeagueFindr",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "theme_color": "#6DBF67",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}

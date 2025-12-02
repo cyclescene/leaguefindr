@@ -34,7 +34,7 @@ type UserOrganization struct {
 // CreateOrganizationRequest represents a request to create an organization
 type CreateOrganizationRequest struct {
 	OrgName    string `json:"org_name" validate:"required,min=1,max=255"`
-	OrgURL     *string `json:"org_url" validate:"omitempty,url"`
+	OrgURL     string `json:"org_url" validate:"required,min=1"`
 	OrgEmail   *string `json:"org_email" validate:"omitempty,email"`
 	OrgPhone   *string `json:"org_phone" validate:"omitempty"`
 	OrgAddress *string `json:"org_address" validate:"omitempty"`

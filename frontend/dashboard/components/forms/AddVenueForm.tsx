@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { addVenueSchema, type AddVenueFormData } from '@/lib/schemas'
 import { useAuth } from '@clerk/nextjs'
 import dynamic from 'next/dynamic'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
@@ -37,6 +37,74 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
   const [success, setSuccess] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState<{ address: string; lat: number; lng: number } | null>(null)
   const addressInputRef = useRef<HTMLInputElement>(null)
+
+  // Monitor Mapbox AddressAutofill dropdown and stop event propagation for clicks on it
+  useEffect(() => {
+    let debounceTimer: NodeJS.Timeout
+    let lastEventTime = 0
+    const debounceDelay = 50 // 50ms debounce to prevent excessive event handling
+
+    const handlePointerDown = (e: PointerEvent) => {
+      // Check if the click is on a Mapbox element (suggestions, dropdown items, etc)
+      const target = e.target as HTMLElement
+      const isMapboxElement = target.closest(
+        '[class*="mapbox"], [class*="search"], [role="option"], [class*="suggestions"], [class*="suggestion"]'
+      )
+
+      if (isMapboxElement) {
+        const now = Date.now()
+        if (now - lastEventTime < debounceDelay) {
+          return // Skip if too soon
+        }
+        lastEventTime = now
+
+        // Mark that Mapbox dropdown is open
+        onMapboxDropdownStateChange?.(true)
+
+        // Stop the event from propagating to the dialog
+        e.stopPropagation()
+        e.preventDefault()
+      }
+    }
+
+    const handlePointerUp = (e: PointerEvent) => {
+      // Also stop propagation for pointer up events on Mapbox elements
+      const target = e.target as HTMLElement
+      const isMapboxElement = target.closest(
+        '[class*="mapbox"], [class*="search"], [role="option"], [class*="suggestions"], [class*="suggestion"]'
+      )
+
+      if (isMapboxElement) {
+        const now = Date.now()
+        if (now - lastEventTime < debounceDelay) {
+          return // Skip if too soon
+        }
+        lastEventTime = now
+
+        e.stopPropagation()
+        e.preventDefault()
+      }
+
+      // Debounce the close check
+      clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        const mapboxSuggestions = document.querySelector('[class*="suggestions"]')
+        if (!mapboxSuggestions || window.getComputedStyle(mapboxSuggestions).display === 'none') {
+          onMapboxDropdownStateChange?.(false)
+        }
+      }, 100)
+    }
+
+    // Use capture phase to intercept events before they bubble up
+    document.addEventListener('pointerdown', handlePointerDown, true)
+    document.addEventListener('pointerup', handlePointerUp, true)
+
+    return () => {
+      clearTimeout(debounceTimer)
+      document.removeEventListener('pointerdown', handlePointerDown, true)
+      document.removeEventListener('pointerup', handlePointerUp, true)
+    }
+  }, [onMapboxDropdownStateChange])
 
   // Handle address selection from Mapbox AddressAutofill
   const handleAddressChange = (featureCollection: any) => {
@@ -85,8 +153,16 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
       )
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create venue')
+        let errorMessage = 'Failed to create venue'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // If JSON parsing fails, try to get plain text
+          const text = await response.text()
+          errorMessage = text || errorMessage
+        }
+        throw new Error(errorMessage)
       }
 
       setSuccess(true)
@@ -119,7 +195,7 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
     >
       {/* Venue Name */}
       <div className="space-y-2">
-        <Label htmlFor="name">Venue Name</Label>
+        <Label htmlFor="name">Venue Name *</Label>
         <Input
           {...register('name')}
           id="name"
@@ -134,7 +210,7 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
 
       {/* Address with Mapbox Autofill */}
       <div className="space-y-2">
-        <Label htmlFor="address">Address</Label>
+        <Label htmlFor="address">Address *</Label>
         {mapboxToken ? (
           <AddressAutofill accessToken={mapboxToken} onRetrieve={handleAddressChange}>
             <Input
@@ -164,8 +240,14 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
           <p className="text-sm text-red-600">{errors.address.message}</p>
         )}
 
+        {!selectedLocation && !errors.address && (
+          <p className="text-xs text-gray-600">
+            Type and select an address from the dropdown to set the venue location.
+          </p>
+        )}
+
         {selectedLocation && (
-          <p className="text-sm text-green-600">
+          <p className="text-sm text-green-600 mt-2">
             ✓ Location selected: {selectedLocation.address}
           </p>
         )}
@@ -188,10 +270,6 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
       >
         {isSubmitting ? 'Submitting...' : 'Submit Venue'}
       </button>
-
-      <p className="text-xs text-gray-500">
-        Your venue submission will be reviewed by an admin before appearing on the map.
-      </p>
     </form>
   )
 }

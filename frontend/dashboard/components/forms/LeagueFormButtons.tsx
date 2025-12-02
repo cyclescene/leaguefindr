@@ -44,6 +44,7 @@ export function LeagueFormButtons({
   const isAdminReview = mode === 'admin-review'
   const [isApproving, setIsApproving] = useState(false)
   const [isRejecting, setIsRejecting] = useState(false)
+  const [showDraftNameField, setShowDraftNameField] = useState(false)
 
   if (isViewingLeague) {
     return (
@@ -142,8 +143,8 @@ export function LeagueFormButtons({
 
   return (
     <>
-      {/* Draft Name Input (only show when saving new draft) */}
-      {!isEditingDraft && !isEditingTemplate && !isViewingLeague && (
+      {/* Draft Name Input (only show after user clicks "Save Draft") */}
+      {showDraftNameField && !isEditingDraft && !isEditingTemplate && !isViewingLeague && (
         <div className="space-y-2">
           <label htmlFor="draft_name" className="text-sm font-medium text-gray-700">
             Draft Name (Optional)
@@ -156,6 +157,7 @@ export function LeagueFormButtons({
             onChange={(e) => onDraftNameChange(e.target.value)}
             maxLength={255}
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400"
+            autoFocus
           />
           <p className="text-xs text-gray-500">
             If left blank, the draft will be auto-named based on the league name.
@@ -165,16 +167,22 @@ export function LeagueFormButtons({
 
       {/* Button Group */}
       <div className="flex gap-3">
-        {/* Save Draft button - shown for new drafts or when editing existing draft */}
-        {(isEditingDraft || (!isEditingDraft && !isEditingTemplate)) && (
+        {/* Save Draft button - shown for new drafts, when editing existing draft, or when editing template */}
+        {(isEditingDraft || isEditingTemplate || (!isEditingDraft && !isEditingTemplate)) && (
           <Button
             type="button"
-            onClick={onSaveDraft}
+            onClick={() => {
+              if (!showDraftNameField && !isEditingDraft && !isEditingTemplate) {
+                setShowDraftNameField(true)
+              } else {
+                onSaveDraft()
+              }
+            }}
             disabled={isSavingDraft || isSubmitting}
             variant="outline"
             className="flex-1"
           >
-            {isSavingDraft ? 'Saving Draft...' : isEditingDraft ? 'Save Changes' : 'Save Draft'}
+            {isSavingDraft ? 'Saving Draft...' : isEditingDraft ? 'Save Changes' : isEditingTemplate ? 'Save as Draft' : showDraftNameField ? 'Confirm Draft' : 'Save Draft'}
           </Button>
         )}
         {!isEditingDraft && !isEditingTemplate && onSaveAsTemplate && (
@@ -186,6 +194,17 @@ export function LeagueFormButtons({
             className="flex-1"
           >
             Continue to Save as Template
+          </Button>
+        )}
+        {isEditingTemplate && (
+          <Button
+            type="button"
+            onClick={onUpdateTemplate}
+            disabled={isSubmitting || isSavingDraft}
+            variant="outline"
+            className="flex-1"
+          >
+            {isSubmitting ? 'Updating...' : 'Update Template'}
           </Button>
         )}
         {!isEditingTemplate && (
@@ -200,12 +219,12 @@ export function LeagueFormButtons({
         )}
         {isEditingTemplate && (
           <Button
-            type="button"
-            onClick={onUpdateTemplate}
-            disabled={isSubmitting}
+            type="submit"
+            onClick={onSubmit}
+            disabled={isSubmitting || isSavingDraft}
             className="flex-1"
           >
-            {isSubmitting ? 'Updating...' : 'Update Template'}
+            {isSubmitting ? 'Submitting...' : 'Submit League'}
           </Button>
         )}
       </div>

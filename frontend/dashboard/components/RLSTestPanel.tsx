@@ -26,7 +26,6 @@ export function RLSTestPanel() {
       const results = await runAllRLSTests(supabase);
       const formatted = formatRLSTestResults(results);
       setTestResults(formatted);
-      console.log('RLS Test Results:', results);
     } catch (error) {
       setTestResults(`Error running tests: ${error instanceof Error ? error.message : String(error)}`);
     } finally {

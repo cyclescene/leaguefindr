@@ -54,7 +54,12 @@ export const addLeagueSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
   season_end_date: z.string()
     .optional()
-    .nullable(),
+    .nullable()
+    .transform((val) => {
+      // Convert empty strings to a dummy date that won't cause parsing errors
+      if (!val || val === '') return '1900-01-01'
+      return val
+    }),
   season_details: z.string()
     .max(2000, "Season details must be at most 2000 characters")
     .optional()
@@ -65,9 +70,14 @@ export const addLeagueSchema = z.object({
     .refine(val => val, "Please select a pricing strategy"),
   pricing_amount: z.number()
     .min(0.01, "Pricing amount must be greater than 0"),
-  per_game_fee: z.number()
+  per_game_fee: z.union([z.string(), z.number()])
     .optional()
-    .nullable(),
+    .nullable()
+    .transform((val) => {
+      if (!val || val === '') return null;
+      const num = typeof val === 'string' ? parseFloat(val) : val;
+      return isNaN(num) ? null : num;
+    }),
   registration_url: z.string()
     .url("Registration URL must be a valid URL")
     .max(500, "Registration URL must be at most 500 characters"),

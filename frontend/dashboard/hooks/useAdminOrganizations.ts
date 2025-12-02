@@ -6,7 +6,7 @@ export interface AdminOrganization {
   id: string
   org_name: string
   org_email?: string
-  org_phone?: string
+  org_phone_number?: string
   org_url?: string
   org_address?: string
   created_at: string

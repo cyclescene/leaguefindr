@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus } from "lucide-react";
 import { SubmittedLeaguesTab } from "./SubmittedLeaguesTab";
-import { DraftsTab } from "./DraftsTab";
-import { TemplatesTab } from "./TemplatesTab";
+import { DraftsAndTemplatesTab } from "./DraftsAndTemplatesTab";
 import type { League, Template, Draft } from "@/types/leagues";
 
 interface LeaguesActionBarProps {
@@ -21,6 +21,8 @@ interface LeaguesActionBarProps {
   onDeleteTemplate: (templateId: number) => void;
   onEditDraft: (draftId: number) => void;
   onDeleteDraft: (draftId: number) => void;
+  onSaveAsDraft: (leagueData: any, name?: string) => void;
+  onSaveAsTemplate: (leagueData: any, name?: string) => void;
 }
 
 export function LeaguesActionBar({
@@ -38,21 +40,23 @@ export function LeaguesActionBar({
   onDeleteTemplate,
   onEditDraft,
   onDeleteDraft,
+  onSaveAsDraft,
+  onSaveAsTemplate,
 }: LeaguesActionBarProps) {
   return (
     <Tabs defaultValue="submitted">
       <div className="flex flex-row w-full justify-between items-center mb-6">
         <TabsList>
-          <TabsTrigger value="submitted">Submitted Leagues</TabsTrigger>
-          <TabsTrigger value="drafts">Drafts</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
+          <TabsTrigger value="submitted">Submitted Leagues ({submittedLeagues.length})</TabsTrigger>
+          <TabsTrigger value="drafts-templates">Drafts & Templates ({displayDrafts.length + displayTemplates.length})</TabsTrigger>
         </TabsList>
 
         <ButtonGroup>
-          <Button variant="brandDark" onClick={onCreateTemplate}>
+          <Button variant="brandDarkOutline" onClick={onSubmitLeague}>
             Create Template
           </Button>
           <Button variant="brandDark" onClick={onSubmitLeague}>
+            <Plus className="w-4 h-4 mr-2" />
             Submit League
           </Button>
         </ButtonGroup>
@@ -62,23 +66,20 @@ export function LeaguesActionBar({
         leagues={submittedLeagues}
         onViewLeague={onViewLeague}
         onSubmitLeague={onSubmitLeague}
+        onSaveAsDraft={onSaveAsDraft}
+        onSaveAsTemplate={onSaveAsTemplate}
       />
 
-      <DraftsTab
+      <DraftsAndTemplatesTab
         drafts={displayDrafts}
-        isLoading={draftsLoading}
+        templates={displayTemplates}
+        isLoading={draftsLoading || templatesLoading}
         onEditDraft={onEditDraft}
         onDeleteDraft={onDeleteDraft}
-        onSubmitLeague={onSubmitLeague}
-      />
-
-      <TemplatesTab
-        templates={displayTemplates}
-        isLoading={templatesLoading}
         onEditTemplate={onEditTemplate}
         onUseTemplate={onUseTemplate}
         onDeleteTemplate={onDeleteTemplate}
-        onCreateTemplate={onCreateTemplate}
+        onSubmitLeague={onSubmitLeague}
       />
     </Tabs>
   );

@@ -58,15 +58,11 @@ func (h *Handler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		http.Error(w, "Validation failed", http.StatusBadRequest)
+		http.Error(w, "Validation failed: organization name and website URL are required", http.StatusBadRequest)
 		return
 	}
 
 	// Dereference optional string pointers
-	orgURL := ""
-	if req.OrgURL != nil {
-		orgURL = *req.OrgURL
-	}
 	orgEmail := ""
 	if req.OrgEmail != nil {
 		orgEmail = *req.OrgEmail
@@ -83,13 +79,19 @@ func (h *Handler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 	orgID, err := h.service.CreateOrganization(
 		r.Context(),
 		req.OrgName,
-		orgURL,
+		req.OrgURL,
 		orgEmail,
 		orgPhone,
 		orgAddress,
 		userID,
 	)
 	if err != nil {
+		// Check if it's a duplicate URL error
+		if err.Error() == "organization with this URL already exists" {
+			slog.Warn("Duplicate organization URL attempt", "error", err, "userId", userID, "url", req.OrgURL)
+			http.Error(w, "An organization with this website URL already exists. Please contact info@leaguefindr.com if you need assistance", http.StatusConflict)
+			return
+		}
 		slog.Error("Failed to create organization", "error", err, "userId", userID)
 		http.Error(w, "Failed to create organization", http.StatusInternalServerError)
 		return
@@ -237,6 +239,12 @@ func (h *Handler) UpdateOrganization(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.UpdateOrganization(r.Context(), userID, orgID, req.OrgName, req.OrgURL, req.OrgEmail, req.OrgPhone, req.OrgAddress); err != nil {
+		// Check if it's a duplicate URL error
+		if err.Error() == "organization with this URL already exists" {
+			slog.Warn("Duplicate organization URL attempt on update", "error", err, "userId", userID, "orgId", orgID)
+			http.Error(w, "An organization with this website URL already exists. Please contact info@leaguefindr.com if you need assistance", http.StatusConflict)
+			return
+		}
 		slog.Error("Failed to update organization", "error", err, "userId", userID, "orgId", orgID)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

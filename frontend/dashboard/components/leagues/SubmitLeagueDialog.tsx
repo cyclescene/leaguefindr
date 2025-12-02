@@ -55,6 +55,12 @@ export function SubmitLeagueDialog({
   const organizationName = propOrganizationName || organization?.org_name;
   const handleClose = () => onOpenChange(false);
 
+  const handleSaveAsTemplate = (formData: AddLeagueFormData) => {
+    // Just pass the form data and open the create template dialog
+    // The parent component will handle the template creation
+    onSuccess?.();
+  };
+
   // Determine form mode based on props
   const getFormMode = (): FormMode => {
     if (isViewingLeague) return 'view';
@@ -106,7 +112,7 @@ export function SubmitLeagueDialog({
           <DialogDescription className="text-gray-200">{dialogDescription}</DialogDescription>
         </DialogHeader>
         <LeagueFormProvider value={formContextValue}>
-          <AddLeagueForm />
+          <AddLeagueForm onSaveAsTemplate={handleSaveAsTemplate} />
         </LeagueFormProvider>
       </DialogContent>
     </Dialog>

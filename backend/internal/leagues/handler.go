@@ -162,6 +162,10 @@ func (h *Handler) CreateLeague(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Extract appRole from Authorization header (JWT token)
+	appRole := h.authService.GetAppRoleFromRequest(r)
+	slog.Info("CreateLeague request", "userID", userID, "appRole", appRole)
+
 	// Extract org_id from query parameter
 	orgID := r.URL.Query().Get("org_id")
 	if orgID == "" {
@@ -187,10 +191,12 @@ func (h *Handler) CreateLeague(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	league, err := h.service.CreateLeague(r.Context(), userID, orgID, &req)
+	league, err := h.service.CreateLeague(r.Context(), userID, orgID, appRole, &req)
 	if err != nil {
 		slog.Error("create league error", "userID", userID, "err", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
 

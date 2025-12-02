@@ -7,16 +7,20 @@ import {
   TableBody,
 } from "@/components/ui/table";
 import { OrganizerLeagueTableRow } from "./OrganizerLeagueTableRow";
-import type { League } from "@/types/leagues";
+import type { SubmittedLeague } from "@/hooks/useDrafts";
 
 interface OrganizerLeagueTableProps {
-  leagues: League[];
+  leagues: SubmittedLeague[];
   onView: (leagueId: number) => void;
+  onSaveAsDraft: (leagueData: any, name?: string) => void;
+  onSaveAsTemplate: (leagueData: any, name?: string) => void;
 }
 
 export function OrganizerLeagueTable({
   leagues,
   onView,
+  onSaveAsDraft,
+  onSaveAsTemplate,
 }: OrganizerLeagueTableProps) {
   return (
     <Table className="w-full bg-white rounded-lg shadow-md">
@@ -39,6 +43,8 @@ export function OrganizerLeagueTable({
             key={league.id}
             league={league}
             onView={onView}
+            onSaveAsDraft={onSaveAsDraft}
+            onSaveAsTemplate={onSaveAsTemplate}
           />
         ))}
       </TableBody>

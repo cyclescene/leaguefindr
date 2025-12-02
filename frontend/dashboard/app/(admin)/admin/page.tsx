@@ -3,12 +3,12 @@ import { useUser, useSession, useAuth } from "@clerk/nextjs";
 import { Suspense, useEffect, useState } from "react";
 import { Loader2, MoreHorizontalIcon } from "lucide-react";
 import type { League } from "@/types/leagues";
-import type { AddLeagueFormData } from "@/lib/schemas/leagues";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { AdminActionButtons } from "@/components/admin/AdminActionButtons";
 import { AdminLeagueReviewModal } from "@/components/admin/AdminLeagueReviewModal";
+import { AdminDraftViewerModal } from "@/components/admin/AdminDraftViewerModal";
 import { RejectLeagueDialog } from "@/components/admin/RejectLeagueDialog";
 import { LeagueTable } from "@/components/admin/LeagueTable";
 import { OrganizationsTable } from "@/components/admin/OrganizationsTable";
@@ -16,8 +16,6 @@ import { SportsTable } from "@/components/admin/SportsTable";
 import { VenuesTable } from "@/components/admin/VenuesTable";
 import { AdminDraftsTable } from "@/components/admin/AdminDraftsTable";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { usePendingLeagues, useAllLeagues, useAdminLeagueOperations } from "@/hooks/useAdminLeagues";
 import { useAdminOrganizations } from "@/hooks/useAdminOrganizations";
@@ -42,7 +40,6 @@ function DashboardContent() {
 
   // Draft viewer state
   const [viewingDraft, setViewingDraft] = useState<AdminDraft | null>(null)
-  const [prePopulatedFormData, setPrePopulatedFormData] = useState<AddLeagueFormData | undefined>()
 
   // Pagination state for each table
   const [pendingPage, setPendingPage] = useState(0)
@@ -237,14 +234,10 @@ function DashboardContent() {
 
   const handleViewDraft = (draft: AdminDraft) => {
     setViewingDraft(draft)
-    if (draft.form_data) {
-      setPrePopulatedFormData(draft.form_data as AddLeagueFormData)
-    }
   }
 
   const handleCloseDraftViewer = () => {
     setViewingDraft(null)
-    setPrePopulatedFormData(undefined)
   }
 
   const handleApprove = async (leagueId: number) => {
@@ -482,16 +475,16 @@ function DashboardContent() {
     <div className="flex flex-col min-h-screen bg-neutral-light">
       <Header email={user?.primaryEmailAddress?.emailAddress || user?.emailAddresses[0]?.emailAddress} />
 
-      <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12">
+      <main className="flex-1 w-full max-w-360 mx-auto px-3 py-12">
         <Tabs defaultValue="pending" onValueChange={(value) => { setActiveTab(value); setPendingPage(0); setAllPage(0); setOrgPage(0); setSportsPage(0); setVenuesPage(0); setDraftsPage(0); }}>
           <div className="flex flex-row w-full justify-between items-center mb-4">
             <TabsList>
-              <TabsTrigger value="pending">Pending ({totalPending})</TabsTrigger>
+              <TabsTrigger value="pending">Awaiting ({totalPending})</TabsTrigger>
               <TabsTrigger value="all">Leagues ({totalAll})</TabsTrigger>
               <TabsTrigger value="organizations">Organizations ({totalOrganizations})</TabsTrigger>
-              <TabsTrigger value="sports">Sports ({totalSports})</TabsTrigger>
               <TabsTrigger value="venues">Venues ({totalVenues})</TabsTrigger>
-              <TabsTrigger value="drafts">Drafts ({totalDrafts})</TabsTrigger>
+              <TabsTrigger value="sports">Sports ({totalSports})</TabsTrigger>
+              <TabsTrigger value="drafts">Templates/Drafts ({totalDrafts})</TabsTrigger>
             </TabsList>
             <AdminActionButtons />
           </div>
@@ -713,57 +706,15 @@ function DashboardContent() {
         onReject={handleRejectConfirm}
       />
 
-      {/* Draft Viewer Dialog */}
-      <Dialog open={viewingDraft !== null} onOpenChange={(open) => !open && handleCloseDraftViewer()}>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle className="text-brand-dark">View Draft</DialogTitle>
-            <DialogDescription>
-              {viewingDraft?.name || `Draft #${viewingDraft?.id}`} ({viewingDraft?.type})
-            </DialogDescription>
-          </DialogHeader>
-          <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
-            {prePopulatedFormData && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-semibold text-neutral-700">League Name</label>
-                    <p className="text-sm text-neutral-600">{prePopulatedFormData.league_name || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-neutral-700">Sport</label>
-                    <p className="text-sm text-neutral-600">{prePopulatedFormData.sport_name || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-neutral-700">Venue</label>
-                    <p className="text-sm text-neutral-600">{prePopulatedFormData.venue_name || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-neutral-700">Gender</label>
-                    <p className="text-sm text-neutral-600">{prePopulatedFormData.gender || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-neutral-700">Season Start Date</label>
-                    <p className="text-sm text-neutral-600">
-                      {prePopulatedFormData.season_start_date
-                        ? new Date(prePopulatedFormData.season_start_date).toLocaleDateString()
-                        : '-'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-neutral-700">Season End Date</label>
-                    <p className="text-sm text-neutral-600">
-                      {prePopulatedFormData.season_end_date
-                        ? new Date(prePopulatedFormData.season_end_date).toLocaleDateString()
-                        : '-'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
+      {/* Draft Viewer Modal */}
+      <AdminDraftViewerModal
+        draft={viewingDraft}
+        isOpen={viewingDraft !== null}
+        onClose={handleCloseDraftViewer}
+        onSuccess={() => {
+          refetchDrafts()
+        }}
+      />
 
       <Footer />
     </div>

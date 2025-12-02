@@ -11,10 +11,12 @@ export const addVenueSchema = z.object({
     .max(500, "Address must be at most 500 characters"),
   lat: z.number()
     .min(-90, "Invalid latitude")
-    .max(90, "Invalid latitude"),
+    .max(90, "Invalid latitude")
+    .refine((lat) => lat !== 0, "Please select an address from the dropdown to set the location"),
   lng: z.number()
     .min(-180, "Invalid longitude")
-    .max(180, "Invalid longitude"),
+    .max(180, "Invalid longitude")
+    .refine((lng) => lng !== 0, "Please select an address from the dropdown to set the location"),
 });
 
 export type AddVenueFormData = z.infer<typeof addVenueSchema>;

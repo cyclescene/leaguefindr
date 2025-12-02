@@ -16,13 +16,22 @@ interface League {
 }
 
 interface LeagueTableRowProps {
-  league: League;
+  league: League & { [key: string]: any };
   onView: (leagueId: number) => void;
   onApprove: (leagueId: number) => void;
   onReject: (leagueId: number) => void;
+  onSaveAsDraft: (leagueData: any, name?: string) => void;
+  onSaveAsTemplate: (leagueData: any, name?: string) => void;
 }
 
-export function LeagueTableRow({ league, onView, onApprove, onReject }: LeagueTableRowProps) {
+export function LeagueTableRow({
+  league,
+  onView,
+  onApprove,
+  onReject,
+  onSaveAsDraft,
+  onSaveAsTemplate,
+}: LeagueTableRowProps) {
   return (
     <TableRow>
       <TableCell title={league.name}>{truncate(league.name, 20)}</TableCell>
@@ -38,10 +47,13 @@ export function LeagueTableRow({ league, onView, onApprove, onReject }: LeagueTa
       <TableCell>
         <LeagueActions
           leagueId={league.id}
+          leagueData={league}
           status={league.status}
           onView={onView}
           onApprove={onApprove}
           onReject={onReject}
+          onSaveAsDraft={onSaveAsDraft}
+          onSaveAsTemplate={onSaveAsTemplate}
         />
       </TableCell>
     </TableRow>

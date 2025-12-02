@@ -3,6 +3,7 @@
 import { SignOutButton, useUser } from "@clerk/nextjs";
 import { LucideLogOut, Settings } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { NotificationCenter } from "@/components/NotificationCenter";
 
@@ -26,9 +27,9 @@ export function Header({ organizationName, email }: HeaderProps) {
   return (
     <header className="bg-brand-dark text-white shadow-lg">
       <div className="max-w-7xl mx-auto px-6 py-8 flex flex-row items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold">Dashboard</h1>
-          <p className="text-brand-light mt-2">Welcome, {displayEmail}</p>
+        <div className="flex items-center gap-6">
+          <Image src="/logo.svg" className="w-auto h-auto" alt="LeagueFindr" loading="eager" width={200} height={200} />
+          <p className="text-brand-light text-lg">Welcome, {displayEmail}</p>
         </div>
         <div className="flex items-center gap-6">
           {/* Notification Center */}

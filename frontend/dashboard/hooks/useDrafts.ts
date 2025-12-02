@@ -62,8 +62,84 @@ export function useDrafts(orgId: string) {
   }, [supabase, orgId])
 
   useEffect(() => {
-    if (isLoaded && supabase && orgId) {
-      fetch()
+    if (!isLoaded || !supabase || !orgId) return
+
+    // Initial fetch
+    fetch()
+
+    // Subscribe to realtime updates
+    const subscription = supabase
+      .channel(`leagues_drafts:org_id=eq.${orgId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leagues_drafts',
+          filter: `org_id=eq.${orgId}`,
+        },
+        (payload) => {
+          setState((prevState) => {
+            if (!prevState.data) return prevState
+
+            // Handle INSERT
+            if (payload.eventType === 'INSERT') {
+              const newDraft = payload.new as Draft
+              if (newDraft.type === 'draft') {
+                return {
+                  ...prevState,
+                  data: [newDraft, ...prevState.data].sort(
+                    (a, b) =>
+                      new Date(b.updated_at).getTime() -
+                      new Date(a.updated_at).getTime()
+                  ),
+                }
+              }
+              return prevState
+            }
+
+            // Handle UPDATE
+            if (payload.eventType === 'UPDATE') {
+              const updatedDraft = payload.new as Draft
+              if (updatedDraft.type === 'draft') {
+                return {
+                  ...prevState,
+                  data: prevState.data
+                    .map((draft) =>
+                      draft.id === updatedDraft.id ? updatedDraft : draft
+                    )
+                    .sort(
+                      (a, b) =>
+                        new Date(b.updated_at).getTime() -
+                        new Date(a.updated_at).getTime()
+                    ),
+                }
+              }
+              return prevState
+            }
+
+            // Handle DELETE
+            if (payload.eventType === 'DELETE') {
+              const deletedDraft = payload.old as Draft
+              if (deletedDraft.type === 'draft') {
+                return {
+                  ...prevState,
+                  data: prevState.data.filter(
+                    (draft) => draft.id !== deletedDraft.id
+                  ),
+                }
+              }
+              return prevState
+            }
+
+            return prevState
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
     }
   }, [isLoaded, supabase, orgId, fetch])
 
@@ -124,13 +200,217 @@ export function useTemplates(orgId: string) {
   }, [supabase, orgId])
 
   useEffect(() => {
-    if (isLoaded && supabase && orgId) {
-      fetch()
+    if (!isLoaded || !supabase || !orgId) return
+
+    // Initial fetch
+    fetch()
+
+    // Subscribe to realtime updates
+    const subscription = supabase
+      .channel(`leagues_templates:org_id=eq.${orgId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leagues_drafts',
+          filter: `org_id=eq.${orgId}`,
+        },
+        (payload) => {
+          setState((prevState) => {
+            if (!prevState.data) return prevState
+
+            // Handle INSERT
+            if (payload.eventType === 'INSERT') {
+              const newTemplate = payload.new as Draft
+              if (newTemplate.type === 'template') {
+                return {
+                  ...prevState,
+                  data: [newTemplate, ...prevState.data].sort(
+                    (a, b) =>
+                      new Date(b.updated_at).getTime() -
+                      new Date(a.updated_at).getTime()
+                  ),
+                }
+              }
+              return prevState
+            }
+
+            // Handle UPDATE
+            if (payload.eventType === 'UPDATE') {
+              const updatedTemplate = payload.new as Draft
+              if (updatedTemplate.type === 'template') {
+                return {
+                  ...prevState,
+                  data: prevState.data
+                    .map((template) =>
+                      template.id === updatedTemplate.id ? updatedTemplate : template
+                    )
+                    .sort(
+                      (a, b) =>
+                        new Date(b.updated_at).getTime() -
+                        new Date(a.updated_at).getTime()
+                    ),
+                }
+              }
+              return prevState
+            }
+
+            // Handle DELETE
+            if (payload.eventType === 'DELETE') {
+              const deletedTemplate = payload.old as Draft
+              if (deletedTemplate.type === 'template') {
+                return {
+                  ...prevState,
+                  data: prevState.data.filter(
+                    (template) => template.id !== deletedTemplate.id
+                  ),
+                }
+              }
+              return prevState
+            }
+
+            return prevState
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
     }
   }, [isLoaded, supabase, orgId, fetch])
 
   return {
     templates: state.data || [],
+    isLoading: state.isLoading,
+    error: state.error,
+    refetch: fetch,
+  }
+}
+
+export function useDraftsAndTemplates(orgId: string) {
+  const { supabase, isLoaded } = useSupabase()
+  const [state, setState] = useState({
+    data: null as Draft[] | null,
+    isLoading: true,
+    error: null as Error | null,
+  })
+
+  const fetch = useCallback(async () => {
+    if (!supabase || !orgId) return
+
+    try {
+      const { data, error } = await supabase
+        .from('leagues_drafts')
+        .select('*')
+        .eq('org_id', orgId)
+        .order('updated_at', { ascending: false })
+
+      if (error) {
+        // Handle 416 gracefully
+        if (error.code === 'PGRST116') {
+          setState({
+            data: [],
+            isLoading: false,
+            error: null,
+          })
+          return
+        }
+        throw error
+      }
+
+      setState({
+        data: (data || []) as Draft[],
+        isLoading: false,
+        error: null,
+      })
+    } catch (error) {
+      const errorMessage = stringifyError(error)
+      console.error('useDraftsAndTemplates - Error:', errorMessage)
+      setState({
+        data: null,
+        isLoading: false,
+        error: new Error(errorMessage),
+      })
+    }
+  }, [supabase, orgId])
+
+  useEffect(() => {
+    if (!isLoaded || !supabase || !orgId) return
+
+    // Initial fetch
+    fetch()
+
+    // Subscribe to realtime updates
+    const subscription = supabase
+      .channel(`leagues_drafts_templates:org_id=eq.${orgId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leagues_drafts',
+          filter: `org_id=eq.${orgId}`,
+        },
+        (payload) => {
+          setState((prevState) => {
+            if (!prevState.data) return prevState
+
+            // Handle INSERT
+            if (payload.eventType === 'INSERT') {
+              const newItem = payload.new as Draft
+              return {
+                ...prevState,
+                data: [newItem, ...prevState.data].sort(
+                  (a, b) =>
+                    new Date(b.updated_at).getTime() -
+                    new Date(a.updated_at).getTime()
+                ),
+              }
+            }
+
+            // Handle UPDATE
+            if (payload.eventType === 'UPDATE') {
+              const updatedItem = payload.new as Draft
+              return {
+                ...prevState,
+                data: prevState.data
+                  .map((item) =>
+                    item.id === updatedItem.id ? updatedItem : item
+                  )
+                  .sort(
+                    (a, b) =>
+                      new Date(b.updated_at).getTime() -
+                      new Date(a.updated_at).getTime()
+                  ),
+              }
+            }
+
+            // Handle DELETE
+            if (payload.eventType === 'DELETE') {
+              const deletedItem = payload.old as Draft
+              return {
+                ...prevState,
+                data: prevState.data.filter(
+                  (item) => item.id !== deletedItem.id
+                ),
+              }
+            }
+
+            return prevState
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [isLoaded, supabase, orgId, fetch])
+
+  return {
+    draftsAndTemplates: state.data || [],
     isLoading: state.isLoading,
     error: state.error,
     refetch: fetch,
@@ -217,8 +497,75 @@ export function useLeagues(orgId: string) {
   }, [supabase, orgId])
 
   useEffect(() => {
-    if (isLoaded && supabase && orgId) {
-      fetch()
+    if (!isLoaded || !supabase || !orgId) return
+
+    // Initial fetch
+    fetch()
+
+    // Subscribe to realtime updates
+    const subscription = supabase
+      .channel(`leagues:org_id=eq.${orgId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leagues',
+          filter: `org_id=eq.${orgId}`,
+        },
+        (payload) => {
+          setState((prevState) => {
+            if (!prevState.data) return prevState
+
+            // Handle INSERT
+            if (payload.eventType === 'INSERT') {
+              const newLeague = payload.new as SubmittedLeague
+              return {
+                ...prevState,
+                data: [newLeague, ...prevState.data].sort(
+                  (a, b) =>
+                    new Date(b.created_at).getTime() -
+                    new Date(a.created_at).getTime()
+                ),
+              }
+            }
+
+            // Handle UPDATE
+            if (payload.eventType === 'UPDATE') {
+              const updatedLeague = payload.new as SubmittedLeague
+              return {
+                ...prevState,
+                data: prevState.data
+                  .map((league) =>
+                    league.id === updatedLeague.id ? updatedLeague : league
+                  )
+                  .sort(
+                    (a, b) =>
+                      new Date(b.created_at).getTime() -
+                      new Date(a.created_at).getTime()
+                  ),
+              }
+            }
+
+            // Handle DELETE
+            if (payload.eventType === 'DELETE') {
+              const deletedLeague = payload.old as SubmittedLeague
+              return {
+                ...prevState,
+                data: prevState.data.filter(
+                  (league) => league.id !== deletedLeague.id
+                ),
+              }
+            }
+
+            return prevState
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
     }
   }, [isLoaded, supabase, orgId, fetch])
 

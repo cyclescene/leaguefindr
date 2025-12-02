@@ -26,7 +26,7 @@ export function SportAutocompleteDropdown({
         <button
           key={sport.id}
           type="button"
-          onClick={(e) => {
+          onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
             onSelect(sport);

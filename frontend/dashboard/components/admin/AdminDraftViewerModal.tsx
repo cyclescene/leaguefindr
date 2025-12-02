@@ -3,22 +3,24 @@
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Loader2 } from 'lucide-react'
-import { useLeague } from '@/hooks/useAdminLeagues'
 import { LeagueFormProvider } from '@/context/LeagueFormContext'
 import { AdminAddLeagueForm } from '@/components/forms/AdminAddLeagueForm'
+import type { AdminDraft } from '@/hooks/useAdminDrafts'
+import type { AddLeagueFormData } from '@/lib/schemas/leagues'
 
-interface AdminLeagueReviewModalProps {
-  leagueId: number | null
+interface AdminDraftViewerModalProps {
+  draft: AdminDraft | null
   isOpen: boolean
   onClose: () => void
+  onSuccess?: () => void
 }
 
-export function AdminLeagueReviewModal({
-  leagueId,
+export function AdminDraftViewerModal({
+  draft,
   isOpen,
   onClose,
-}: AdminLeagueReviewModalProps) {
-  const { league, isLoading, error } = useLeague(leagueId)
+  onSuccess,
+}: AdminDraftViewerModalProps) {
   const [isMapboxDropdownOpen, setIsMapboxDropdownOpen] = useState(false)
 
   // Monitor Mapbox dropdown visibility via custom events
@@ -64,29 +66,26 @@ export function AdminLeagueReviewModal({
         onPointerDownOutside={handlePointerDownOutside}
       >
         <DialogHeader className="bg-brand-dark text-white !-mx-6 !-mt-6 !-mb-4 px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
-          <DialogTitle className="text-white">Edit League Submission</DialogTitle>
+          <DialogTitle className="text-white">
+            {draft?.type === 'draft' ? 'Edit Draft' : 'Edit Template'}
+          </DialogTitle>
           <DialogDescription className="text-gray-200">
-            Edit the league details and submit to create or update the league.
+            Edit the {draft?.type === 'draft' ? 'draft' : 'template'} details and submit to create or update the league.
           </DialogDescription>
         </DialogHeader>
 
-        {isLoading && (
+        {!draft ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-brand-dark" />
           </div>
-        )}
-
-        {error && (
-          <div className="px-6 py-4">
-            <p className="text-red-600">Error loading league details: {error.message}</p>
-          </div>
-        )}
-
-        {league && !isLoading && (
+        ) : (
           <div className="px-6 py-4">
             <AdminAddLeagueForm
-              prePopulatedData={league.form_data as any}
+              prePopulatedData={draft.form_data as AddLeagueFormData}
+              draftId={draft.id}
+              draftType={draft.type}
               onSuccess={() => {
+                onSuccess?.()
                 onClose()
               }}
               onClose={onClose}

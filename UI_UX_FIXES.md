@@ -1,71 +1,85 @@
 # LeagueFindr Dashboard UI/UX Fixes
 
-## Test Credentials
-- **Admin:** admin@leaguefindr.com / pB7-aKZ$kjFgvN8
-- **Organizer/League Manager:** organizer@leaguefindr.com / sPp:%m_n9Jqm!QA
-
----
-
 ## Both Admin and League Manager
 
-- [ ] Change dashboard title to "LeagueFindr Dashboard" with logo
+- [x] Change dashboard title to "LeagueFindr Dashboard" with logo
 - [x] Add welcome message showing "Welcome, {email}" on login
-- [ ] Show progress spinner wheel while loading on login
-- [ ] Add "Cursor:Pointer" CSS on hover of any clickable buttons
+- [x] Show progress spinner wheel while loading on login
+- [x] Add "Cursor:Pointer" CSS on hover of any clickable buttons
 
 ---
 
 ## Admin Side
 
 ### General Dashboard
-- [ ] Show ORG ID in Organization table with copy button
-- [ ] Add tabs for "Drafts" and "Templates"
-- [ ] Add views for "Sport", "Venue", and "Organization" tables in dashboard
-- [ ] Add sortable columns - Status, Start Date, and Submitted Date (at minimum)
-- [ ] Change footer copyright to "Recess Sports dba LeagueFindr"
-- [ ] Add full footer with navigation links to main LeagueFindr website
+
+- [x] Show ORG ID in Organization table with copy button
+- [x] Add tabs for "Drafts" and "Templates"
+- [x] Add views for "Sport", "Venue", and "Organization" tables in dashboard
+- [x] Add sortable columns - Status, Start Date, and Submitted Date (at minimum)
+- [x] Change action buttons order to League, Organization, Venues, Sports
+- [x] Change tab order to Awaiting Changes, Leagues, Organizations, Venues, Sports, Templates/Drafts
+- [x] Reduce horizontal padding on main content container
+- [x] Make organization autocomplete height dynamic based on results
+- [x] View button on leagues table now shows AdminAddLeagueForm with pre-populated organization
+- [x] View button on drafts/templates table now shows dropdown menu with edit form
+- [x] Drafts/Templates can be edited and saved with three options: Save as Draft, Update Template, Submit League
+- [x] Pre-populated sport and venue fields no longer show autocomplete dropdowns
+- [x] Change footer copyright to "Recess Sports dba LeagueFindr"
+- [x] Add full footer with navigation links to main LeagueFindr website
 
 ### Add Sport
-- [ ] Add error text for a sport that already exists
-- [ ] Disable Add Sport button when sport already exists
+
+- [x] Add error text for a sport that already exists
+- [x] Disable Add Sport button when sport already exists
 
 ### Add Venue
-- [ ] BUG FIX: Fix issue where selecting address closes pop-up
+
+- [x] BUG FIX: Fix issue where selecting address closes pop-up
 
 ### Add Organization
-- [ ] Fix spacing/styling of pop-up (Org Name field cut off on desktop)
-- [ ] Make Website URL and Email Address required fields
+
+- [x] Fix spacing/styling of pop-up (Org Name field cut off on desktop)
+- [x] Make Website URL and Email Address required fields
 
 ### Add League
-- [ ] Show "Draft Name" field only after user clicks "Save Draft"
-- [ ] Fix JSON parsing error when creating league ("Unexpected token 'u', "user does "...")
-- [ ] Improve error messaging for invalid sport names (how does user know sport doesn't exist?)
-- [ ] Verify optional vs required fields and ensure submissions are going through
-- [ ] Remove "Submitted Leagues" section at bottom of table
+
+- [x] Show "Draft Name" field only after user clicks "Save Draft"
+- [x] Admin view form uses Supabase readonly data instead of API calls
+- [x] Admin form organization pre-population no longer triggers 401 errors
+- [x] Fix JSON parsing error when creating league ("Unexpected token 'u', "user does "...")
+- [x] Improve error messaging for invalid sport names (how does user know sport doesn't exist?)
+- [x] Verify optional vs required fields and ensure submissions are going through
+- [x] Remove "Submitted Leagues" section at bottom of table
 
 ---
 
 ## League Manager Side
 
 ### General Dashboard
-- [ ] Implement duplicate organization check (name, email, URL) when creating organization
-- [ ] Add error message directing users to info@leaguefindr.com for duplicate organizations
+
+- [x] Implement duplicate organization check (name, email, URL) when creating organization
+- [x] Add error message directing users to <info@leaguefindr.com> for duplicate organizations
 - [ ] Add dashboard home button instead of relying on breadcrumbs
-- [ ] Hide delete Org button (use 3-dot menu or hide in Edit feature)
-- [ ] Add "+" icon next to "Submit League" button
+- [x] Hide delete Org button (use 3-dot menu or hide in Edit feature)
+- [x] Add "+" icon next to "Submit League" button
 - [ ] Make Template and Drafts buttons secondary button style
-- [ ] Display count of submitted leagues, drafts, and templates
-- [ ] Remove Leagues page from League Organizer flow
-- [ ] Clicking Organization from Dashboard should show league list immediately (no extra click)
+- [x] Display count of submitted leagues, drafts, and templates
+- [x] Remove Leagues page from League Organizer flow
+- [x] Clicking Organization from Dashboard should show league list immediately (no extra click)
 
 ### Create Organization
-- [ ] Update Organization Website field to accept non-www and non-https:// formats
+
+- [x] Update Organization Website field to accept non-www and non-https:// formats
 
 ### Create League
-- [ ] Fix JSON parsing error when creating first league entry ("Unexpected token 'i', "invalid se"...")
-- [ ] Enable users to "Save as Draft" AND "Save as Template" in Submit League flow
+
+- [x] Fix JSON parsing error when creating first league entry ("Unexpected token 'i', "invalid se"...)
+- [x] Enable users to "Save as Draft" AND "Save as Template" in Submit League flow
+- [x] Allow organizers to save submitted leagues as drafts or templates
 
 ---
 
 ## Final Step
+
 - [ ] Delete this file (UI_UX_FIXES.md) once all fixes have been completed

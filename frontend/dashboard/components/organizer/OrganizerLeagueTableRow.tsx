@@ -2,30 +2,40 @@ import { TableRow, TableCell } from "@/components/ui/table";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { OrganizerLeagueActions } from "./OrganizerLeagueActions";
 import { truncate } from "@/lib/utils";
-import type { League } from "@/types/leagues";
+import type { SubmittedLeague } from "@/hooks/useDrafts";
 
 interface OrganizerLeagueTableRowProps {
-  league: League;
+  league: SubmittedLeague;
   onView: (leagueId: number) => void;
+  onSaveAsDraft: (leagueData: any, name?: string) => void;
+  onSaveAsTemplate: (leagueData: any, name?: string) => void;
 }
 
 export function OrganizerLeagueTableRow({
   league,
   onView,
+  onSaveAsDraft,
+  onSaveAsTemplate,
 }: OrganizerLeagueTableRowProps) {
   return (
     <TableRow>
-      <TableCell title={league.name}>{truncate(league.name, 20)}</TableCell>
-      <TableCell title={league.sport}>{truncate(league.sport, 20)}</TableCell>
+      <TableCell title={league.league_name}>{truncate(league.league_name, 20)}</TableCell>
+      <TableCell title={league.form_data?.sport_name}>{truncate(league.form_data?.sport_name || 'Unknown', 20)}</TableCell>
       <TableCell>{league.gender}</TableCell>
-      <TableCell>{league.startDate}</TableCell>
-      <TableCell title={league.venue}>{truncate(league.venue, 20)}</TableCell>
-      <TableCell>{league.dateSubmitted}</TableCell>
+      <TableCell>{new Date(league.season_start_date).toLocaleDateString()}</TableCell>
+      <TableCell title={league.form_data?.venue_name}>{truncate(league.form_data?.venue_name || 'Unknown', 20)}</TableCell>
+      <TableCell>{new Date(league.created_at).toLocaleDateString()}</TableCell>
       <TableCell>
         <StatusBadge status={league.status} />
       </TableCell>
       <TableCell>
-        <OrganizerLeagueActions leagueId={league.id} onView={onView} />
+        <OrganizerLeagueActions
+          leagueId={league.id}
+          leagueData={league}
+          onView={onView}
+          onSaveAsDraft={onSaveAsDraft}
+          onSaveAsTemplate={onSaveAsTemplate}
+        />
       </TableCell>
     </TableRow>
   );

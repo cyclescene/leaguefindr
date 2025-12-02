@@ -141,7 +141,7 @@ func (s *Service) GetAllLeaguesWithPagination(ctx context.Context, limit, offset
 }
 
 // CreateLeague creates a new league with validation and pricing calculation
-func (s *Service) CreateLeague(ctx context.Context, userID string, orgID string, request *CreateLeagueRequest) (*League, error) {
+func (s *Service) CreateLeague(ctx context.Context, userID string, orgID string, appRole string, request *CreateLeagueRequest) (*League, error) {
 	if request == nil {
 		return nil, fmt.Errorf("create league request cannot be nil")
 	}
@@ -150,9 +150,13 @@ func (s *Service) CreateLeague(ctx context.Context, userID string, orgID string,
 		return nil, fmt.Errorf("organization ID is required")
 	}
 
-	err := s.orgService.VerifyUserOrgAccess(ctx, userID, orgID)
-	if err != nil {
-		return nil, fmt.Errorf("user does not have access to this organization: %w", err)
+	// Admins can create leagues on behalf of any organization
+	// Regular users must be members of the organization
+	if appRole != "admin" {
+		err := s.orgService.VerifyUserOrgAccess(ctx, userID, orgID)
+		if err != nil {
+			return nil, fmt.Errorf("user does not have access to this organization: %w", err)
+		}
 	}
 
 	// Validate pricing strategy
@@ -253,6 +257,13 @@ func (s *Service) CreateLeague(ctx context.Context, userID string, orgID string,
 		"org_id":                orgID,
 	}
 
+	// Determine status based on who is creating the league
+	// Admins can directly create approved leagues, regular users must go through review
+	status := LeagueStatusPending
+	if appRole == "admin" {
+		status = LeagueStatusApproved
+	}
+
 	league := &League{
 		OrgID:                &orgIDValue,
 		SportID:              request.SportID,
@@ -274,7 +285,7 @@ func (s *Service) CreateLeague(ctx context.Context, userID string, orgID string,
 		PerGameFee:           request.PerGameFee,
 		SupplementalRequests: supplementalRequests,
 		FormData:             FormData(formDataMap),
-		Status:               LeagueStatusPending,
+		Status:               status,
 		CreatedBy:            &createdByValue,
 	}
 
@@ -285,22 +296,27 @@ func (s *Service) CreateLeague(ctx context.Context, userID string, orgID string,
 		return nil, fmt.Errorf("failed to create league: %w", err)
 	}
 
-	// Send notification to all admins that a new league was submitted
-	leagueName := ""
-	if league.LeagueName != nil {
-		leagueName = *league.LeagueName
-	}
-	notificationErr := s.notificationsService.CreateNotificationForAllAdmins(
-		context.Background(),
-		notifications.NotificationLeagueSubmitted.String(),
-		"New League Submitted",
-		fmt.Sprintf("A new league '%s' has been submitted for approval", leagueName),
-		nil,
-		league.OrgID,
-	)
-	if notificationErr != nil {
-		slog.Warn("failed to send league submitted notification to admins", "leagueID", league.ID, "err", notificationErr)
-		// Don't return error - league was already created, notification failure isn't critical
+	// Only send "pending approval" notification if league was created by regular user
+	// Admin-created leagues are automatically approved and don't need review notification
+	if appRole != "admin" {
+		leagueName := ""
+		if league.LeagueName != nil {
+			leagueName = *league.LeagueName
+		}
+		notificationErr := s.notificationsService.CreateNotificationForAllAdmins(
+			context.Background(),
+			notifications.NotificationLeagueSubmitted.String(),
+			"New League Submitted",
+			fmt.Sprintf("A new league '%s' has been submitted for approval", leagueName),
+			nil,
+			league.OrgID,
+		)
+		if notificationErr != nil {
+			slog.Warn("failed to send league submitted notification to admins", "leagueID", league.ID, "err", notificationErr)
+			// Don't return error - league was already created, notification failure isn't critical
+		}
+	} else {
+		slog.Info("Admin-created league automatically approved", "leagueID", league.ID, "adminID", userID)
 	}
 
 	return league, nil

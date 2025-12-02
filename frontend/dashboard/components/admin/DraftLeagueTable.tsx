@@ -21,6 +21,14 @@ interface DraftLeagueTableProps {
 }
 
 export function DraftLeagueTable({ drafts, onView, onEdit, onDelete, onSubmit }: DraftLeagueTableProps) {
+  if (!drafts || drafts.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-neutral-600">No draft leagues found</p>
+      </div>
+    );
+  }
+
   return (
     <Table className="w-full bg-white rounded-lg shadow-md">
       <TableCaption>Draft Leagues</TableCaption>

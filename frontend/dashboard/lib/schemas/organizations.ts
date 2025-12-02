@@ -5,11 +5,23 @@ export const addOrgSchema = z.object({
     .min(1, "Organization name is required")
     .min(2, "Organization name must be at least 2 characters")
     .max(255, "Organization name must be at most 255 characters"),
-  url: z.string()
-    .url("Please enter a valid URL")
-    .optional()
-    .or(z.literal("")),
-  email: z.string()
+  url: z
+    .string()
+    .min(1, "Website URL is required")
+    .refine(
+      (url) => {
+        try {
+          // Allow URLs with or without protocol
+          const urlToValidate = url.includes("://") ? url : `https://${url}`;
+          new URL(urlToValidate);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      "Please enter a valid URL (e.g., example.com or https://example.com)"
+    ),
+  email: z
     .email("Please enter a valid email")
     .optional()
     .or(z.literal("")),

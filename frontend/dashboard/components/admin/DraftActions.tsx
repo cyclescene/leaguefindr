@@ -1,16 +1,14 @@
-import { EllipsisVertical } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { EllipsisVertical } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import type { AdminDraft } from "@/hooks/useAdminDrafts"
 
 interface DraftActionsProps {
-  draftId: number;
-  onView: (draftId: number) => void;
-  onEdit: (draftId: number) => void;
-  onDelete: (draftId: number) => void;
-  onSubmit: (draftId: number) => void;
+  draft: AdminDraft
+  onView: (draft: AdminDraft) => void
 }
 
-export function DraftActions({ draftId, onView, onEdit, onDelete, onSubmit }: DraftActionsProps) {
+export function DraftActions({ draft, onView }: DraftActionsProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -21,12 +19,9 @@ export function DraftActions({ draftId, onView, onEdit, onDelete, onSubmit }: Dr
       <DropdownMenuContent>
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => onView(draftId)}>View</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onEdit(draftId)}>Edit</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onSubmit(draftId)}>Submit</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onDelete(draftId)} className="text-red-600">Delete</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onView(draft)}>View</DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  )
 }

@@ -29,8 +29,8 @@ export function SignInForm() {
   const form = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      email: "admin@leaguefindr.com",
-      password: "pB7-aKZ$kjFgvN8",
+      email: "organizer@leaguefindr.com",
+      password: "sPp:%m_n9Jqm!QA",
     },
   });
 
@@ -58,8 +58,6 @@ export function SignInForm() {
 
 
       if (result.status === "complete") {
-        console.log('=== Sign-in Complete ===');
-        console.log('New Session ID created:', result.createdSessionId);
 
         // Record login to backend
         const response = await fetch('/api/auth?action=login', {
@@ -72,7 +70,6 @@ export function SignInForm() {
           }),
         });
 
-        console.log('Backend login response status:', response.status);
 
         if (!response.ok) {
           console.error('Backend login failed');
@@ -84,10 +81,8 @@ export function SignInForm() {
         setIsRedirecting(true);
 
         // Set the session as active to load session claims (including appRole)
-        console.log('Setting session as active:', result.createdSessionId);
         try {
           await setActive({ session: result.createdSessionId });
-          console.log('✓ Session set as active:', result.createdSessionId);
 
           // Give the session time to fully propagate in Clerk
           // This is especially important for sign-out/sign-in cycles without hard refresh
@@ -99,7 +94,6 @@ export function SignInForm() {
         }
 
         // Redirect - Supabase context will initialize with the new session
-        console.log('Redirecting to home...');
         router.push('/');
       } else {
         setSubmitted(false);

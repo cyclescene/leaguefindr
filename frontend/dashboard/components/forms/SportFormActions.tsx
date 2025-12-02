@@ -4,16 +4,14 @@ import { Button } from "@/components/ui/button";
 interface SportFormActionsProps {
   loading: boolean;
   sportName: string;
-  isRejectedSport: boolean | undefined;
-  isApprovedSport: boolean | undefined;
+  isSportExists: boolean | undefined;
   onClose: () => void;
 }
 
 export function SportFormActions({
   loading,
   sportName,
-  isRejectedSport,
-  isApprovedSport,
+  isSportExists,
   onClose,
 }: SportFormActionsProps) {
   return (
@@ -27,20 +25,9 @@ export function SportFormActions({
         Cancel
       </Button>
 
-      {isApprovedSport ? (
+      {isSportExists ? (
         <Button type="submit" variant="outline" disabled={true}>
-          Sport Already Available
-        </Button>
-      ) : isRejectedSport ? (
-        <Button type="submit" variant="brandDark" disabled={loading || !sportName.trim()}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Requesting...
-            </>
-          ) : (
-            "Request Anyway"
-          )}
+          Sport Already Exists
         </Button>
       ) : (
         <Button type="submit" variant="brandDark" disabled={loading || !sportName.trim()}>

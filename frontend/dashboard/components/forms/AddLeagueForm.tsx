@@ -172,16 +172,20 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
         }
       })
 
-      // Set sport name in state so SportAutocomplete input displays it
+      // Set sport in state so SportAutocomplete recognizes it as selected (doesn't show dropdown)
       const sportName = prePopulatedFormData.sport_name as string | undefined
-      if (sportName) {
+      const sportId = prePopulatedFormData.sport_id as number | undefined
+      if (sportName && sportId) {
         setSportSearchInput(sportName)
+        setSelectedSport({ id: sportId, name: sportName, status: 'approved', request_count: 0 })
       }
 
-      // Set venue name in state so VenueAutocomplete input displays it
+      // Set venue in state so VenueAutocomplete recognizes it as selected (doesn't show dropdown)
       const venueName = prePopulatedFormData.venue_name as string | undefined
-      if (venueName) {
+      const venueId = prePopulatedFormData.venue_id as number | undefined
+      if (venueName && venueId) {
         setVenueSearchInput(venueName)
+        setSelectedVenue({ id: venueId, name: venueName, address: prePopulatedFormData.venue_address || '', lat: prePopulatedFormData.venue_lat || 0, lng: prePopulatedFormData.venue_lng || 0, status: 'approved', request_count: 0 })
       }
     }
   }, [prePopulatedFormData, setValue, isViewingLeague])
@@ -278,12 +282,12 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
         gender: watch('gender'),
         registration_deadline: registrationDeadline ? format(registrationDeadline, 'yyyy-MM-dd') : '',
         season_start_date: seasonStartDate ? format(seasonStartDate, 'yyyy-MM-dd') : '',
-        season_end_date: seasonEndDate ? format(seasonEndDate, 'yyyy-MM-dd') : null,
+        season_end_date: seasonEndDate ? format(seasonEndDate, 'yyyy-MM-dd') : '1900-01-01',
         season_details: watch('season_details'),
         game_occurrences: gameOccurrences,
         pricing_strategy: watch('pricing_strategy'),
         pricing_amount: watch('pricing_amount'),
-        per_game_fee: watch('per_game_fee'),
+        per_game_fee: watch('per_game_fee') ?? 0,
         minimum_team_players: watch('minimum_team_players'),
         registration_url: watch('registration_url'),
         duration: watch('duration'),
@@ -381,12 +385,12 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
         gender: watch('gender'),
         registration_deadline: registrationDeadline ? format(registrationDeadline, 'yyyy-MM-dd') : '',
         season_start_date: seasonStartDate ? format(seasonStartDate, 'yyyy-MM-dd') : '',
-        season_end_date: seasonEndDate ? format(seasonEndDate, 'yyyy-MM-dd') : null,
+        season_end_date: seasonEndDate ? format(seasonEndDate, 'yyyy-MM-dd') : '1900-01-01',
         season_details: watch('season_details'),
         game_occurrences: gameOccurrences,
         pricing_strategy: watch('pricing_strategy'),
         pricing_amount: watch('pricing_amount'),
-        per_game_fee: watch('per_game_fee'),
+        per_game_fee: watch('per_game_fee') ?? 0,
         minimum_team_players: watch('minimum_team_players'),
         registration_url: watch('registration_url'),
         duration: watch('duration'),
@@ -486,8 +490,16 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create league')
+        let errorMessage = 'Failed to create league'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // If JSON parsing fails, try to get plain text
+          const text = await response.text()
+          errorMessage = text || errorMessage
+        }
+        throw new Error(errorMessage)
       }
 
       // Delete draft after successful submission
@@ -820,7 +832,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
           <Label htmlFor="per_game_fee">Per Game Fee (Optional)</Label>
           <p className="text-sm text-gray-600">Additional fee per game for referee, equipment, or facility costs</p>
           <Input
-            {...register('per_game_fee', { valueAsNumber: true })}
+            {...register('per_game_fee')}
             id="per_game_fee"
             type="number"
             step="0.01"

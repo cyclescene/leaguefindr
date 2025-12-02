@@ -1,19 +1,16 @@
-import { Loader2, AlertCircle, CheckCircle2, Clock } from "lucide-react";
-import { CheckSportExistsResponse } from "@/hooks/useSportExistenceCheck";
+import { CheckCircle2, AlertCircle } from "lucide-react";
 
 interface SportStatusFeedbackProps {
   debouncedSportName: string;
   isSelected: boolean;
-  isCheckingExistence: boolean;
-  sportCheckData?: CheckSportExistsResponse;
+  sportExists: boolean;
   selectedSportStatus?: "approved" | "pending" | "rejected";
 }
 
 export function SportStatusFeedback({
   debouncedSportName,
   isSelected,
-  isCheckingExistence,
-  sportCheckData,
+  sportExists,
   selectedSportStatus,
 }: SportStatusFeedbackProps) {
   const shouldShow = debouncedSportName && debouncedSportName.length >= 2;
@@ -22,93 +19,33 @@ export function SportStatusFeedback({
     return <div className="mt-3 min-h-[80px]" />;
   }
 
+  // If sport is selected from dropdown, it always exists
+  // Otherwise check if the typed name matches an existing sport
+  const sportExistsInDb = isSelected || sportExists;
+
   return (
     <div className="mt-3 min-h-[80px]">
-      {/* Loading state */}
-      {!isSelected && isCheckingExistence && (
-        <div className="flex items-center gap-2 text-blue-600 text-sm">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Checking availability...</span>
+      {sportExistsInDb ? (
+        /* Sport already exists */
+        <div className="space-y-2 bg-yellow-50 p-3 rounded-md border border-yellow-200">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-yellow-700 text-sm font-medium">This sport already exists</p>
+            </div>
+          </div>
         </div>
-      )}
-
-      {/* Approved sport selected from dropdown */}
-      {isSelected && selectedSportStatus === "approved" && (
+      ) : (
+        /* Sport name is available */
         <div className="space-y-2 bg-green-50 p-3 rounded-md border border-green-200">
           <div className="flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-green-700 text-sm font-medium">Sport already exists and is approved!</p>
-              <p className="text-xs text-green-600 mt-1">
-                This sport is ready to use in your leagues. You don't need to add it again.
-              </p>
+              <p className="text-green-700 text-sm font-medium">Sport name is available</p>
             </div>
           </div>
         </div>
       )}
-
-      {/* Approved sport exists (not selected via autocomplete) */}
-      {!isSelected &&
-        sportCheckData &&
-        sportCheckData.exists &&
-        sportCheckData.status === "approved" && (
-        <div className="space-y-2 bg-green-50 p-3 rounded-md border border-green-200">
-          <div className="flex items-start gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-green-700 text-sm font-medium">Sport already exists and is approved!</p>
-              <p className="text-xs text-green-600 mt-1">
-                This sport is ready to use in your leagues. You don't need to add it again.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Pending sport */}
-      {!isSelected && sportCheckData?.exists && sportCheckData.status === "pending" && (
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-orange-600 text-sm">
-            <Clock className="h-4 w-4" />
-            <span>Already requested by {sportCheckData.request_count || 1} user(s)</span>
-          </div>
-          <p className="text-xs text-orange-500 ml-6">
-            This sport is awaiting admin approval
-          </p>
-        </div>
-      )}
-
-      {/* Rejected sport - show with demand and request option */}
-      {!isSelected && sportCheckData?.exists && sportCheckData.status === "rejected" && (
-        <div className="space-y-2 bg-red-50 p-3 rounded-md border border-red-200">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-red-700 text-sm font-medium">Sport was rejected</p>
-              {sportCheckData.rejection_reason && (
-                <p className="text-xs text-red-600 mt-1">
-                  Reason: {sportCheckData.rejection_reason}
-                </p>
-              )}
-              {sportCheckData.request_count && sportCheckData.request_count > 0 && (
-                <p className="text-xs text-red-600 mt-1">
-                  {sportCheckData.request_count} user(s) are requesting this
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Sport not found in approved list */}
-      {!isSelected &&
-        !isCheckingExistence &&
-        !sportCheckData?.exists && (
-          <div className="flex items-center gap-2 text-green-600 text-sm">
-            <CheckCircle2 className="h-4 w-4" />
-            <span>Sport name available - submit to request</span>
-          </div>
-        )}
     </div>
   );
 }

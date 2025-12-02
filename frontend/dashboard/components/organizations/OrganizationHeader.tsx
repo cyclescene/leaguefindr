@@ -1,4 +1,4 @@
-import { ChevronRight, Edit2, Trash2, Share2 } from "lucide-react";
+import { ChevronRight, Edit2, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
@@ -6,7 +6,6 @@ interface OrganizationHeaderProps {
   orgId: string;
   orgName: string;
   onEditClick: () => void;
-  onDeleteClick: () => void;
   onInviteClick: () => void;
 }
 
@@ -14,7 +13,6 @@ export function OrganizationHeader({
   orgId,
   orgName,
   onEditClick,
-  onDeleteClick,
   onInviteClick,
 }: OrganizationHeaderProps) {
   const router = useRouter();
@@ -48,15 +46,6 @@ export function OrganizationHeader({
         >
           <Edit2 size={16} className="mr-2" />
           Edit
-        </Button>
-        <Button
-          onClick={onDeleteClick}
-          variant="outline"
-          size="sm"
-          className="border-red-300 text-red-600 hover:bg-red-50"
-        >
-          <Trash2 size={16} className="mr-2" />
-          Delete
         </Button>
       </div>
     </div>

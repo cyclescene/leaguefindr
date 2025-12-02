@@ -2,8 +2,12 @@ package auth
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
+	"strings"
 
 	"github.com/supabase-community/postgrest-go"
 )
@@ -190,4 +194,72 @@ func (s *Service) IsUserAdmin(ctx context.Context, userID string) (bool, error) 
 		return false, nil
 	}
 	return user.Role == RoleAdmin, nil
+}
+
+// GetAppRoleFromRequest extracts the appRole from the JWT token in the Authorization header
+func (s *Service) GetAppRoleFromRequest(r *http.Request) string {
+	// Extract JWT from Authorization header
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		slog.Debug("No Authorization header found")
+		return ""
+	}
+
+	// Authorization header format: "Bearer <token>"
+	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+		token := authHeader[7:]
+		appRole, err := parseAppRoleFromJWT(token)
+		if err != nil {
+			slog.Debug("Failed to parse appRole from JWT", "err", err)
+			return ""
+		}
+		slog.Debug("Successfully extracted appRole from JWT", "appRole", appRole)
+		return appRole
+	}
+
+	slog.Debug("Invalid Authorization header format", "authHeader", authHeader[:20])
+	return ""
+}
+
+// parseAppRoleFromJWT extracts the appRole claim from a JWT token
+// Note: This does NOT validate the signature - that's done by the database
+// We're just extracting the claim for business logic
+func parseAppRoleFromJWT(token string) (string, error) {
+	// JWT format: header.payload.signature
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return "", fmt.Errorf("invalid JWT format")
+	}
+
+	// Decode the payload (second part)
+	payload := parts[1]
+
+	// Add padding if needed
+	padding := 4 - (len(payload) % 4)
+	if padding != 4 {
+		payload += strings.Repeat("=", padding)
+	}
+
+	// Base64 decode
+	decodedPayload, err := base64.StdEncoding.DecodeString(payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode JWT payload: %w", err)
+	}
+
+	// Parse JSON
+	var claims map[string]interface{}
+	err = json.Unmarshal(decodedPayload, &claims)
+	if err != nil {
+		return "", fmt.Errorf("failed to unmarshal JWT claims: %w", err)
+	}
+
+	// Debug logging to see what claims are in the JWT
+	slog.Debug("JWT claims parsed", "claims", fmt.Sprintf("%v", claims))
+
+	// Extract appRole
+	if appRole, ok := claims["appRole"].(string); ok {
+		return appRole, nil
+	}
+
+	return "", nil
 }

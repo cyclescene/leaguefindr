@@ -27,24 +27,24 @@ export function AdminActionButtons({ onActionComplete }: AdminActionButtonsProps
   return (
     <>
       <ButtonGroup>
-        <Button variant="brandDark" onClick={() => setOpenDialog("sport")}>
-          Add Sport
-        </Button>
-        <Button variant="brandDark" onClick={() => setOpenDialog("venue")}>
-          Add Venue
+        <Button variant="brandDark" onClick={() => setOpenDialog("league")}>
+          Add League
         </Button>
         <Button variant="brandDark" onClick={() => setOpenDialog("organization")}>
           Add Organization
         </Button>
-        <Button variant="brandDark" onClick={() => setOpenDialog("league")}>
-          Add League
+        <Button variant="brandDark" onClick={() => setOpenDialog("venue")}>
+          Add Venue
+        </Button>
+        <Button variant="brandDark" onClick={() => setOpenDialog("sport")}>
+          Add Sport
         </Button>
       </ButtonGroup>
 
       {/* Add Organization Dialog */}
       <Dialog open={openDialog === "organization"} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent className="border-0 !max-w-2xl">
-          <DialogHeader className="bg-brand-dark text-white !-mx-6 !-mt-6 !-mb-4 px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
+        <DialogContent className="border-0 max-w-2xl!">
+          <DialogHeader className="bg-brand-dark text-white -mx-6! -mt-6!  px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
             <DialogTitle className="text-white">Add Organization</DialogTitle>
             <DialogDescription className="text-gray-200">
               Add a new organization to the system. It will be immediately available when adding leagues.
@@ -59,8 +59,8 @@ export function AdminActionButtons({ onActionComplete }: AdminActionButtonsProps
 
       {/* Add Sport Dialog */}
       <Dialog open={openDialog === "sport"} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent className="border-0 !max-w-2xl">
-          <DialogHeader className="bg-brand-dark text-white !-mx-6 !-mt-6 !-mb-4 px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
+        <DialogContent className="border-0 max-w-2xl!">
+          <DialogHeader className="bg-brand-dark text-white -mx-6! -mt-6! -mb-4! px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
             <DialogTitle className="text-white">Add Sport</DialogTitle>
             <DialogDescription className="text-gray-200">
               Add a new sport to the system. It will be immediately available for league submissions.
@@ -72,8 +72,8 @@ export function AdminActionButtons({ onActionComplete }: AdminActionButtonsProps
 
       {/* Add Venue Dialog */}
       <Dialog open={openDialog === "venue"} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent className="border-0 !max-w-2xl">
-          <DialogHeader className="bg-brand-dark text-white !-mx-6 !-mt-6 !-mb-4 px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
+        <DialogContent className="border-0 max-w-2xl!">
+          <DialogHeader className="bg-brand-dark text-white -mx-6! -mt-6! -mb-4! px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
             <DialogTitle className="text-white">Add Venue</DialogTitle>
             <DialogDescription className="text-gray-200">
               Add a new venue to the system. It will be immediately available for league submissions.
@@ -89,8 +89,8 @@ export function AdminActionButtons({ onActionComplete }: AdminActionButtonsProps
 
       {/* Add League Dialog */}
       <Dialog open={openDialog === "league"} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent className="border-0 !max-w-5xl w-[85vw] max-h-[95vh] overflow-y-auto">
-          <DialogHeader className="bg-brand-dark text-white !-mx-6 !-mt-6 !-mb-4 px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
+        <DialogContent className="border-0 max-w-5xl! w-[85vw] max-h-[95vh] overflow-y-auto">
+          <DialogHeader className="bg-brand-dark text-white -mx-6! -mt-6! -mb-4 px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
             <DialogTitle className="text-white">Create League</DialogTitle>
             <DialogDescription className="text-gray-200">
               Create a new league submission on behalf of an organization. Select the organization first, then fill in the league details.
