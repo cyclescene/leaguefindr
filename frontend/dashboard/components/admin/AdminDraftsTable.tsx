@@ -14,16 +14,22 @@ interface AdminDraftsTableProps {
   sortOrder?: 'asc' | 'desc'
 }
 
+interface SortIconProps {
+  column: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+}
+
+function SortIcon({ column, sortBy, sortOrder }: SortIconProps) {
+  if (sortBy !== column) return <ArrowUpDown className="w-4 h-4 opacity-50" />
+  return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+}
+
 export function AdminDraftsTable({ drafts, isLoading, onView, onSort, sortBy, sortOrder }: AdminDraftsTableProps) {
   const handleSort = (column: string) => {
     if (!onSort) return
     const newOrder = sortBy === column && sortOrder === 'asc' ? 'desc' : 'asc'
     onSort(column, newOrder)
-  }
-
-  const SortIcon = ({ column }: { column: string }) => {
-    if (sortBy !== column) return <ArrowUpDown className="w-4 h-4 opacity-50" />
-    return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
   }
   if (isLoading) {
     return (
@@ -51,7 +57,7 @@ export function AdminDraftsTable({ drafts, isLoading, onView, onSort, sortBy, so
           >
             <div className="flex items-center gap-2">
               Draft Name
-              <SortIcon column="name" />
+              <SortIcon column="name" sortBy={sortBy} sortOrder={sortOrder} />
             </div>
           </TableHead>
           <TableHead>Type</TableHead>
@@ -61,7 +67,7 @@ export function AdminDraftsTable({ drafts, isLoading, onView, onSort, sortBy, so
           >
             <div className="flex items-center gap-2">
               Created
-              <SortIcon column="created_at" />
+              <SortIcon column="created_at" sortBy={sortBy} sortOrder={sortOrder} />
             </div>
           </TableHead>
           <TableHead>Actions</TableHead>

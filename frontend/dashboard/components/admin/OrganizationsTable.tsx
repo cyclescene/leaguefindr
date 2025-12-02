@@ -13,6 +13,17 @@ interface OrganizationsTableProps {
   sortOrder?: 'asc' | 'desc'
 }
 
+interface SortIconProps {
+  column: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+}
+
+function SortIcon({ column, sortBy, sortOrder }: SortIconProps) {
+  if (sortBy !== column) return <ArrowUpDown className="w-4 h-4 opacity-50" />
+  return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+}
+
 export function OrganizationsTable({ organizations, isLoading, onSort, sortBy, sortOrder }: OrganizationsTableProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
@@ -26,11 +37,6 @@ export function OrganizationsTable({ organizations, isLoading, onSort, sortBy, s
     if (!onSort) return
     const newOrder = sortBy === column && sortOrder === 'asc' ? 'desc' : 'asc'
     onSort(column, newOrder)
-  }
-
-  const SortIcon = ({ column }: { column: string }) => {
-    if (sortBy !== column) return <ArrowUpDown className="w-4 h-4 opacity-50" />
-    return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
   }
 
   if (isLoading) {
@@ -60,7 +66,7 @@ export function OrganizationsTable({ organizations, isLoading, onSort, sortBy, s
           >
             <div className="flex items-center gap-2">
               Name
-              <SortIcon column="org_name" />
+              <SortIcon column="org_name" sortBy={sortBy} sortOrder={sortOrder} />
             </div>
           </TableHead>
           <TableHead className="w-96">Email</TableHead>

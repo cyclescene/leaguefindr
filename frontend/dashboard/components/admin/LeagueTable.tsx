@@ -19,11 +19,22 @@ interface LeagueTableProps {
   onView: (leagueId: number) => void;
   onApprove: (leagueId: number) => void;
   onReject: (leagueId: number) => void;
-  onSaveAsDraft: (leagueData: any, name?: string) => void;
-  onSaveAsTemplate: (leagueData: any, name?: string) => void;
+  onSaveAsDraft: (leagueData: Record<string, unknown>, name?: string) => void;
+  onSaveAsTemplate: (leagueData: Record<string, unknown>, name?: string) => void;
   onSort?: (column: string, order: 'asc' | 'desc') => void;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+}
+
+interface SortIconProps {
+  column: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+function SortIcon({ column, sortBy, sortOrder }: SortIconProps) {
+  if (sortBy !== column) return <ArrowUpDown className="w-4 h-4 opacity-50" />;
+  return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
 }
 
 export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraft, onSaveAsTemplate, onSort, sortBy, sortOrder }: LeagueTableProps) {
@@ -31,11 +42,6 @@ export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraf
     if (!onSort) return;
     const newOrder = sortBy === column && sortOrder === 'asc' ? 'desc' : 'asc';
     onSort(column, newOrder);
-  };
-
-  const SortIcon = ({ column }: { column: string }) => {
-    if (sortBy !== column) return <ArrowUpDown className="w-4 h-4 opacity-50" />;
-    return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
   };
 
   if (!leagues || leagues.length === 0) {
@@ -57,7 +63,7 @@ export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraf
           >
             <div className="w-60  flex items-center gap-2">
               League Org Name
-              <SortIcon column="organizationName" />
+              <SortIcon column="organizationName" sortBy={sortBy} sortOrder={sortOrder} />
             </div>
           </TableHead>
           <TableHead
@@ -66,7 +72,7 @@ export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraf
           >
             <div className="w-40  flex items-center gap-2">
               Sport
-              <SortIcon column="sport" />
+              <SortIcon column="sport" sortBy={sortBy} sortOrder={sortOrder} />
             </div>
           </TableHead>
           <TableHead
@@ -75,7 +81,7 @@ export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraf
           >
             <div className="flex items-center gap-2">
               Gender
-              <SortIcon column="gender" />
+              <SortIcon column="gender" sortBy={sortBy} sortOrder={sortOrder} />
             </div>
           </TableHead>
           <TableHead
@@ -84,7 +90,7 @@ export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraf
           >
             <div className="w-32 flex items-center gap-2">
               Start Date
-              <SortIcon column="startDate" />
+              <SortIcon column="startDate" sortBy={sortBy} sortOrder={sortOrder} />
             </div>
           </TableHead>
           <TableHead
@@ -93,7 +99,7 @@ export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraf
           >
             <div className="w-52 flex items-center gap-2">
               Venue
-              <SortIcon column="venue" />
+              <SortIcon column="venue" sortBy={sortBy} sortOrder={sortOrder} />
             </div>
           </TableHead>
           <TableHead
@@ -102,7 +108,7 @@ export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraf
           >
             <div className="flex items-center gap-2">
               Date Submitted
-              <SortIcon column="dateSubmitted" />
+              <SortIcon column="dateSubmitted" sortBy={sortBy} sortOrder={sortOrder} />
             </div>
           </TableHead>
           <TableHead>Status</TableHead>

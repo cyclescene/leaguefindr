@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@/__tests__/utils/test-utils';
+import { render, screen, waitFor } from '@/__tests__/utils/test-utils';
 import { SignInForm } from '@/components/auth/sign-in-form';
 import userEvent from '@testing-library/user-event';
 
@@ -89,7 +89,6 @@ describe('SignInForm', () => {
 
       const emailInput = screen.getByLabelText(/email/i) as HTMLInputElement;
       const passwordInput = screen.getByLabelText(/password/i);
-      const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       await user.type(emailInput, 'invalidemail');
       await user.type(passwordInput, 'password123');

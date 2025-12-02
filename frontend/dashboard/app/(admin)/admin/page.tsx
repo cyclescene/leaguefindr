@@ -15,7 +15,7 @@ import { OrganizationsTable } from "@/components/admin/OrganizationsTable";
 import { SportsTable } from "@/components/admin/SportsTable";
 import { VenuesTable } from "@/components/admin/VenuesTable";
 import { AdminDraftsTable } from "@/components/admin/AdminDraftsTable";
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
 import { usePendingLeagues, useAllLeagues, useAdminLeagueOperations } from "@/hooks/useAdminLeagues";
 import { useAdminOrganizations } from "@/hooks/useAdminOrganizations";

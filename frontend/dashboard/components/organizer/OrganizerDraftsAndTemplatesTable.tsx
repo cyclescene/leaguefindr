@@ -19,6 +19,17 @@ interface OrganizerDraftsAndTemplatesTableProps {
   sortOrder?: 'asc' | 'desc'
 }
 
+interface SortIconProps {
+  column: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+}
+
+function SortIcon({ column, sortBy, sortOrder }: SortIconProps) {
+  if (sortBy !== column) return <ArrowUpDown className="w-4 h-4 opacity-50" />
+  return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+}
+
 export function OrganizerDraftsAndTemplatesTable({
   drafts,
   templates,
@@ -36,11 +47,6 @@ export function OrganizerDraftsAndTemplatesTable({
     if (!onSort) return
     const newOrder = sortBy === column && sortOrder === 'asc' ? 'desc' : 'asc'
     onSort(column, newOrder)
-  }
-
-  const SortIcon = ({ column }: { column: string }) => {
-    if (sortBy !== column) return <ArrowUpDown className="w-4 h-4 opacity-50" />
-    return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
   }
 
   // Combine drafts and templates - they're already Draft types with type property set
@@ -72,7 +78,7 @@ export function OrganizerDraftsAndTemplatesTable({
           >
             <div className="flex items-center gap-2">
               Name
-              <SortIcon column="name" />
+              <SortIcon column="name" sortBy={sortBy} sortOrder={sortOrder} />
             </div>
           </TableHead>
           <TableHead>Type</TableHead>
@@ -82,7 +88,7 @@ export function OrganizerDraftsAndTemplatesTable({
           >
             <div className="flex items-center gap-2">
               Created
-              <SortIcon column="created" />
+              <SortIcon column="created" sortBy={sortBy} sortOrder={sortOrder} />
             </div>
           </TableHead>
           <TableHead>Actions</TableHead>

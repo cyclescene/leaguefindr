@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@/__tests__/utils/test-utils';
+import { render, screen, waitFor } from '@/__tests__/utils/test-utils';
 import { SignUpForm } from '@/components/auth/sign-up-form';
 import userEvent from '@testing-library/user-event';
 
@@ -137,7 +137,6 @@ describe('SignUpForm', () => {
       const orgNameInput = screen.getByLabelText(/organization name/i);
       const passwordInput = screen.getByLabelText(/^password/i);
       const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
-      const submitButton = screen.getByRole('button', { name: /sign up/i });
 
       await user.type(emailInput, 'invalidemail');
       await user.type(orgNameInput, 'Test Org');
@@ -202,7 +201,6 @@ describe('SignUpForm', () => {
       const orgNameInput = screen.getByLabelText(/organization name/i);
       const passwordInput = screen.getByLabelText(/^password/i);
       const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
-      const submitButton = screen.getByRole('button', { name: /sign up/i });
 
       await user.type(emailInput, 'user@example.com');
       await user.type(orgNameInput, 'Test Org');
