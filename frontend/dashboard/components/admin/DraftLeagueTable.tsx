@@ -1,26 +1,13 @@
 import { Table, TableCaption, TableHead, TableHeader, TableRow, TableBody } from "@/components/ui/table";
 import { DraftLeagueTableRow } from "./DraftLeagueTableRow";
-
-interface Draft {
-  id: number;
-  name: string;
-  sport: string;
-  gender: string;
-  startDate: string;
-  venue: string;
-  dateSubmitted: string;
-  status: string;
-}
+import type { AdminDraft } from "@/hooks/useAdminDrafts";
 
 interface DraftLeagueTableProps {
-  drafts: Draft[];
-  onView: (draftId: number) => void;
-  onEdit: (draftId: number) => void;
-  onDelete: (draftId: number) => void;
-  onSubmit: (draftId: number) => void;
+  drafts: AdminDraft[];
+  onView: (draft: AdminDraft) => void;
 }
 
-export function DraftLeagueTable({ drafts, onView, onEdit, onDelete, onSubmit }: DraftLeagueTableProps) {
+export function DraftLeagueTable({ drafts, onView }: DraftLeagueTableProps) {
   if (!drafts || drafts.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -50,9 +37,6 @@ export function DraftLeagueTable({ drafts, onView, onEdit, onDelete, onSubmit }:
             key={draft.id}
             draft={draft}
             onView={onView}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onSubmit={onSubmit}
           />
         ))}
       </TableBody>

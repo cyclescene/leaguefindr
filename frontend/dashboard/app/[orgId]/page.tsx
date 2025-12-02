@@ -54,30 +54,9 @@ function OrganizationDashboardContent() {
   const { leagues: apiLeagues, isLoading: leaguesLoading, refetch: refetchLeagues } = useLeagues(orgId);
   const { draftsAndTemplates, isLoading: draftsAndTemplatesLoading, refetch: refetchDraftsAndTemplates } = useDraftsAndTemplates(orgId);
 
-  // Convert API drafts to display format
-  const displayDrafts = draftsAndTemplates
-    .filter(d => d.type === 'draft')
-    .map(d => ({
-      id: d.id,
-      name: d.name || `Draft #${d.id}`,
-      sport: d.form_data?.sport_name || 'Unknown',
-      gender: d.form_data?.gender || 'N/A',
-      startDate: d.form_data?.season_start_date ? new Date(d.form_data.season_start_date).toLocaleDateString() : 'N/A',
-      venue: d.form_data?.venue_name || 'N/A',
-      dateSubmitted: new Date(d.created_at).toLocaleDateString(),
-      status: 'draft',
-    }));
-
-  // Convert API templates to display format
-  const displayTemplates = draftsAndTemplates
-    .filter(d => d.type === 'template')
-    .map(d => ({
-      id: d.id,
-      name: d.name || `Template #${d.id}`,
-      sport: d.form_data?.sport_name || 'Unknown',
-      gender: d.form_data?.gender || 'N/A',
-      dateCreated: new Date(d.created_at).toLocaleDateString(),
-    }));
+  // Filter drafts and templates
+  const displayDrafts = draftsAndTemplates.filter(d => d.type === 'draft');
+  const displayTemplates = draftsAndTemplates.filter(d => d.type === 'template');
 
   // Keep apiLeagues as is for full form_data access, create display format separately if needed
   const submittedLeagues = apiLeagues;
@@ -131,7 +110,7 @@ function OrganizationDashboardContent() {
         game_occurrences: league.game_occurrences,
         pricing_strategy: league.pricing_strategy as any,
         pricing_amount: league.pricing_amount,
-        per_game_fee: league.per_game_fee || undefined,
+        per_game_fee: league.per_game_fee || null,
         minimum_team_players: league.minimum_team_players,
         registration_url: league.registration_url,
         duration: league.duration,
@@ -167,14 +146,14 @@ function OrganizationDashboardContent() {
         }
       );
 
-      refetchDrafts();
+      refetchDraftsAndTemplates();
     } catch (error) {
       console.error("Failed to delete draft:", error);
     }
   };
 
   const handleEditDraft = (draftId: number) => {
-    const draft = apiDrafts.find((d) => d.id === draftId);
+    const draft = draftsAndTemplates.find((d) => d.id === draftId && d.type === 'draft');
     if (draft && draft.form_data) {
       setPrePopulatedFormData(draft.form_data as AddLeagueFormData);
       setIsEditingDraft(true);
@@ -198,14 +177,14 @@ function OrganizationDashboardContent() {
         }
       );
 
-      refetchTemplates();
+      refetchDraftsAndTemplates();
     } catch (error) {
       console.error("Failed to delete template:", error);
     }
   };
 
   const handleEditTemplate = (templateId: number) => {
-    const template = apiTemplates.find((t) => t.id === templateId);
+    const template = draftsAndTemplates.find((t) => t.id === templateId && t.type === 'template');
     if (template && template.form_data) {
       setPrePopulatedFormData(template.form_data as AddLeagueFormData);
       setIsEditingTemplate(true);
@@ -215,7 +194,7 @@ function OrganizationDashboardContent() {
   };
 
   const handleUseTemplate = (templateId: number) => {
-    const template = apiTemplates.find((t) => t.id === templateId);
+    const template = draftsAndTemplates.find((t) => t.id === templateId && t.type === 'template');
     if (template && template.form_data) {
       setPrePopulatedFormData(template.form_data as AddLeagueFormData);
       setOpenDialog("league");

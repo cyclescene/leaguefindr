@@ -69,7 +69,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     setValue,
     watch,
   } = useForm<AddLeagueFormData>({
-    resolver: zodResolver(addLeagueSchema),
+    resolver: zodResolver(addLeagueSchema) as any,
     defaultValues: {
       sport_id: undefined,
       sport_name: '',
@@ -445,7 +445,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       gender: watch('gender'),
       registration_deadline: registrationDeadline ? format(registrationDeadline, 'yyyy-MM-dd') : '',
       season_start_date: seasonStartDate ? format(seasonStartDate, 'yyyy-MM-dd') : '',
-      season_end_date: seasonEndDate ? format(seasonEndDate, 'yyyy-MM-dd') : null,
+      season_end_date: seasonEndDate ? format(seasonEndDate, 'yyyy-MM-dd') : '',
       season_details: watch('season_details'),
       game_occurrences: gameOccurrences,
       pricing_strategy: watch('pricing_strategy'),

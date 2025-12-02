@@ -4,14 +4,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 import { SubmittedLeaguesTab } from "./SubmittedLeaguesTab";
 import { DraftsAndTemplatesTab } from "./DraftsAndTemplatesTab";
-import type { League, Template, Draft } from "@/types/leagues";
+import type { SubmittedLeague, Draft } from "@/hooks/useDrafts";
 
 interface LeaguesActionBarProps {
   onCreateTemplate: () => void;
   onSubmitLeague: () => void;
-  submittedLeagues: League[];
+  submittedLeagues: SubmittedLeague[];
   displayDrafts: Draft[];
-  displayTemplates: Template[];
+  displayTemplates: Draft[];
   submittedLeaguesLoading?: boolean;
   draftsLoading: boolean;
   templatesLoading: boolean;

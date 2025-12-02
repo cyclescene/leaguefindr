@@ -684,14 +684,6 @@ function DashboardContent() {
           setReviewModalOpen(false)
           setReviewingLeagueId(null)
         }}
-        onApproveSuccess={() => {
-          refetchPendingLeagues()
-          refetchAllLeagues()
-        }}
-        onRejectSuccess={() => {
-          refetchPendingLeagues()
-          refetchAllLeagues()
-        }}
       />
 
       {/* Reject League Dialog */}

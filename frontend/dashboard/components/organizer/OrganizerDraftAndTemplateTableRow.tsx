@@ -11,10 +11,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import type { Draft } from "@/types/leagues"
-import type { Template } from "@/types/leagues"
+import type { Draft } from "@/hooks/useDrafts"
 
-type DraftOrTemplate = (Draft & { type: 'draft' }) | (Template & { type: 'template' })
+type DraftOrTemplate = Draft & { type?: 'draft' | 'template' }
 
 interface OrganizerDraftAndTemplateTableRowProps {
   item: DraftOrTemplate
@@ -34,7 +33,7 @@ export function OrganizerDraftAndTemplateTableRow({
   onDeleteTemplate,
 }: OrganizerDraftAndTemplateTableRowProps) {
   const isDraft = item.type === 'draft'
-  const name = isDraft ? (item as Draft).name || `Draft #${item.id}` : (item as Template).name || `Template #${item.id}`
+  const name = item.name || `${isDraft ? 'Draft' : 'Template'} #${item.id}`
   const created = new Date(item.created_at).toLocaleDateString()
   const typeBadgeColor = isDraft ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
   const typeLabel = isDraft ? 'Draft' : 'Template'

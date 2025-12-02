@@ -52,13 +52,11 @@ export const addLeagueSchema = z.object({
   season_start_date: z.string()
     .min(1, "Season start date is required")
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
-  season_end_date: z.string()
-    .optional()
-    .nullable()
+  season_end_date: z.any()
     .transform((val) => {
-      // Convert empty strings to a dummy date that won't cause parsing errors
+      // Convert empty strings or undefined to a dummy date that won't cause parsing errors
       if (!val || val === '') return '1900-01-01'
-      return val
+      return String(val)
     }),
   season_details: z.string()
     .max(2000, "Season details must be at most 2000 characters")

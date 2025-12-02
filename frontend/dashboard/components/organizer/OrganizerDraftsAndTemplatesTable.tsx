@@ -3,22 +3,11 @@
 import { Table, TableHead, TableHeader, TableRow, TableBody, TableCell } from "@/components/ui/table"
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { OrganizerDraftAndTemplateTableRow } from "./OrganizerDraftAndTemplateTableRow"
-import type { Draft } from "@/types/leagues"
-import type { Template } from "@/types/leagues"
-
-interface DraftOrTemplate extends Draft {
-  type: 'draft'
-}
-
-interface DraftOrTemplate extends Template {
-  type: 'template'
-}
-
-type DraftOrTemplate = (Draft & { type: 'draft' }) | (Template & { type: 'template' })
+import type { Draft } from "@/hooks/useDrafts"
 
 interface OrganizerDraftsAndTemplatesTableProps {
   drafts: Draft[]
-  templates: Template[]
+  templates: Draft[]
   isLoading?: boolean
   onEditDraft: (draftId: number) => void
   onDeleteDraft: (draftId: number) => void
@@ -54,11 +43,8 @@ export function OrganizerDraftsAndTemplatesTable({
     return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
   }
 
-  // Combine drafts and templates with type indicators
-  const items: DraftOrTemplate[] = [
-    ...drafts.map(d => ({ ...d, type: 'draft' as const })),
-    ...templates.map(t => ({ ...t, type: 'template' as const })),
-  ]
+  // Combine drafts and templates - they're already Draft types with type property set
+  const items: Draft[] = [...drafts, ...templates]
 
   if (isLoading) {
     return (

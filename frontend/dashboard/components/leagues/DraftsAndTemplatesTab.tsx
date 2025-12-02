@@ -2,12 +2,11 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TabsContent } from "@/components/ui/tabs";
 import { OrganizerDraftsAndTemplatesTable } from "@/components/organizer/OrganizerDraftsAndTemplatesTable";
-import type { Draft } from "@/types/leagues";
-import type { Template } from "@/types/leagues";
+import type { Draft } from "@/hooks/useDrafts";
 
 interface DraftsAndTemplatesTabProps {
   drafts: Draft[];
-  templates: Template[];
+  templates: Draft[];
   isLoading: boolean;
   onEditDraft: (draftId: number) => void;
   onDeleteDraft: (draftId: number) => void;
