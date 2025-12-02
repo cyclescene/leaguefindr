@@ -1,0 +1,319 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-inter: 'Inter', sans-serif;
+  --font-montserrat: 'Montserrat', sans-serif;
+  --font-dirk: 'Oswald', 'Montserrat', sans-serif;
+  
+  /* Brand Colors */
+  --dark-green: #17492C;
+  --light-green: #9AB973;
+  --off-white: #FDFFFC;
+  
+  /* Grays */
+  --gray-1: #F8F9FA;
+  --gray-2: #E9ECEF;
+  --gray-3: #DEE2E6;
+  --gray-4: #6C757D;
+  --gray-5: #343A40;
+  
+  /* Animation Variables */
+  --animation-fast: 0.2s;
+  --animation-normal: 0.3s;
+  --animation-slow: 0.6s;
+  --easing: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Klaro Cookie Consent - Subtle Bottom Sheet Styling */
+/* Klaro Cookie Banner - Bottom Right Positioning */
+.leaguefindr-klaro .cookie-notice {
+  font-family: var(--font-montserrat) !important;
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  left: auto !important;
+  top: auto !important;
+  max-width: 400px !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 16px 20px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid var(--gray-2) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+  font-size: 0.875rem !important;
+  z-index: 1000 !important;
+  transform: none !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .leaguefindr-klaro .cookie-notice {
+    right: 16px !important;
+    bottom: 16px !important;
+    left: auto !important;
+    max-width: 280px !important;
+    width: auto !important;
+    margin: 0 !important;
+  }
+}
+
+/* Title styling - smaller and less prominent */
+.leaguefindr-klaro .cookie-notice .cn-title {
+  color: var(--dark-green) !important;
+  font-family: var(--font-montserrat) !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  margin-bottom: 8px !important;
+}
+
+/* Button container */
+.leaguefindr-klaro .cookie-notice .cn-buttons {
+  display: flex !important;
+  gap: 12px !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  margin-top: 12px !important;
+}
+
+/* Accept button - prominent */
+.leaguefindr-klaro .cookie-notice .cm-btn.cm-btn-accept-all {
+  background-color: var(--dark-green) !important;
+  border: 1px solid var(--dark-green) !important;
+  color: white !important;
+  font-family: var(--font-montserrat) !important;
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+}
+
+.leaguefindr-klaro .cookie-notice .cm-btn.cm-btn-accept-all:hover {
+  background-color: var(--light-green) !important;
+  border-color: var(--light-green) !important;
+  color: var(--dark-green) !important;
+}
+
+/* Decline button - styled as a subtle link */
+.leaguefindr-klaro .cookie-notice .cm-btn.cm-btn-decline {
+  background: none !important;
+  border: none !important;
+  color: var(--gray-4) !important;
+  font-family: var(--font-montserrat) !important;
+  font-weight: 400 !important;
+  font-size: 0.75rem !important;
+  padding: 8px 4px !important;
+  text-decoration: underline !important;
+  cursor: pointer !important;
+  text-underline-offset: 2px !important;
+}
+
+.leaguefindr-klaro .cookie-notice .cm-btn.cm-btn-decline:hover {
+  color: var(--gray-5) !important;
+  background: none !important;
+  text-decoration: underline !important;
+}
+
+/* Learn more link */
+.leaguefindr-klaro .cookie-notice .cn-learn-more {
+  color: var(--dark-green) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px !important;
+}
+
+.leaguefindr-klaro .cookie-notice .cn-learn-more:hover {
+  color: var(--light-green) !important;
+}
+
+/* Modal styling (when user clicks learn more) */
+.leaguefindr-klaro .cookie-modal .cm-modal {
+  font-family: var(--font-montserrat) !important;
+  border-radius: 12px !important;
+}
+
+.leaguefindr-klaro .cookie-modal .cm-header .cm-title {
+  color: var(--dark-green) !important;
+  font-family: var(--font-montserrat) !important;
+  font-weight: 700 !important;
+}
+
+@layer base {
+  html {
+    /* Removed overflow-x: hidden that was breaking sticky positioning */
+  }
+  
+  body {
+    @apply bg-white text-gray-5 font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* Removed overflow-x: hidden and position: relative that were breaking sticky */
+    width: 100%;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  * {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+  
+  *::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+  
+  /* Header Typography - Exact Client Specifications */
+  h1 {
+    @apply font-dirk font-bold uppercase text-h1-mobile lg:text-h1-desktop;
+    color: theme('colors.dark-green');
+  }
+  
+  h2 {
+    @apply font-dirk font-bold uppercase text-h2-mobile lg:text-h2-desktop;
+    color: theme('colors.dark-green');
+  }
+  
+  h3 {
+    @apply font-montserrat font-extrabold text-h3-mobile lg:text-h3-desktop;
+    color: theme('colors.dark-green');
+  }
+  
+  h4 {
+    @apply font-dirk font-bold text-h4;
+    letter-spacing: 0.02em;
+    color: theme('colors.dark-green');
+  }
+  
+  h5 {
+    @apply font-montserrat font-extrabold text-h5;
+    color: theme('colors.dark-green');
+  }
+  
+  /* Body Text */
+  p {
+    @apply font-montserrat font-bold;
+    font-size: 1rem; /* 16px */
+    line-height: 120%;
+    letter-spacing: 0px;
+  }
+}
+
+@layer components {
+  /* Label Styles - Client Specifications */
+  .label-large {
+    @apply font-montserrat font-bold uppercase text-label-large;
+    color: theme('colors.gray-5');
+  }
+  
+  .label-small {
+    @apply font-montserrat font-bold uppercase text-label-small;
+    color: theme('colors.gray-5');
+  }
+  
+  /* Body Text Variants - Client Specifications */
+  .body-1 {
+    @apply font-montserrat font-bold uppercase text-body-1;
+    color: theme('colors.gray-5');
+  }
+  
+  .body-2 {
+    @apply font-montserrat font-bold uppercase text-body-2;
+    color: theme('colors.gray-5');
+  }
+  
+  .body-3 {
+    @apply font-montserrat font-bold uppercase text-body-3;
+    color: theme('colors.gray-5');
+  }
+
+  /* Button Styles - Updated with new typography */
+  .btn-primary {
+    @apply bg-dark-green text-white px-6 py-3 rounded-lg font-montserrat font-bold uppercase transition-all duration-200 hover:bg-dark-green/90 focus:outline-none focus:ring-2 focus:ring-dark-green focus:ring-offset-2;
+    font-size: 1rem;
+    line-height: 120%;
+    letter-spacing: 0px;
+  }
+  
+  .btn-secondary {
+    @apply border-2 border-dark-green text-dark-green px-6 py-3 rounded-lg font-montserrat font-bold uppercase transition-all duration-200 hover:bg-light-green hover:border-light-green hover:text-white focus:outline-none focus:ring-2 focus:ring-dark-green focus:ring-offset-2;
+    font-size: 1rem;
+    line-height: 120%;
+    letter-spacing: 0px;
+  }
+  
+  /* Search Input */
+  .search-input {
+    @apply w-full px-4 py-3 border border-gray-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-green focus:border-dark-green transition-all duration-200 font-montserrat;
+    font-size: 1rem;
+    line-height: 120%;
+    letter-spacing: 0px;
+  }
+  
+  /* Filter Tiles */
+  .filter-tile {
+    @apply bg-white border-2 border-dark-green rounded-lg p-4 text-center cursor-pointer transition-all duration-200 hover:bg-light-green hover:text-white focus:outline-none focus:ring-2 focus:ring-dark-green focus:ring-offset-2 font-montserrat font-bold uppercase;
+    font-size: 1rem;
+    line-height: 120%;
+    letter-spacing: 0px;
+  }
+  
+  .filter-tile.active {
+    @apply bg-light-green text-white;
+  }
+}
+
+@layer utilities {
+  /* Screen reader only utility for accessibility */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  
+  /* Performance optimization for animations */
+  .will-change-transform {
+    will-change: transform;
+  }
+  
+  .will-change-auto {
+    will-change: auto;
+  }
+  
+  /* Smooth scrolling for better UX */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+  
+  /* Focus ring utilities for better accessibility */
+  .focus-visible-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dark-green focus-visible:ring-offset-2;
+  }
+
+  /* Simple fade-in animation */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.8s ease-out;
+  }
+} 
