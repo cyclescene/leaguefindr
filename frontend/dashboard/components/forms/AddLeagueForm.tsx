@@ -9,7 +9,7 @@ import { useLeagueFormContext } from '@/context/LeagueFormContext'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DatePicker } from '@/components/ui/date-picker'
-import { format } from 'date-fns'
+import { format, parse } from 'date-fns'
 import { GameOccurrencesManager } from './GameOccurrencesManager'
 import { LeagueFormButtons } from './LeagueFormButtons'
 import { SportAutocomplete } from './SportAutocomplete'
@@ -203,6 +203,52 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       }
     }
   }, [prePopulatedFormData])
+
+  // Update date state variables when form values change
+  useEffect(() => {
+    const registrationDeadlineStr = watch('registration_deadline')
+    const seasonStartDateStr = watch('season_start_date')
+    const seasonEndDateStr = watch('season_end_date')
+
+    if (registrationDeadlineStr && registrationDeadlineStr !== '1900-01-01') {
+      try {
+        const date = parse(registrationDeadlineStr as string, 'yyyy-MM-dd', new Date())
+        if (!isNaN(date.getTime())) {
+          setRegistrationDeadline(date)
+        }
+      } catch (e) {
+        console.error('Failed to parse registration_deadline:', e)
+      }
+    } else {
+      setRegistrationDeadline(undefined)
+    }
+
+    if (seasonStartDateStr && seasonStartDateStr !== '1900-01-01') {
+      try {
+        const date = parse(seasonStartDateStr as string, 'yyyy-MM-dd', new Date())
+        if (!isNaN(date.getTime())) {
+          setSeasonStartDate(date)
+        }
+      } catch (e) {
+        console.error('Failed to parse season_start_date:', e)
+      }
+    } else {
+      setSeasonStartDate(undefined)
+    }
+
+    if (seasonEndDateStr && seasonEndDateStr !== '1900-01-01') {
+      try {
+        const date = parse(seasonEndDateStr as string, 'yyyy-MM-dd', new Date())
+        if (!isNaN(date.getTime())) {
+          setSeasonEndDate(date)
+        }
+      } catch (e) {
+        console.error('Failed to parse season_end_date:', e)
+      }
+    } else {
+      setSeasonEndDate(undefined)
+    }
+  }, [watch('registration_deadline'), watch('season_start_date'), watch('season_end_date')])
 
   // When showing new venue form, populate address input with current form value
   useEffect(() => {
