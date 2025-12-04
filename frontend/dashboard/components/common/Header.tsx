@@ -18,8 +18,9 @@ export function Header({ organizationName, email }: HeaderProps) {
   // Get user role from Clerk public metadata
   const userRole = (user?.publicMetadata?.role as string) || "organizer";
 
-  // Determine settings URL based on user role
+  // Determine settings URL and home page based on user role
   const settingsUrl = userRole === "admin" ? "/admin/settings" : "/settings";
+  const homeUrl = userRole === "admin" ? "/admin" : "/";
 
   // Get email from prop or from Clerk user
   const displayEmail = email || user?.primaryEmailAddress?.emailAddress || user?.emailAddresses[0]?.emailAddress || "User";
@@ -28,7 +29,9 @@ export function Header({ organizationName, email }: HeaderProps) {
     <header className="bg-brand-dark text-white shadow-lg">
       <div className="max-w-7xl mx-auto px-6 py-8 flex flex-row items-center justify-between">
         <div className="flex items-center gap-6">
-          <Image src="/logo.svg" className="w-auto h-auto" alt="LeagueFindr" loading="eager" width={200} height={200} />
+          <Link href={homeUrl} title="Home">
+            <Image src="/logo.svg" className="w-auto h-auto cursor-pointer hover:opacity-80 transition-opacity" alt="LeagueFindr" loading="eager" width={200} height={200} />
+          </Link>
           <p className="text-brand-light text-lg">Welcome, {displayEmail}</p>
         </div>
         <div className="flex items-center gap-6">
