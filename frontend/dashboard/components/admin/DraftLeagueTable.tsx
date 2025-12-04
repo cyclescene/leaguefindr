@@ -1,4 +1,4 @@
-import { Table, TableCaption, TableHead, TableHeader, TableRow, TableBody } from "@/components/ui/table";
+import { Table, TableHead, TableHeader, TableRow, TableBody } from "@/components/ui/table";
 import { DraftLeagueTableRow } from "./DraftLeagueTableRow";
 import type { AdminDraft } from "@/hooks/useAdminDrafts";
 
@@ -18,7 +18,6 @@ export function DraftLeagueTable({ drafts, onView }: DraftLeagueTableProps) {
 
   return (
     <Table className="w-full bg-white rounded-lg shadow-md">
-      <TableCaption>Draft Leagues</TableCaption>
       <TableHeader>
         <TableRow>
           <TableHead>League Name</TableHead>

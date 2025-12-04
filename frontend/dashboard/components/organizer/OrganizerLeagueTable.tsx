@@ -24,7 +24,6 @@ export function OrganizerLeagueTable({
 }: OrganizerLeagueTableProps) {
   return (
     <Table className="w-full bg-white rounded-lg shadow-md">
-      <TableCaption>Your Submitted Leagues</TableCaption>
       <TableHeader>
         <TableRow>
           <TableHead>League Name</TableHead>

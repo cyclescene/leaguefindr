@@ -124,11 +124,11 @@ func (r *Repository) GetUserOrganizations(ctx context.Context, userID string) ([
 
 	// Now fetch all organizations that the user is a member of
 	// For multiple org IDs, we need to fetch them one by one or use a workaround
-	// For now, fetch all non-deleted orgs and filter in memory
+	// For now, fetch all active orgs and filter in memory
 	var allOrgs []Organization
 	_, err = r.client.From("organizations").
 		Select("*", "", false).
-		Eq("is_deleted", "false").
+		Eq("is_active", "true").
 		ExecuteToWithContext(ctx, &allOrgs)
 
 	if err != nil {
@@ -157,7 +157,7 @@ func (r *Repository) GetAllOrganizations(ctx context.Context) ([]Organization, e
 
 	_, err := r.client.From("organizations").
 		Select("*", "", false).
-		Eq("is_deleted", "false").
+		Eq("is_active", "true").
 		ExecuteToWithContext(ctx, &orgs)
 
 	if err != nil {
@@ -231,7 +231,7 @@ func (r *Repository) GetOrganizationByID(ctx context.Context, orgID string) (*Or
 	_, err := r.client.From("organizations").
 		Select("*", "", false).
 		Eq("id", orgID).
-		Eq("is_deleted", "false").
+		Eq("is_active", "true").
 		ExecuteToWithContext(ctx, &orgs)
 
 	if err != nil || len(orgs) == 0 {
@@ -248,7 +248,7 @@ func (r *Repository) GetOrganizationByURL(ctx context.Context, orgURL string) (*
 	_, err := r.client.From("organizations").
 		Select("*", "", false).
 		Eq("org_url", orgURL).
-		Eq("is_deleted", "false").
+		Eq("is_active", "true").
 		ExecuteToWithContext(ctx, &orgs)
 
 	if err != nil {
@@ -367,10 +367,10 @@ func (r *Repository) UpdateOrganization(ctx context.Context, orgID string, orgNa
 	return nil
 }
 
-// DeleteOrganization soft deletes an organization by setting is_deleted
+// DeleteOrganization soft deletes an organization by setting is_active to false
 func (r *Repository) DeleteOrganization(ctx context.Context, orgID string) error {
 	updateData := map[string]interface{}{
-		"is_deleted": true,
+		"is_active": false,
 	}
 
 	var result []map[string]interface{}

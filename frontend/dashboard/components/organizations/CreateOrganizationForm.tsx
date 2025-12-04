@@ -151,7 +151,7 @@ export function CreateOrganizationForm({ onSuccess, onClose, organization }: Cre
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-brand-dark">Email</FormLabel>
+                <FormLabel className="text-brand-dark">Email *</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="contact@organization.com"

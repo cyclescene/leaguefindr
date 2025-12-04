@@ -7,6 +7,20 @@ import { Button } from '@/components/ui/button'
 import { X, Plus } from 'lucide-react'
 import { type GameOccurrence } from '@/lib/schemas'
 
+/**
+ * Convert time from 24-hour format (HH:MM) to 12-hour format with AM/PM
+ */
+function convertTo12HourFormat(time24: string): string {
+  try {
+    const [hours, minutes] = time24.split(':').map(Number)
+    const period = hours >= 12 ? 'PM' : 'AM'
+    const hours12 = hours % 12 || 12
+    return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`
+  } catch {
+    return time24
+  }
+}
+
 interface GameOccurrencesManagerProps {
   gameOccurrences: GameOccurrence[]
   onGameOccurrencesChange: (occurrences: GameOccurrence[]) => void
@@ -110,7 +124,7 @@ export function GameOccurrencesManager({
               className="flex items-center justify-between bg-gray-50 p-4 rounded-md"
             >
               <span className="text-sm text-gray-700">
-                {occurrence.day} · {occurrence.startTime} - {occurrence.endTime}
+                {occurrence.day} · {convertTo12HourFormat(occurrence.startTime)} - {convertTo12HourFormat(occurrence.endTime)}
               </span>
               {!isViewingLeague && (
                 <Button

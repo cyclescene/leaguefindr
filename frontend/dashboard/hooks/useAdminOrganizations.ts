@@ -38,6 +38,7 @@ export function useAdminOrganizations(
       let query = supabase
         .from('organizations')
         .select('*', { count: 'exact' })
+        .eq('is_active', true)
 
       // Apply filters
       if (filters?.name) {

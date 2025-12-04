@@ -24,7 +24,6 @@ export function OrganizerTemplateTable({
 }: OrganizerTemplateTableProps) {
   return (
     <Table className="w-full bg-white rounded-lg shadow-md">
-      <TableCaption>Your League Templates</TableCaption>
       <TableHeader>
         <TableRow>
           <TableHead>Template Name</TableHead>

@@ -22,9 +22,9 @@ export const addOrgSchema = z.object({
       "Please enter a valid URL (e.g., example.com or https://example.com)"
     ),
   email: z
-    .email("Please enter a valid email")
-    .optional()
-    .or(z.literal("")),
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email"),
   phone: z.string()
     .optional()
     .or(z.literal("")),

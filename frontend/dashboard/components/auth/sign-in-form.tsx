@@ -29,8 +29,8 @@ export function SignInForm() {
   const form = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: "organizer@leaguefindr.com",
+      password: "sPp:%m_n9Jqm!QA",
     },
   });
 

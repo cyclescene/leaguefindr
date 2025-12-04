@@ -37,6 +37,7 @@ interface VenueAutocompleteProps {
   venueError?: string
   isViewingLeague?: boolean
   customVenueAddress?: string
+  hideAddressInput?: boolean
 }
 
 export function VenueAutocomplete({
@@ -48,6 +49,7 @@ export function VenueAutocomplete({
   venueError,
   isViewingLeague = false,
   customVenueAddress,
+  hideAddressInput = false,
 }: VenueAutocompleteProps) {
   const { approvedVenues } = useVenueSearch()
   const [debouncedVenueName, setDebouncedVenueName] = useState('')
@@ -226,8 +228,8 @@ export function VenueAutocomplete({
         </div>
       )}
 
-      {/* Address field - hidden when venue is selected from dropdown or custom address is prepopulated or in view mode */}
-      {!selectedVenue && !customVenueAddress && !isViewingLeague && (
+      {/* Address field - hidden when venue is selected from dropdown or custom address is prepopulated or in view mode or when hideAddressInput is true */}
+      {!selectedVenue && !customVenueAddress && !isViewingLeague && !hideAddressInput && (
         <div className="space-y-2">
           <Label htmlFor="venue_address">Search Address</Label>
           <p className="text-sm text-gray-600">Find address or enter custom location</p>

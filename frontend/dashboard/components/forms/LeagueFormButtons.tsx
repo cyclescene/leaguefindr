@@ -143,57 +143,31 @@ export function LeagueFormButtons({
 
   return (
     <>
-      {/* Draft Name Input (only show after user clicks "Save Draft") */}
-      {showDraftNameField && !isEditingDraft && !isEditingTemplate && !isViewingLeague && (
-        <div className="space-y-2">
-          <label htmlFor="draft_name" className="text-sm font-medium text-gray-700">
-            Draft Name (Optional)
-          </label>
-          <input
-            id="draft_name"
-            type="text"
-            placeholder="e.g., Summer Basketball League"
-            value={draftName}
-            onChange={(e) => onDraftNameChange(e.target.value)}
-            maxLength={255}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400"
-            autoFocus
-          />
-          <p className="text-xs text-gray-500">
-            If left blank, the draft will be auto-named based on the league name.
-          </p>
-        </div>
-      )}
 
       {/* Button Group */}
       <div className="flex gap-3">
-        {/* Save Draft button - shown for new drafts, when editing existing draft, or when editing template */}
-        {(isEditingDraft || isEditingTemplate || (!isEditingDraft && !isEditingTemplate)) && (
+        {/* Save button - opens modal for all save operations */}
+        {!isEditingTemplate && (
           <Button
             type="button"
-            onClick={() => {
-              if (!showDraftNameField && !isEditingDraft && !isEditingTemplate) {
-                setShowDraftNameField(true)
-              } else {
-                onSaveDraft()
-              }
-            }}
+            onClick={onSaveDraft}
             disabled={isSavingDraft || isSubmitting}
             variant="outline"
             className="flex-1"
           >
-            {isSavingDraft ? 'Saving Draft...' : isEditingDraft ? 'Save Changes' : isEditingTemplate ? 'Save as Draft' : showDraftNameField ? 'Confirm Draft' : 'Save Draft'}
+            {isSavingDraft ? 'Saving...' : isEditingDraft ? 'Save Changes' : 'Save'}
           </Button>
         )}
-        {!isEditingDraft && !isEditingTemplate && onSaveAsTemplate && (
+        {/* Save as Draft button for editing templates */}
+        {isEditingTemplate && (
           <Button
             type="button"
-            onClick={onSaveAsTemplate}
-            disabled={isSubmitting || isSavingDraft}
+            onClick={onSaveDraft}
+            disabled={isSavingDraft || isSubmitting}
             variant="outline"
             className="flex-1"
           >
-            Continue to Save as Template
+            {isSavingDraft ? 'Saving...' : 'Save as Draft'}
           </Button>
         )}
         {isEditingTemplate && (

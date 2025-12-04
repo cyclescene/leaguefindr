@@ -77,8 +77,21 @@ export const addLeagueSchema = z.object({
       return isNaN(num) ? null : num;
     }),
   registration_url: z.string()
-    .url("Registration URL must be a valid URL")
-    .max(500, "Registration URL must be at most 500 characters"),
+    .min(1, "Registration URL is required")
+    .max(500, "Registration URL must be at most 500 characters")
+    .refine(
+      (url) => {
+        try {
+          // If no protocol, add https:// for validation
+          const urlToValidate = url.includes("://") ? url : `https://${url}`
+          new URL(urlToValidate)
+          return true
+        } catch {
+          return false
+        }
+      },
+      "Registration URL must be a valid website (e.g., example.com or https://example.com)"
+    ),
   duration: z.number()
     .min(1, "Duration must be at least 1 week")
     .max(52, "Duration must be at most 52 weeks"),

@@ -4,16 +4,28 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { addLeagueSchema, type AddLeagueFormData, type GameOccurrence } from '@/lib/schemas'
 import { useAuth } from '@clerk/nextjs'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLeagueFormContext } from '@/context/LeagueFormContext'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DatePicker } from '@/components/ui/date-picker'
-import { format, parse } from 'date-fns'
+import { format } from 'date-fns'
 import { GameOccurrencesManager } from './GameOccurrencesManager'
 import { LeagueFormButtons } from './LeagueFormButtons'
 import { SportAutocomplete } from './SportAutocomplete'
 import { VenueAutocomplete } from './VenueAutocomplete'
+import { SaveLeagueModal } from '@/components/leagues/SaveLeagueModal'
+import { useLeagueFormData } from '@/lib/hooks/useLeagueFormData'
+import { useLeagueFormPopulation } from '@/lib/hooks/useLeagueFormPopulation'
+import { useLeagueDraftOperations } from '@/lib/hooks/useLeagueDraftOperations'
+import dynamic from 'next/dynamic'
+
+// Dynamically import AddressAutofill to avoid SSR issues
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const AddressAutofill = dynamic(
+  () => import('@mapbox/search-js-react').then(mod => mod.AddressAutofill),
+  { ssr: false }
+) as any
 
 interface Sport {
   id: number
@@ -68,6 +80,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     formState: { errors, isSubmitting },
     setValue,
     watch,
+    reset,
   } = useForm<AddLeagueFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(addLeagueSchema) as any,
@@ -98,99 +111,106 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     },
   })
 
+  // State management
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [gameOccurrences, setGameOccurrences] = useState<GameOccurrence[]>([])
-
-  // Date state
   const [registrationDeadline, setRegistrationDeadline] = useState<Date | undefined>()
   const [seasonStartDate, setSeasonStartDate] = useState<Date | undefined>()
   const [seasonEndDate, setSeasonEndDate] = useState<Date | undefined>()
-
-  // Draft state
-  const [draftLoading, setDraftLoading] = useState(true)
   const [draftSaveStatus, setDraftSaveStatus] = useState<string | null>(null)
   const [draftError, setDraftError] = useState<string | null>(null)
-  const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [draftName, setDraftName] = useState('')
-
-  // Sport and venue selection state
   const [selectedSport, setSelectedSport] = useState<Sport | null>(null)
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null)
   const [sportSearchInput, setSportSearchInput] = useState('')
   const [venueSearchInput, setVenueSearchInput] = useState('')
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [showNewVenueForm, setShowNewVenueForm] = useState(false)
+  const newVenueAddressInputRef = useRef<HTMLInputElement>(null)
+
+  // Initialize hooks
+  const { collectData } = useLeagueFormData(
+    watch,
+    { registrationDeadline, seasonStartDate, seasonEndDate },
+    gameOccurrences
+  )
+
+  const { populateForm, setSport, setVenue } = useLeagueFormPopulation(
+    setValue,
+    setSelectedSport,
+    setSelectedVenue,
+    setGameOccurrences,
+    setShowNewVenueForm,
+    reset
+  )
+
+  const { save: saveDraftOrTemplate, remove: deleteDraftOrTemplate, isLoading: isDraftOperationLoading, error: draftOperationError } = useLeagueDraftOperations({
+    organizationId,
+    onSuccess: () => {
+      if (refetchDrafts) refetchDrafts()
+      if (refetchTemplates) refetchTemplates()
+    },
+  })
 
   const pricingStrategy = watch('pricing_strategy')
   const pricingAmount = watch('pricing_amount')
   const minimumPlayers = watch('minimum_team_players')
 
-  // Remove auto-load on mount - users should select drafts from the drafts table
-  useEffect(() => {
-    setDraftLoading(false)
-  }, [])
-
-  // Load pre-populated form data
+  // Load pre-populated form data when available
   useEffect(() => {
     if (prePopulatedFormData) {
-      // Populate form fields
-      Object.keys(prePopulatedFormData).forEach((key) => {
-        const value = prePopulatedFormData[key as keyof AddLeagueFormData]
-        if (key === 'registration_deadline' && value) {
-          try {
-            const parsedDate = parse(value as string, 'yyyy-MM-dd', new Date())
-            if (!isNaN(parsedDate.getTime())) {
-              setRegistrationDeadline(parsedDate)
-              setValue('registration_deadline', value as string)
-            }
-          } catch (e) {
-            console.error('Failed to parse registration_deadline:', value)
-          }
-        } else if (key === 'season_start_date' && value) {
-          try {
-            const parsedDate = parse(value as string, 'yyyy-MM-dd', new Date())
-            if (!isNaN(parsedDate.getTime())) {
-              setSeasonStartDate(parsedDate)
-              setValue('season_start_date', value as string)
-            }
-          } catch (e) {
-            console.error('Failed to parse season_start_date:', value)
-          }
-        } else if (key === 'season_end_date' && value) {
-          try {
-            const parsedDate = parse(value as string, 'yyyy-MM-dd', new Date())
-            if (!isNaN(parsedDate.getTime())) {
-              setSeasonEndDate(parsedDate)
-              setValue('season_end_date', value as string)
-            }
-          } catch (e) {
-            console.error('Failed to parse season_end_date:', value)
-          }
-        } else if (key === 'game_occurrences' && Array.isArray(value)) {
-          setGameOccurrences(value as GameOccurrence[])
-          setValue('game_occurrences', value as GameOccurrence[])
-        } else if (key !== 'game_occurrences' && key !== 'registration_deadline' && key !== 'season_start_date' && key !== 'season_end_date') {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setValue(key as keyof AddLeagueFormData, value as any)
-        }
-      })
+      populateForm(prePopulatedFormData)
 
-      // Set sport in state so SportAutocomplete recognizes it as selected (doesn't show dropdown)
-      const sportName = prePopulatedFormData.sport_name as string | undefined
-      const sportId = prePopulatedFormData.sport_id as number | undefined
-      if (sportName && sportId) {
+      // Set sport/venue state for UI
+      const sportId = prePopulatedFormData.sport_id
+      const sportName = prePopulatedFormData.sport_name
+      if (sportName) {
         setSportSearchInput(sportName)
-        setSelectedSport({ id: sportId, name: sportName, status: 'approved', request_count: 0 })
+        if (sportId) {
+          setSport({ id: sportId, name: sportName, status: 'approved', request_count: 0 }, sportName)
+        } else {
+          // For drafts without sport_id, still set the sport name
+          setSport(null, sportName)
+        }
       }
 
-      // Set venue in state so VenueAutocomplete recognizes it as selected (doesn't show dropdown)
-      const venueName = prePopulatedFormData.venue_name as string | undefined
-      const venueId = prePopulatedFormData.venue_id as number | undefined
-      if (venueName && venueId) {
+      const venueId = prePopulatedFormData.venue_id
+      const venueName = prePopulatedFormData.venue_name
+
+      if (venueId) {
+        // Venue exists with ID - use default venue autocomplete view
         setVenueSearchInput(venueName)
-        setSelectedVenue({ id: venueId, name: venueName, address: prePopulatedFormData.venue_address || '', lat: prePopulatedFormData.venue_lat || 0, lng: prePopulatedFormData.venue_lng || 0, status: 'approved', request_count: 0 })
+        setVenue(
+          {
+            id: venueId,
+            name: venueName,
+            address: prePopulatedFormData.venue_address || '',
+            lat: prePopulatedFormData.venue_lat || 0,
+            lng: prePopulatedFormData.venue_lng || 0,
+            status: 'approved',
+            request_count: 0,
+          },
+          venueName
+        )
+      } else if (venueName) {
+        // Venue without ID (custom venue) - show the add new venue form
+        setVenueSearchInput(venueName)
+        setVenue(null, venueName)
+      } else {
+        // No venue data - show the add new venue form by default
+        setVenue(null, '')
       }
     }
-  }, [prePopulatedFormData, setValue, isViewingLeague])
+  }, [prePopulatedFormData])
+
+  // When showing new venue form, populate address input with current form value
+  useEffect(() => {
+    if (showNewVenueForm && newVenueAddressInputRef.current) {
+      const currentAddress = watch('venue_address') || ''
+      newVenueAddressInputRef.current.value = currentAddress
+    }
+  }, [showNewVenueForm, watch('venue_address')])
 
   // Handle venue search input change - update both state and form value
   const handleVenueSearchChange = (input: string) => {
@@ -261,71 +281,19 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     setValue('game_occurrences', occurrences)
   }
 
-  // Save draft
-  const handleSaveDraft = async () => {
+  // Save draft using hook
+  // Open save modal (for new submissions)
+  const handleOpenSaveModal = () => {
+    setShowSaveModal(true)
+  }
+
+  // Save as draft from modal
+  const handleSaveAsDraft = async (name: string) => {
     setDraftError(null)
-    setIsSavingDraft(true)
 
     try {
-      const token = await getToken()
-
-      if (!token || !userId || !organizationId) {
-        throw new Error('Authentication or organization required')
-      }
-
-      // Prepare draft data - include both date values and current form values
-      const draftData = {
-        sport_id: watch('sport_id'),
-        sport_name: watch('sport_name'),
-        venue_id: watch('venue_id'),
-        venue_name: watch('venue_name'),
-        venue_address: watch('venue_address'),
-        venue_lat: watch('venue_lat'),
-        venue_lng: watch('venue_lng'),
-        league_name: watch('league_name'),
-        division: watch('division'),
-        gender: watch('gender'),
-        registration_deadline: registrationDeadline ? format(registrationDeadline, 'yyyy-MM-dd') : '',
-        season_start_date: seasonStartDate ? format(seasonStartDate, 'yyyy-MM-dd') : '',
-        season_end_date: seasonEndDate ? format(seasonEndDate, 'yyyy-MM-dd') : '1900-01-01',
-        season_details: watch('season_details'),
-        game_occurrences: gameOccurrences,
-        pricing_strategy: watch('pricing_strategy'),
-        pricing_amount: watch('pricing_amount'),
-        per_game_fee: watch('per_game_fee') ?? 0,
-        minimum_team_players: watch('minimum_team_players'),
-        registration_url: watch('registration_url'),
-        duration: watch('duration'),
-      }
-
-      // Create or update draft via POST
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/drafts?org_id=${organizationId}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-            'X-Clerk-User-ID': userId,
-          },
-          body: JSON.stringify({
-            draft_id: isEditingDraft ? editingDraftId : undefined, // Include draft_id if updating existing draft
-            name: draftName || null,
-            data: draftData,
-          }),
-        }
-      )
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to save draft')
-      }
-
-      // Refresh drafts list after creation
-      if (refetchDrafts) {
-        await refetchDrafts()
-      }
-
+      const data = collectData()
+      await saveDraftOrTemplate(data, name, 'draft', isEditingDraft ? editingDraftId : undefined)
       setDraftSaveStatus('Draft saved successfully')
       setTimeout(() => {
         setDraftSaveStatus(null)
@@ -333,95 +301,72 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       }, 1500)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save draft'
-      setDraftError(message)
-      console.error('Draft save error:', error)
-    } finally {
-      setIsSavingDraft(false)
+      throw new Error(message)
     }
   }
 
-  // Delete draft
+  // Save as template from modal
+  const handleSaveAsTemplateFromModal = async (name: string) => {
+    setSubmitError(null)
+
+    try {
+      const data = collectData()
+      await saveDraftOrTemplate(data, name, 'template')
+      setSuccess(true)
+      setTimeout(() => {
+        onSuccess?.()
+        onClose?.()
+      }, 1500)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create template'
+      throw new Error(message)
+    }
+  }
+
+  // Legacy handleSaveDraft for editing drafts
+  const handleSaveDraft = async () => {
+    if (isEditingDraft) {
+      // For editing drafts, use the old flow
+      setDraftError(null)
+
+      try {
+        const data = collectData()
+        await saveDraftOrTemplate(data, draftName, 'draft', editingDraftId)
+        setDraftSaveStatus('Draft saved successfully')
+        setTimeout(() => {
+          setDraftSaveStatus(null)
+          onClose?.()
+        }, 1500)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to save draft'
+        setDraftError(message)
+        console.error('Draft save error:', error)
+      }
+    } else {
+      // For new submissions, open the modal
+      handleOpenSaveModal()
+    }
+  }
+
+  // Delete draft using hook
   const handleDeleteDraft = async () => {
     if (!organizationId || !editingDraftId) return
 
     try {
-      const token = await getToken()
-      if (!token) return
-
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/drafts/org/${organizationId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          draft_id: editingDraftId,
-        }),
-      })
-
-      // Refresh drafts list after deletion
-      if (refetchDrafts) {
-        await refetchDrafts()
-      }
+      await deleteDraftOrTemplate(editingDraftId, 'draft')
+      onClose?.()
     } catch (error) {
       console.error('Failed to delete draft:', error)
     }
   }
 
-  // Update template
+  // Update template using hook
   const handleUpdateTemplate = async () => {
     if (!organizationId || !editingTemplateId) return
 
     try {
-      const token = await getToken()
-      if (!token) return
-
-      // Prepare template data
-      const templateData = {
-        sport_id: watch('sport_id'),
-        sport_name: watch('sport_name'),
-        venue_id: watch('venue_id'),
-        venue_name: watch('venue_name'),
-        venue_address: watch('venue_address'),
-        venue_lat: watch('venue_lat'),
-        venue_lng: watch('venue_lng'),
-        league_name: watch('league_name'),
-        division: watch('division'),
-        gender: watch('gender'),
-        registration_deadline: registrationDeadline ? format(registrationDeadline, 'yyyy-MM-dd') : '',
-        season_start_date: seasonStartDate ? format(seasonStartDate, 'yyyy-MM-dd') : '',
-        season_end_date: seasonEndDate ? format(seasonEndDate, 'yyyy-MM-dd') : '1900-01-01',
-        season_details: watch('season_details'),
-        game_occurrences: gameOccurrences,
-        pricing_strategy: watch('pricing_strategy'),
-        pricing_amount: watch('pricing_amount'),
-        per_game_fee: watch('per_game_fee') ?? 0,
-        minimum_team_players: watch('minimum_team_players'),
-        registration_url: watch('registration_url'),
-        duration: watch('duration'),
-      }
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/templates/${editingTemplateId}?org_id=${organizationId}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(templateData),
-        }
-      )
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to update template')
-      }
-
-      // Refresh templates list after update
-      if (refetchTemplates) {
-        await refetchTemplates()
-      }
+      const data = collectData()
+      await saveDraftOrTemplate(data, draftName, 'template', editingTemplateId)
 
       setSuccess(true)
       setTimeout(() => {
@@ -437,32 +382,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
 
   // Handle save as template
   const handleSaveAsTemplate = () => {
-    const formData: AddLeagueFormData = {
-      sport_id: watch('sport_id'),
-      sport_name: watch('sport_name'),
-      venue_id: watch('venue_id'),
-      venue_name: watch('venue_name'),
-      venue_address: watch('venue_address'),
-      venue_lat: watch('venue_lat'),
-      venue_lng: watch('venue_lng'),
-      league_name: watch('league_name'),
-      division: watch('division'),
-      gender: watch('gender'),
-      registration_deadline: registrationDeadline ? format(registrationDeadline, 'yyyy-MM-dd') : '',
-      season_start_date: seasonStartDate ? format(seasonStartDate, 'yyyy-MM-dd') : '',
-      season_end_date: seasonEndDate ? format(seasonEndDate, 'yyyy-MM-dd') : '',
-      season_details: watch('season_details'),
-      game_occurrences: gameOccurrences,
-      pricing_strategy: watch('pricing_strategy'),
-      pricing_amount: watch('pricing_amount'),
-      per_game_fee: watch('per_game_fee'),
-      minimum_team_players: watch('minimum_team_players'),
-      registration_url: watch('registration_url'),
-      duration: watch('duration'),
-      org_id: organizationId,
-      organization_name: organizationName || '',
-    }
-
+    const formData = collectData()
     onSaveAsTemplate?.(formData)
   }
 
@@ -535,14 +455,6 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     return (
       <div className="py-4 text-center">
         <p className="text-green-600 font-medium">League submitted successfully! It will be reviewed by an admin.</p>
-      </div>
-    )
-  }
-
-  if (draftLoading) {
-    return (
-      <div className="py-8 text-center">
-        <p className="text-gray-600">Loading form...</p>
       </div>
     )
   }
@@ -742,35 +654,112 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
 
       {/* Section: Venue */}
       <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Venue</h3>
-        <VenueAutocomplete
-          selectedVenue={selectedVenue}
-          venueSearchInput={venueSearchInput}
-          onVenueChange={(venue) => {
-            setSelectedVenue(venue)
-            if (venue) {
-              setValue('venue_id', venue.id)
-              setValue('venue_name', venue.name)
-              setValue('venue_address', venue.address)
-              setValue('venue_lat', venue.lat)
-              setValue('venue_lng', venue.lng)
-            } else {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              setValue('venue_id', null as any)
-              setValue('venue_name', '')
-              setValue('venue_address', '')
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              setValue('venue_lat', null as any)
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              setValue('venue_lng', null as any)
-            }
-          }}
-          onVenueSearchChange={handleVenueSearchChange}
-          onVenueAddressChange={handleVenueAddressChange}
-          venueError={errors.venue_name?.message}
-          isViewingLeague={isViewingLeague}
-          customVenueAddress={watch('venue_address') || undefined}
-        />
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Venue</h3>
+          {!showNewVenueForm && (
+            <button
+              type="button"
+              onClick={() => setShowNewVenueForm(true)}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+            >
+              + Add New Venue
+            </button>
+          )}
+        </div>
+
+        {!showNewVenueForm ? (
+          // Show only venue autocomplete
+          <VenueAutocomplete
+            selectedVenue={selectedVenue}
+            venueSearchInput={venueSearchInput}
+            onVenueChange={(venue) => {
+              setSelectedVenue(venue)
+              if (venue) {
+                setValue('venue_id', venue.id)
+                setValue('venue_name', venue.name)
+                setValue('venue_address', venue.address)
+                setValue('venue_lat', venue.lat)
+                setValue('venue_lng', venue.lng)
+              } else {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                setValue('venue_id', null as any)
+                setValue('venue_name', '')
+                setValue('venue_address', '')
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                setValue('venue_lat', null as any)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                setValue('venue_lng', null as any)
+              }
+            }}
+            onVenueSearchChange={handleVenueSearchChange}
+            onVenueAddressChange={handleVenueAddressChange}
+            venueError={errors.venue_name?.message}
+            isViewingLeague={isViewingLeague}
+            customVenueAddress={watch('venue_address') || undefined}
+            hideAddressInput={true}
+          />
+        ) : (
+          // Show new venue flow
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="new_venue_address" className="text-sm font-medium text-gray-700">
+                Search Location
+              </label>
+              <p className="text-sm text-gray-600">Find address or enter custom location</p>
+              {(() => {
+                const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+                const currentAddress = watch('venue_address') || ''
+                return mapboxToken ? (
+                  <AddressAutofill accessToken={mapboxToken} onRetrieve={handleVenueAddressChange}>
+                    <Input
+                      ref={newVenueAddressInputRef}
+                      id="new_venue_address"
+                      type="text"
+                      autoComplete="address-line1"
+                      placeholder="Search address..."
+                      defaultValue={currentAddress}
+                    />
+                  </AddressAutofill>
+                ) : (
+                  <Input
+                    ref={newVenueAddressInputRef}
+                    id="new_venue_address"
+                    type="text"
+                    placeholder="Enter address..."
+                    defaultValue={currentAddress}
+                  />
+                )
+              })()}
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="venue_name_new" className="text-sm font-medium text-gray-700">
+                Venue Name (Optional)
+              </label>
+              <input
+                type="text"
+                id="venue_name_new"
+                placeholder="e.g., Central Sports Complex"
+                disabled={isViewingLeague}
+                aria-invalid={errors.venue_name ? 'true' : 'false'}
+                value={watch('venue_name') || ''}
+                onChange={(e) => setValue('venue_name', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              />
+              {errors.venue_name && (
+                <p className="text-sm text-red-600">{errors.venue_name.message}</p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowNewVenueForm(false)}
+              className="text-sm text-gray-600 hover:text-gray-700 font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
 
         {/* Hidden venue fields */}
         <input type="hidden" {...register('venue_id', { valueAsNumber: true })} />
@@ -933,14 +922,21 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       <LeagueFormButtons
         mode={mode}
         isSubmitting={isSubmitting}
-        isSavingDraft={isSavingDraft}
+        isSavingDraft={isDraftOperationLoading}
         draftName={draftName}
         onDraftNameChange={setDraftName}
         onSaveDraft={handleSaveDraft}
-        onSaveAsTemplate={onSaveAsTemplate ? handleSaveAsTemplate : undefined}
         onSubmit={handleSubmit(onSubmit)}
         onUpdateTemplate={handleUpdateTemplate}
         onClose={onClose}
+      />
+
+      {/* Save League Modal for new submissions */}
+      <SaveLeagueModal
+        open={showSaveModal}
+        onOpenChange={setShowSaveModal}
+        onSaveAsDraft={handleSaveAsDraft}
+        onSaveAsTemplate={handleSaveAsTemplateFromModal}
       />
     </form>
   )

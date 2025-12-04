@@ -13,7 +13,7 @@ type Organization struct {
 	OrgPhone  *string            `json:"org_phone"`
 	OrgAddress *string           `json:"org_address"`
 	CreatedBy *string            `json:"created_by"` // User ID who created it
-	IsDeleted bool               `json:"is_deleted"`
+	IsActive  bool               `json:"is_active"`
 	DeletedAt *shared.Timestamp  `json:"deleted_at"` // Nullable since not all orgs are deleted
 	CreatedAt shared.Timestamp   `json:"created_at"`
 	UpdatedAt shared.Timestamp   `json:"updated_at"`

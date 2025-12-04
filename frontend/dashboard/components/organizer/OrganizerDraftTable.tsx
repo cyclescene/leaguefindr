@@ -22,7 +22,6 @@ export function OrganizerDraftTable({
 }: OrganizerDraftTableProps) {
   return (
     <Table className="w-full bg-white rounded-lg shadow-md">
-      <TableCaption>Your League Drafts</TableCaption>
       <TableHeader>
         <TableRow>
           <TableHead>Draft Name</TableHead>
