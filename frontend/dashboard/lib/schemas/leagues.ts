@@ -25,9 +25,8 @@ export const addLeagueSchema = z.object({
     .optional()
     .nullable(),
   venue_name: z.string()
-    .max(255, "Venue name must be at most 255 characters")
-    .optional()
-    .nullable(),
+    .min(1, "Venue is required")
+    .max(255, "Venue name must be at most 255 characters"),
   venue_address: z.string()
     .max(500, "Venue address must be at most 500 characters")
     .optional()

@@ -64,7 +64,6 @@ export function OrganizerLeagueActions({
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuGroup>
           <DropdownMenuItem onClick={() => {
-            console.log("League data on view click:", leagueData);
             onView(leagueId);
           }}>
             View
