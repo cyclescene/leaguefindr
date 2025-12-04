@@ -43,7 +43,7 @@ export function useLeagueFormData(
         : '',
       season_end_date: dates.seasonEndDate
         ? format(dates.seasonEndDate, 'yyyy-MM-dd')
-        : null,
+        : '',
       season_details: watch('season_details'),
       game_occurrences: gameOccurrences,
       pricing_strategy: watch('pricing_strategy'),
