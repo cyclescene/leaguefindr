@@ -8,16 +8,18 @@ import (
 )
 
 type Service struct {
-	baseClient      *postgrest.Client
-	baseURL         string
-	anonKey         string
+	baseClient        *postgrest.Client
+	serviceClient     *postgrest.Client
+	baseURL           string
+	anonKey           string
 }
 
-func NewService(baseClient *postgrest.Client, baseURL string, anonKey string) *Service {
+func NewService(baseClient *postgrest.Client, serviceClient *postgrest.Client, baseURL string, anonKey string) *Service {
 	return &Service{
-		baseClient: baseClient,
-		baseURL:    baseURL,
-		anonKey:    anonKey,
+		baseClient:    baseClient,
+		serviceClient: serviceClient,
+		baseURL:       baseURL,
+		anonKey:       anonKey,
 	}
 }
 
@@ -193,11 +195,12 @@ func (s *Service) UpdateOrganization(ctx context.Context, userID, orgID string, 
 
 // DeleteOrganization soft deletes an organization (owner only)
 func (s *Service) DeleteOrganization(ctx context.Context, userID, orgID string) error {
-	client := s.getClientWithAuth(ctx)
-	repo := NewRepository(client)
+	// Use authenticated client to verify user is owner
+	authClient := s.getClientWithAuth(ctx)
+	authRepo := NewRepository(authClient)
 
 	// Verify user is owner
-	role, err := repo.GetUserOrgRole(ctx, userID, orgID)
+	role, err := authRepo.GetUserOrgRole(ctx, userID, orgID)
 	if err != nil {
 		return fmt.Errorf("failed to verify ownership: %w", err)
 	}
@@ -205,5 +208,8 @@ func (s *Service) DeleteOrganization(ctx context.Context, userID, orgID string) 
 		return fmt.Errorf("only organization owner can delete the organization")
 	}
 
-	return repo.DeleteOrganization(ctx, orgID)
+	// Use service client (with elevated privileges) to perform the delete
+	// This bypasses RLS since authorization is already verified above
+	serviceRepo := NewRepository(s.serviceClient)
+	return serviceRepo.DeleteOrganization(ctx, orgID)
 }

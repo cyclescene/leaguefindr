@@ -6,11 +6,11 @@ import { Twitter, Facebook, Instagram, Linkedin } from 'lucide-react'
 
 const FOOTER_LINKS = [
   { href: 'https://leaguefindr.com', label: 'Home' },
-  { href: 'https://leaguefindr.com/features', label: 'Features' },
-  { href: 'https://leaguefindr.com/about', label: 'About' },
-  { href: 'https://leaguefindr.com/contact', label: 'Contact' },
+  { href: 'https://leaguefindr.com/search', label: 'Find a League' },
+  { href: 'https://leaguefindr.com/about', label: 'About Us' },
   { href: 'https://leaguefindr.com/privacy', label: 'Privacy Policy' },
   { href: 'https://leaguefindr.com/terms', label: 'Terms of Service' },
+  { href: 'https://leaguefindr.com/cookies', label: 'Cookie Settings' },
 ]
 
 // Custom TikTok icon component

@@ -4,17 +4,10 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { addVenueSchema, type AddVenueFormData } from '@/lib/schemas'
 import { useAuth } from '@clerk/nextjs'
-import dynamic from 'next/dynamic'
 import { useState, useRef, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-
-// Dynamically import AddressAutofill to avoid SSR issues
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const AddressAutofill = dynamic(
-  () => import('@mapbox/search-js-react').then(mod => mod.AddressAutofill),
-  { ssr: false }
-) as any
+import { MapboxAddressInput } from './MapboxAddressInput'
 
 interface AddVenueFormProps {
   onSuccess?: () => void
@@ -187,8 +180,6 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
     )
   }
 
-  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
@@ -213,30 +204,13 @@ export function AddVenueForm({ onSuccess, onClose, onMapboxDropdownStateChange }
       {/* Address with Mapbox Autofill */}
       <div className="space-y-2">
         <Label htmlFor="address">Address *</Label>
-        {mapboxToken ? (
-          <AddressAutofill accessToken={mapboxToken} onRetrieve={handleAddressChange}>
-            <Input
-              {...register('address')}
-              ref={addressInputRef}
-              id="address"
-              type="text"
-              autoComplete="address-line1"
-              placeholder="Search for an address..."
-              aria-invalid={errors.address ? 'true' : 'false'}
-              onFocus={() => onMapboxDropdownStateChange?.(true)}
-              onBlur={() => onMapboxDropdownStateChange?.(false)}
-            />
-          </AddressAutofill>
-        ) : (
-          <Input
-            {...register('address')}
-            ref={addressInputRef}
-            id="address"
-            type="text"
-            placeholder="Search for an address..."
-            aria-invalid={errors.address ? 'true' : 'false'}
-          />
-        )}
+        <MapboxAddressInput
+          ref={addressInputRef}
+          id="address"
+          placeholder="Search for an address..."
+          onRetrieve={handleAddressChange}
+          onMapboxDropdownStateChange={onMapboxDropdownStateChange}
+        />
 
         {errors.address && (
           <p className="text-sm text-red-600">{errors.address.message}</p>

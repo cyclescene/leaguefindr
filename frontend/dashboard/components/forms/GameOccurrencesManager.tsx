@@ -65,24 +65,32 @@ export function GameOccurrencesManager({
   return (
     <div>
       {/* Add Game Occurrence */}
-      <div className="space-y-4 mb-6">
-        <p className="text-sm text-gray-600">Add all days and times when games occur</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="mb-6">
+        <p className="text-sm text-gray-600 mb-4">Add all days and times when games occur</p>
+        <div className="flex gap-4 items-end">
           {/* Day */}
-          <div className="space-y-2">
+          <div className="space-y-2 flex-1">
             <Label htmlFor="new_game_day">Day</Label>
-            <Input
+            <select
               id="new_game_day"
-              type="text"
-              placeholder="e.g., Monday, Wednesday"
               value={newGameDay}
               onChange={(e) => setNewGameDay(e.target.value)}
               disabled={isViewingLeague}
-            />
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+            >
+              <option value="">Select a day</option>
+              <option value="Monday">Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday">Friday</option>
+              <option value="Saturday">Saturday</option>
+              <option value="Sunday">Sunday</option>
+            </select>
           </div>
 
           {/* Start Time */}
-          <div className="space-y-2">
+          <div className="space-y-2 flex-1">
             <Label htmlFor="new_game_start_time">Start Time</Label>
             <Input
               id="new_game_start_time"
@@ -94,7 +102,7 @@ export function GameOccurrencesManager({
           </div>
 
           {/* End Time */}
-          <div className="space-y-2">
+          <div className="space-y-2 flex-1">
             <Label htmlFor="new_game_end_time">End Time</Label>
             <Input
               id="new_game_end_time"
@@ -104,14 +112,14 @@ export function GameOccurrencesManager({
               disabled={isViewingLeague}
             />
           </div>
-        </div>
 
-        {!isViewingLeague && (
-          <Button type="button" onClick={handleAddGameOccurrence}>
-            <Plus size={16} />
-            Add Game Occurrence
-          </Button>
-        )}
+          {!isViewingLeague && (
+            <Button type="button" onClick={handleAddGameOccurrence} className="h-10">
+              <Plus size={16} />
+              Add
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Game Occurrences List */}

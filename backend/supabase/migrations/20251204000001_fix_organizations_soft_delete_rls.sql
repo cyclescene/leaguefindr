@@ -1,0 +1,27 @@
+-- Note: This migration is no longer needed since we're using the service role key for soft deletes
+-- The service role key (SUPABASE_SECRET_KEY) bypasses RLS entirely, which is appropriate because:
+-- 1. Authorization is verified in the Go backend (only owners can delete)
+-- 2. No need to check RLS when using elevated service privileges
+-- 3. Avoids JWT mismatch issues (Clerk JWT vs Supabase JWT)
+
+-- Keep the original UPDATE policy for reference/future use
+-- If this policy is needed, use the version with proper WITH CHECK:
+--
+-- DROP POLICY IF EXISTS "Admins and org members can update organizations" ON organizations;
+--
+-- CREATE POLICY "Admins and org members can update organizations"
+-- ON organizations FOR UPDATE
+-- USING (
+--   ((SELECT auth.jwt()))->>'appRole' = 'admin'
+--   OR (((SELECT auth.jwt()))->>'sub')::text IN (
+--     SELECT user_id FROM user_organizations
+--     WHERE org_id = organizations.id AND is_active = true
+--   )
+-- )
+-- WITH CHECK (
+--   ((SELECT auth.jwt()))->>'appRole' = 'admin'
+--   OR (((SELECT auth.jwt()))->>'sub')::text IN (
+--     SELECT user_id FROM user_organizations
+--     WHERE org_id = organizations.id
+--   )
+-- );

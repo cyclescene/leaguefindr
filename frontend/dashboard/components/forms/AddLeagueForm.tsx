@@ -5,10 +5,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { addLeagueSchema, type AddLeagueFormData, type GameOccurrence } from '@/lib/schemas'
 import { useAuth } from '@clerk/nextjs'
 import { useState, useEffect, useRef } from 'react'
+import { toast } from 'sonner'
 import { useLeagueFormContext } from '@/context/LeagueFormContext'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DatePicker } from '@/components/ui/date-picker'
+import { MapboxAddressInput } from './MapboxAddressInput'
 import { format, parse } from 'date-fns'
 import { GameOccurrencesManager } from './GameOccurrencesManager'
 import { LeagueFormButtons } from './LeagueFormButtons'
@@ -46,9 +48,10 @@ interface Venue {
 
 interface AddLeagueFormProps {
   onSaveAsTemplate?: (formData: AddLeagueFormData) => void
+  onMapboxDropdownStateChange?: (isOpen: boolean) => void
 }
 
-export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
+export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }: AddLeagueFormProps = {}) {
   // Get all form context from the provider
   const {
     mode,
@@ -71,6 +74,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
   // Derive boolean flags from mode
   const isEditingDraft = mode === 'edit-draft'
   const isEditingTemplate = mode === 'edit-template'
+  const isCreatingTemplate = mode === 'create-template'
   const isViewingLeague = mode === 'view'
   const { getToken, userId } = useAuth()
 
@@ -81,9 +85,11 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     setValue,
     watch,
     reset,
+    getValues,
   } = useForm<AddLeagueFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(addLeagueSchema) as any,
+    mode: 'onBlur',
     defaultValues: {
       sport_id: undefined,
       sport_name: '',
@@ -127,7 +133,14 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
   const [venueSearchInput, setVenueSearchInput] = useState('')
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [showNewVenueForm, setShowNewVenueForm] = useState(false)
+  const [isMapboxDropdownOpen, setIsMapboxDropdownOpen] = useState(false)
   const newVenueAddressInputRef = useRef<HTMLInputElement>(null)
+
+  // Notify parent about Mapbox dropdown state changes
+  useEffect(() => {
+    onMapboxDropdownStateChange?.(isMapboxDropdownOpen)
+  }, [isMapboxDropdownOpen, onMapboxDropdownStateChange])
+
 
   // Initialize hooks
   const { collectData } = useLeagueFormData(
@@ -340,13 +353,13 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     try {
       const data = collectData()
       await saveDraftOrTemplate(data, name, 'draft', isEditingDraft ? editingDraftId : undefined)
-      setDraftSaveStatus('Draft saved successfully')
+      toast.success('Draft saved successfully')
       setTimeout(() => {
-        setDraftSaveStatus(null)
         onClose?.()
       }, 1500)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save draft'
+      toast.error(message)
       throw new Error(message)
     }
   }
@@ -358,13 +371,14 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     try {
       const data = collectData()
       await saveDraftOrTemplate(data, name, 'template')
-      setSuccess(true)
+      toast.success('Template saved successfully')
       setTimeout(() => {
         onSuccess?.()
         onClose?.()
       }, 1500)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create template'
+      toast.error(message)
       throw new Error(message)
     }
   }
@@ -378,13 +392,13 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       try {
         const data = collectData()
         await saveDraftOrTemplate(data, draftName, 'draft', editingDraftId)
-        setDraftSaveStatus('Draft saved successfully')
+        toast.success('Draft saved successfully')
         setTimeout(() => {
-          setDraftSaveStatus(null)
           onClose?.()
         }, 1500)
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to save draft'
+        toast.error(message)
         setDraftError(message)
         console.error('Draft save error:', error)
       }
@@ -414,7 +428,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       const data = collectData()
       await saveDraftOrTemplate(data, draftName, 'template', editingTemplateId)
 
-      setSuccess(true)
+      toast.success('Template updated successfully')
       setTimeout(() => {
         onSuccess?.()
         onClose?.()
@@ -422,6 +436,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to update template'
       setSubmitError(message)
+      toast.error(message)
       console.error('Update template error:', error)
     }
   }
@@ -437,6 +452,12 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     setSubmitError(null)
 
     try {
+      // If creating a template, call onSaveAsTemplate instead
+      if (isCreatingTemplate) {
+        onSaveAsTemplate?.(data)
+        return
+      }
+
       const token = await getToken()
 
       if (!token || !userId) {
@@ -485,6 +506,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
       }
 
       setSuccess(true)
+      toast.success('League submitted successfully! It will be reviewed by an admin.')
       setTimeout(() => {
         onLeagueSubmitted?.()
         onSuccess?.()
@@ -493,6 +515,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to submit league'
       setSubmitError(message)
+      toast.error(message)
       console.error('Submit error:', error)
     }
   }
@@ -505,8 +528,24 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
     )
   }
 
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+
+    // For template creation, bypass validation and get current values
+    if (isCreatingTemplate) {
+      const data = getValues()
+      onSubmit(data)
+    } else {
+      // For other modes, use normal validation flow
+      handleSubmit(onSubmit)(e)
+    }
+  }
+
+  // When creating a template, don't show any validation errors
+  const displayErrors = isCreatingTemplate ? {} : errors
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 w-full">
+    <form onSubmit={handleFormSubmit} onClick={(e) => e.stopPropagation()} className="space-y-6 w-full">
       {/* Show rejection reason if league was rejected */}
       {isViewingLeague && leagueStatus === 'rejected' && leagueRejectionReason && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-4">
@@ -552,7 +591,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
                 setSportSearchInput(input)
                 setValue('sport_name', input)
               }}
-              sportError={errors.sport_name?.message}
+              sportError={displayErrors.sport_name?.message}
               isViewingLeague={isViewingLeague}
             />
           </div>
@@ -566,10 +605,10 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
               type="text"
               placeholder="e.g., Summer Basketball League"
               disabled={isViewingLeague}
-              aria-invalid={errors.league_name ? 'true' : 'false'}
+              aria-invalid={displayErrors.league_name ? 'true' : 'false'}
             />
-            {errors.league_name && (
-              <p className="text-sm text-red-600">{errors.league_name.message}</p>
+            {displayErrors.league_name && (
+              <p className="text-sm text-red-600">{displayErrors.league_name.message}</p>
             )}
           </div>
 
@@ -583,10 +622,10 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
               placeholder="e.g., Beginner, Intermediate, Expert"
               disabled={isViewingLeague}
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-              aria-invalid={errors.division ? 'true' : 'false'}
+              aria-invalid={displayErrors.division ? 'true' : 'false'}
             />
-            {errors.division && (
-              <p className="text-sm text-red-600">{errors.division.message}</p>
+            {displayErrors.division && (
+              <p className="text-sm text-red-600">{displayErrors.division.message}</p>
             )}
           </div>
 
@@ -598,15 +637,15 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
               id="gender"
               disabled={isViewingLeague}
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-              aria-invalid={errors.gender ? 'true' : 'false'}
+              aria-invalid={displayErrors.gender ? 'true' : 'false'}
             >
               <option value="">Select a gender</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
               <option value="co-ed">Co-ed</option>
             </select>
-            {errors.gender && (
-              <p className="text-sm text-red-600">{errors.gender.message}</p>
+            {displayErrors.gender && (
+              <p className="text-sm text-red-600">{displayErrors.gender.message}</p>
             )}
           </div>
         </div>
@@ -629,8 +668,8 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
               placeholder="Select deadline"
               disabled={isViewingLeague}
             />
-            {errors.registration_deadline && (
-              <p className="text-sm text-red-600">{errors.registration_deadline.message}</p>
+            {displayErrors.registration_deadline && (
+              <p className="text-sm text-red-600">{displayErrors.registration_deadline.message}</p>
             )}
           </div>
 
@@ -640,13 +679,13 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
             <Input
               {...register('registration_url')}
               id="registration_url"
-              type="url"
+              type="text"
               placeholder="https://example.com/register"
               disabled={isViewingLeague}
-              aria-invalid={errors.registration_url ? 'true' : 'false'}
+              aria-invalid={displayErrors.registration_url ? 'true' : 'false'}
             />
-            {errors.registration_url && (
-              <p className="text-sm text-red-600">{errors.registration_url.message}</p>
+            {displayErrors.registration_url && (
+              <p className="text-sm text-red-600">{displayErrors.registration_url.message}</p>
             )}
           </div>
 
@@ -659,8 +698,8 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
               placeholder="Select start date"
               disabled={isViewingLeague}
             />
-            {errors.season_start_date && (
-              <p className="text-sm text-red-600">{errors.season_start_date.message}</p>
+            {displayErrors.season_start_date && (
+              <p className="text-sm text-red-600">{displayErrors.season_start_date.message}</p>
             )}
           </div>
 
@@ -673,8 +712,8 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
               placeholder="Select end date"
               disabled={isViewingLeague}
             />
-            {errors.season_end_date && (
-              <p className="text-sm text-red-600">{errors.season_end_date.message}</p>
+            {displayErrors.season_end_date && (
+              <p className="text-sm text-red-600">{displayErrors.season_end_date.message}</p>
             )}
           </div>
 
@@ -689,10 +728,10 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
               max="52"
               placeholder="8"
               disabled={isViewingLeague}
-              aria-invalid={errors.duration ? 'true' : 'false'}
+              aria-invalid={displayErrors.duration ? 'true' : 'false'}
             />
-            {errors.duration && (
-              <p className="text-sm text-red-600">{errors.duration.message}</p>
+            {displayErrors.duration && (
+              <p className="text-sm text-red-600">{displayErrors.duration.message}</p>
             )}
           </div>
         </div>
@@ -739,7 +778,8 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
             }}
             onVenueSearchChange={handleVenueSearchChange}
             onVenueAddressChange={handleVenueAddressChange}
-            venueError={errors.venue_name?.message}
+            onMapboxDropdownStateChange={setIsMapboxDropdownOpen}
+            venueError={displayErrors.venue_name?.message}
             isViewingLeague={isViewingLeague}
             customVenueAddress={watch('venue_address') || undefined}
             hideAddressInput={true}
@@ -752,30 +792,13 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
                 Search Location
               </label>
               <p className="text-sm text-gray-600">Find address or enter custom location</p>
-              {(() => {
-                const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-                const currentAddress = watch('venue_address') || ''
-                return mapboxToken ? (
-                  <AddressAutofill accessToken={mapboxToken} onRetrieve={handleVenueAddressChange}>
-                    <Input
-                      ref={newVenueAddressInputRef}
-                      id="new_venue_address"
-                      type="text"
-                      autoComplete="address-line1"
-                      placeholder="Search address..."
-                      defaultValue={currentAddress}
-                    />
-                  </AddressAutofill>
-                ) : (
-                  <Input
-                    ref={newVenueAddressInputRef}
-                    id="new_venue_address"
-                    type="text"
-                    placeholder="Enter address..."
-                    defaultValue={currentAddress}
-                  />
-                )
-              })()}
+              <MapboxAddressInput
+                ref={newVenueAddressInputRef}
+                id="new_venue_address"
+                placeholder="Search address..."
+                onRetrieve={handleVenueAddressChange}
+                onMapboxDropdownStateChange={setIsMapboxDropdownOpen}
+              />
             </div>
 
             <div className="space-y-2">
@@ -787,13 +810,13 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
                 id="venue_name_new"
                 placeholder="e.g., Central Sports Complex"
                 disabled={isViewingLeague}
-                aria-invalid={errors.venue_name ? 'true' : 'false'}
+                aria-invalid={displayErrors.venue_name ? 'true' : 'false'}
                 value={watch('venue_name') || ''}
                 onChange={(e) => setValue('venue_name', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
-              {errors.venue_name && (
-                <p className="text-sm text-red-600">{errors.venue_name.message}</p>
+              {displayErrors.venue_name && (
+                <p className="text-sm text-red-600">{displayErrors.venue_name.message}</p>
               )}
             </div>
 
@@ -822,7 +845,7 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
           gameOccurrences={gameOccurrences}
           onGameOccurrencesChange={handleGameOccurrencesChange}
           isViewingLeague={isViewingLeague}
-          errors={errors.game_occurrences?.message}
+          errors={displayErrors.game_occurrences?.message}
         />
       </div>
 
@@ -839,13 +862,13 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
               id="pricing_strategy"
               disabled={isViewingLeague}
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-              aria-invalid={errors.pricing_strategy ? 'true' : 'false'}
+              aria-invalid={displayErrors.pricing_strategy ? 'true' : 'false'}
             >
               <option value="per_person">Per Person</option>
               <option value="per_team">Per Team</option>
             </select>
-            {errors.pricing_strategy && (
-              <p className="text-sm text-red-600">{errors.pricing_strategy.message}</p>
+            {displayErrors.pricing_strategy && (
+              <p className="text-sm text-red-600">{displayErrors.pricing_strategy.message}</p>
             )}
           </div>
 
@@ -859,13 +882,14 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
               id="pricing_amount"
               type="number"
               step="0.01"
-              min="0.01"
+              min={isCreatingTemplate ? "0" : "0.01"}
               placeholder="0.00"
               disabled={isViewingLeague}
-              aria-invalid={errors.pricing_amount ? 'true' : 'false'}
+              aria-invalid={displayErrors.pricing_amount ? 'true' : 'false'}
+              onWheel={(e) => e.currentTarget.blur()}
             />
-            {errors.pricing_amount && (
-              <p className="text-sm text-red-600">{errors.pricing_amount.message}</p>
+            {displayErrors.pricing_amount && (
+              <p className="text-sm text-red-600">{displayErrors.pricing_amount.message}</p>
             )}
           </div>
         </div>
@@ -882,10 +906,10 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
             min="0"
             placeholder="0.00"
             disabled={isViewingLeague}
-            aria-invalid={errors.per_game_fee ? 'true' : 'false'}
+            aria-invalid={displayErrors.per_game_fee ? 'true' : 'false'}
           />
-          {errors.per_game_fee && (
-            <p className="text-sm text-red-600">{errors.per_game_fee.message}</p>
+          {displayErrors.per_game_fee && (
+            <p className="text-sm text-red-600">{displayErrors.per_game_fee.message}</p>
           )}
         </div>
 
@@ -900,10 +924,10 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
             max="100"
             placeholder="5"
             disabled={isViewingLeague}
-            aria-invalid={errors.minimum_team_players ? 'true' : 'false'}
+            aria-invalid={displayErrors.minimum_team_players ? 'true' : 'false'}
           />
-          {errors.minimum_team_players && (
-            <p className="text-sm text-red-600">{errors.minimum_team_players.message}</p>
+          {displayErrors.minimum_team_players && (
+            <p className="text-sm text-red-600">{displayErrors.minimum_team_players.message}</p>
           )}
         </div>
 
@@ -936,10 +960,10 @@ export function AddLeagueForm({ onSaveAsTemplate }: AddLeagueFormProps = {}) {
             disabled={isViewingLeague}
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:text-gray-500"
             rows={3}
-            aria-invalid={errors.season_details ? 'true' : 'false'}
+            aria-invalid={displayErrors.season_details ? 'true' : 'false'}
           />
-          {errors.season_details && (
-            <p className="text-sm text-red-600">{errors.season_details.message}</p>
+          {displayErrors.season_details && (
+            <p className="text-sm text-red-600">{displayErrors.season_details.message}</p>
           )}
         </div>
       </div>

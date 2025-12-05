@@ -3,7 +3,7 @@
 import { createContext, useContext, ReactNode } from 'react';
 import type { AddLeagueFormData } from '@/lib/schemas/leagues';
 
-export type FormMode = 'new' | 'edit-draft' | 'edit-template' | 'view' | 'admin-review';
+export type FormMode = 'new' | 'edit-draft' | 'edit-template' | 'create-template' | 'view' | 'admin-review';
 
 export interface LeagueFormContextType {
   // Mode

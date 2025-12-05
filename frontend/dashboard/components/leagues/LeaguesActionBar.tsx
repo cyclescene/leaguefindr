@@ -52,7 +52,7 @@ export function LeaguesActionBar({
         </TabsList>
 
         <ButtonGroup>
-          <Button variant="brandDarkOutline" onClick={onSubmitLeague}>
+          <Button variant="brandDarkOutline" onClick={onCreateTemplate}>
             Create Template
           </Button>
           <Button variant="brandDark" onClick={onSubmitLeague}>

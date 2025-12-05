@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 
 interface LeagueFormButtonsProps {
-  mode: 'new' | 'edit-draft' | 'edit-template' | 'view' | 'admin-review'
+  mode: 'new' | 'edit-draft' | 'edit-template' | 'create-template' | 'view' | 'admin-review'
   isSubmitting: boolean
   isSavingDraft: boolean
   draftName: string
@@ -41,6 +41,7 @@ export function LeagueFormButtons({
   const isViewingLeague = mode === 'view'
   const isEditingDraft = mode === 'edit-draft'
   const isEditingTemplate = mode === 'edit-template'
+  const isCreatingTemplate = mode === 'create-template'
   const isAdminReview = mode === 'admin-review'
   const [isApproving, setIsApproving] = useState(false)
   const [isRejecting, setIsRejecting] = useState(false)
@@ -55,6 +56,28 @@ export function LeagueFormButtons({
           className="flex-1"
         >
           Close
+        </Button>
+      </div>
+    )
+  }
+
+  if (isCreatingTemplate) {
+    return (
+      <div className="flex gap-3">
+        <Button
+          type="button"
+          onClick={onClose}
+          variant="outline"
+          className="flex-1"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="flex-1"
+        >
+          {isSubmitting ? 'Saving...' : 'Save Template'}
         </Button>
       </div>
     )
@@ -184,7 +207,6 @@ export function LeagueFormButtons({
         {!isEditingTemplate && (
           <Button
             type="submit"
-            onClick={onSubmit}
             disabled={isSubmitting || isSavingDraft}
             className="flex-1"
           >
@@ -194,7 +216,6 @@ export function LeagueFormButtons({
         {isEditingTemplate && (
           <Button
             type="submit"
-            onClick={onSubmit}
             disabled={isSubmitting || isSavingDraft}
             className="flex-1"
           >
@@ -203,11 +224,6 @@ export function LeagueFormButtons({
         )}
       </div>
 
-      {!isEditingTemplate && !isViewingLeague && (
-        <p className="text-xs text-gray-500">
-          Your league submission will be reviewed by an admin before appearing on the map.
-        </p>
-      )}
     </>
   )
 }

@@ -38,6 +38,7 @@ interface VenueAutocompleteProps {
   isViewingLeague?: boolean
   customVenueAddress?: string
   hideAddressInput?: boolean
+  onMapboxDropdownStateChange?: (isOpen: boolean) => void
 }
 
 export function VenueAutocomplete({
@@ -50,6 +51,7 @@ export function VenueAutocomplete({
   isViewingLeague = false,
   customVenueAddress,
   hideAddressInput = false,
+  onMapboxDropdownStateChange,
 }: VenueAutocompleteProps) {
   const { approvedVenues } = useVenueSearch()
   const [debouncedVenueName, setDebouncedVenueName] = useState('')
@@ -78,6 +80,7 @@ export function VenueAutocomplete({
 
         // Mark that Mapbox dropdown is open
         isMapboxDropdownOpen = true
+        onMapboxDropdownStateChange?.(true)
         window.dispatchEvent(new CustomEvent('mapboxDropdownOpen'))
 
         // Stop the event from propagating to the dialog
@@ -110,6 +113,7 @@ export function VenueAutocomplete({
         const mapboxSuggestions = document.querySelector('[class*="suggestions"]')
         if (!mapboxSuggestions || window.getComputedStyle(mapboxSuggestions).display === 'none') {
           isMapboxDropdownOpen = false
+          onMapboxDropdownStateChange?.(false)
           window.dispatchEvent(new CustomEvent('mapboxDropdownClose'))
         }
       }, 100)
@@ -124,7 +128,7 @@ export function VenueAutocomplete({
       document.removeEventListener('pointerdown', handlePointerDown, true)
       document.removeEventListener('pointerup', handlePointerUp, true)
     }
-  }, [])
+  }, [onMapboxDropdownStateChange])
 
   // Debounce venue search
   useEffect(() => {
@@ -147,6 +151,13 @@ export function VenueAutocomplete({
         )
       : []
 
+  // Track when autocomplete dropdown is shown to prevent modal from closing
+  useEffect(() => {
+    const hasFilteredSuggestions = filteredVenueSuggestions.length > 0
+    const isDropdownShowing = showVenueAutocomplete && hasFilteredSuggestions
+    onMapboxDropdownStateChange?.(isDropdownShowing)
+  }, [showVenueAutocomplete, filteredVenueSuggestions.length, onMapboxDropdownStateChange])
+
   const handleSelectVenue = (venue: Venue) => {
     onVenueChange(venue)
     onVenueSearchChange(venue.name)
@@ -168,7 +179,7 @@ export function VenueAutocomplete({
     <div className="space-y-4">
       {/* Venue Search with Autocomplete - hidden in view mode */}
       {!isViewingLeague && (
-        <div className="space-y-2">
+        <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
           <Label htmlFor="venue_search">Venue (Optional)</Label>
           <p className="text-sm text-gray-600">Select from popular venues or add a new one</p>
           <div className="relative">
@@ -180,6 +191,7 @@ export function VenueAutocomplete({
                 onChange={e => onVenueSearchChange(e.target.value)}
                 onFocus={() => venueSearchInput.length >= 1 && !selectedVenue && setShowVenueAutocomplete(true)}
                 onBlur={() => setTimeout(() => setShowVenueAutocomplete(false), 150)}
+                onClick={(e) => e.stopPropagation()}
                 maxLength={255}
                 autoComplete="off"
                 disabled={isViewingLeague}
@@ -198,12 +210,13 @@ export function VenueAutocomplete({
 
             {/* Venue Autocomplete Dropdown */}
             {showVenueAutocomplete && filteredVenueSuggestions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                 {filteredVenueSuggestions.map(venue => (
                   <button
                     key={venue.id}
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation()
                       handleSelectVenue(venue)
                       setShowVenueAutocomplete(false)
                     }}
@@ -230,7 +243,7 @@ export function VenueAutocomplete({
 
       {/* Address field - hidden when venue is selected from dropdown or custom address is prepopulated or in view mode or when hideAddressInput is true */}
       {!selectedVenue && !customVenueAddress && !isViewingLeague && !hideAddressInput && (
-        <div className="space-y-2">
+        <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
           <Label htmlFor="venue_address">Search Address</Label>
           <p className="text-sm text-gray-600">Find address or enter custom location</p>
           {(() => {
@@ -243,6 +256,7 @@ export function VenueAutocomplete({
                   type="text"
                   autoComplete="address-line1"
                   placeholder="Search address..."
+                  onClick={(e) => e.stopPropagation()}
                   aria-invalid={venueError ? 'true' : 'false'}
                 />
               </AddressAutofill>
@@ -252,6 +266,7 @@ export function VenueAutocomplete({
                 id="venue_address"
                 type="text"
                 placeholder="Enter address..."
+                onClick={(e) => e.stopPropagation()}
                 aria-invalid={venueError ? 'true' : 'false'}
               />
             )

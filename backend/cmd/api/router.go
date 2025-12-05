@@ -69,7 +69,7 @@ func newRouter(postgrestClient *postgrest.Client, postgrestServiceClient *postgr
 	venuesHandler := venues.NewHandler(venuesService)
 
 	// Organizations
-	organizationsService := organizations.NewService(postgrestClient, cfg.SupabaseURL+"/rest/v1", cfg.SupabaseAnonKey)
+	organizationsService := organizations.NewService(postgrestClient, postgrestServiceClient, cfg.SupabaseURL+"/rest/v1", cfg.SupabaseAnonKey)
 	organizationsHandler := organizations.NewHandler(organizationsService, authService)
 
 	// Notifications

@@ -44,7 +44,7 @@ export default function RootLayout({
         <ClerkProvider>
           <SupabaseProvider>
             {children}
-            <Toaster />
+            <Toaster position="top-right" />
           </SupabaseProvider>
         </ClerkProvider>
       </body>

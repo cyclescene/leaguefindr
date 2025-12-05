@@ -80,6 +80,7 @@ export function SportAutocomplete({
             onChange={e => onSportSearchChange(e.target.value)}
             onFocus={() => sportSearchInput.length >= 1 && !selectedSport && !isViewingLeague && setShowSportAutocomplete(true)}
             onBlur={() => setTimeout(() => setShowSportAutocomplete(false), 150)}
+            onClick={(e) => e.stopPropagation()}
             maxLength={255}
             autoComplete="off"
             disabled={isViewingLeague}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -37,13 +38,14 @@ export function CreateTemplateDialog({
   const organizationName = organization?.org_name;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [templateName, setTemplateName] = useState('');
-  const [templateDescription, setTemplateDescription] = useState('');
-  const [templateNameError, setTemplateNameError] = useState<string | null>(null);
   const [formData, setFormData] = useState<AddLeagueFormData | null>(null);
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateNameError, setTemplateNameError] = useState<string | null>(null);
 
   const handleSaveAsTemplate = (data: AddLeagueFormData) => {
     setFormData(data);
+    setShowNameModal(true);
   };
 
   const handleCreateTemplate = async () => {
@@ -57,11 +59,6 @@ export function CreateTemplateDialog({
 
     if (templateName.length > 255) {
       setTemplateNameError('Template name must be at most 255 characters');
-      return;
-    }
-
-    if (templateDescription.length > 500) {
-      setError('Template description must be at most 500 characters');
       return;
     }
 
@@ -93,7 +90,6 @@ export function CreateTemplateDialog({
           },
           body: JSON.stringify({
             name: templateName,
-            description: templateDescription || null,
             form_data: formData,
           }),
         }
@@ -109,14 +105,16 @@ export function CreateTemplateDialog({
         await refetchTemplates();
       }
 
+      toast.success('Template created successfully!');
       setTemplateName('');
-      setTemplateDescription('');
       setFormData(null);
+      setShowNameModal(false);
       onOpenChange(false);
       onSuccess?.();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
       setError(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -125,91 +123,92 @@ export function CreateTemplateDialog({
   const handleClose = () => onOpenChange(false);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-0 !max-w-5xl w-[85vw] max-h-[95vh] overflow-y-auto">
-        <DialogHeader className="bg-brand-dark text-white !-mx-6 !-mt-6 !-mb-4 px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
-          <DialogTitle className="text-white">Create Template</DialogTitle>
-          <DialogDescription className="text-gray-200">
-            Save a league configuration as a reusable template for future submissions
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      {/* Main Create Template Dialog */}
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="border-0 !max-w-5xl w-[85vw] max-h-[95vh] overflow-y-auto">
+          <DialogHeader className="bg-brand-dark text-white !-mx-6 !-mt-6 !-mb-4 px-6 py-4 rounded-t-lg border-b-2 border-brand-dark">
+            <DialogTitle className="text-white">Create Template</DialogTitle>
+            <DialogDescription className="text-gray-200">
+              Save a league configuration as a reusable template for future submissions
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-6 py-6 px-6">
+          <div className="space-y-6 py-6 px-6">
+            {/* League Form Section */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">League Configuration</h3>
+              <LeagueFormProvider
+                value={{
+                  mode: 'create-template',
+                  organizationId,
+                  organizationName,
+                  onClose: handleClose,
+                }}
+              >
+                <AddLeagueForm onSaveAsTemplate={handleSaveAsTemplate} />
+              </LeagueFormProvider>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template Name Modal */}
+      <Dialog open={showNameModal} onOpenChange={setShowNameModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save Template</DialogTitle>
+            <DialogDescription>
+              Give your template a name so you can easily identify it later
+            </DialogDescription>
+          </DialogHeader>
+
           {error && (
             <div className="rounded-md bg-red-50 p-3">
               <p className="text-sm text-red-800">{error}</p>
             </div>
           )}
 
-          {/* Template Metadata Section */}
-          <div className="space-y-4 border-b pb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Template Details</h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="template_name">Template Name *</Label>
-                <Input
-                  id="template_name"
-                  placeholder="e.g., Summer Basketball League"
-                  value={templateName}
-                  onChange={(e) => setTemplateName(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                {templateNameError && (
-                  <p className="text-sm text-red-600">{templateNameError}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="template_description">Description (Optional)</Label>
-                <Input
-                  id="template_description"
-                  placeholder="Brief description of this template..."
-                  value={templateDescription}
-                  onChange={(e) => setTemplateDescription(e.target.value)}
-                  disabled={isSubmitting}
-                />
-              </div>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="modal_template_name">Template Name *</Label>
+              <Input
+                id="modal_template_name"
+                placeholder="e.g., Summer Basketball League"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                disabled={isSubmitting}
+                autoFocus
+              />
+              {templateNameError && (
+                <p className="text-sm text-red-600">{templateNameError}</p>
+              )}
             </div>
           </div>
 
-          {/* League Form Section */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">League Configuration</h3>
-            <LeagueFormProvider
-              value={{
-                mode: 'new',
-                organizationId,
-                organizationName,
-                onClose: handleClose,
+          <div className="flex gap-3 justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowNameModal(false);
+                setTemplateName('');
+                setTemplateNameError(null);
               }}
+              disabled={isSubmitting}
             >
-              <AddLeagueForm onSaveAsTemplate={handleSaveAsTemplate} />
-            </LeagueFormProvider>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCreateTemplate}
+              disabled={isSubmitting || !templateName.trim()}
+            >
+              {isSubmitting ? 'Creating...' : 'Create Template'}
+            </Button>
           </div>
-        </div>
-
-        {/* Dialog Footer with Create Button */}
-        <div className="bg-gray-50 px-6 py-4 flex gap-3 border-t">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleClose}
-            disabled={isSubmitting}
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={handleCreateTemplate}
-            disabled={isSubmitting || !formData}
-            className="flex-1"
-          >
-            {isSubmitting ? 'Creating Template...' : 'Create Template'}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
