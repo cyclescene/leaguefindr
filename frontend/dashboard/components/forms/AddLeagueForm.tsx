@@ -724,11 +724,10 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
               {...register('duration', { valueAsNumber: true })}
               id="duration"
               type="number"
-              min="1"
-              max="52"
               placeholder="8"
               disabled={isViewingLeague}
               aria-invalid={displayErrors.duration ? 'true' : 'false'}
+              onWheel={(e) => e.currentTarget.blur()}
             />
             {displayErrors.duration && (
               <p className="text-sm text-red-600">{displayErrors.duration.message}</p>
@@ -882,7 +881,6 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
               id="pricing_amount"
               type="number"
               step="0.01"
-              min={isCreatingTemplate ? "0" : "0.01"}
               placeholder="0.00"
               disabled={isViewingLeague}
               aria-invalid={displayErrors.pricing_amount ? 'true' : 'false'}
@@ -903,10 +901,10 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
             id="per_game_fee"
             type="number"
             step="0.01"
-            min="0"
             placeholder="0.00"
             disabled={isViewingLeague}
             aria-invalid={displayErrors.per_game_fee ? 'true' : 'false'}
+            onWheel={(e) => e.currentTarget.blur()}
           />
           {displayErrors.per_game_fee && (
             <p className="text-sm text-red-600">{displayErrors.per_game_fee.message}</p>
@@ -920,11 +918,10 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
             {...register('minimum_team_players', { valueAsNumber: true })}
             id="minimum_team_players"
             type="number"
-            min="1"
-            max="100"
             placeholder="5"
             disabled={isViewingLeague}
             aria-invalid={displayErrors.minimum_team_players ? 'true' : 'false'}
+            onWheel={(e) => e.currentTarget.blur()}
           />
           {displayErrors.minimum_team_players && (
             <p className="text-sm text-red-600">{displayErrors.minimum_team_players.message}</p>
