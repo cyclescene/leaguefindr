@@ -2,14 +2,13 @@
 
 import { Table, TableHead, TableHeader, TableRow, TableBody, TableCell } from "@/components/ui/table"
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { useMemo } from "react"
 import type { AdminSport } from "@/hooks/useAdminSports"
+import { useAdminTable } from "@/context/AdminTableContext"
 
 interface SportsTableProps {
   sports: AdminSport[]
   isLoading?: boolean
-  onSort?: (column: string, order: 'asc' | 'desc') => void
-  sortBy?: string
-  sortOrder?: 'asc' | 'desc'
 }
 
 interface SortIconProps {
@@ -23,12 +22,27 @@ function SortIcon({ column, sortBy, sortOrder }: SortIconProps) {
   return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
 }
 
-export function SportsTable({ sports, isLoading, onSort, sortBy, sortOrder }: SportsTableProps) {
-  const handleSort = (column: string) => {
-    if (!onSort) return
-    const newOrder = sortBy === column && sortOrder === 'asc' ? 'desc' : 'asc'
-    onSort(column, newOrder)
-  }
+export function SportsTable({ sports, isLoading }: SportsTableProps) {
+  const { state, toggleSort } = useAdminTable('sports')
+
+  const sortedSports = useMemo(() => {
+    const sorted = [...sports]
+    sorted.sort((a, b) => {
+      let aVal: any = a[state.sortBy as keyof AdminSport]
+      let bVal: any = b[state.sortBy as keyof AdminSport]
+
+      // Handle string sorting
+      if (typeof aVal === 'string') {
+        aVal = aVal.toLowerCase()
+        bVal = bVal.toLowerCase()
+      }
+
+      if (aVal < bVal) return state.sortOrder === 'asc' ? -1 : 1
+      if (aVal > bVal) return state.sortOrder === 'asc' ? 1 : -1
+      return 0
+    })
+    return sorted
+  }, [sports, state.sortBy, state.sortOrder])
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -46,31 +60,31 @@ export function SportsTable({ sports, isLoading, onSort, sortBy, sortOrder }: Sp
   }
 
   return (
-    <Table className="mt-4 w-auto bg-white rounded-lg shadow-md mx-auto">
+    <Table className="w-auto bg-white rounded-lg shadow-md mx-auto">
       <TableHeader>
         <TableRow>
           <TableHead
             className="cursor-pointer hover:bg-neutral-100 select-none w-24 text-center"
-            onClick={() => handleSort('id')}
+            onClick={() => toggleSort('id')}
           >
             <div className="flex items-center justify-center gap-2">
               ID
-              <SortIcon column="id" sortBy={sortBy} sortOrder={sortOrder} />
+              <SortIcon column="id" sortBy={state.sortBy} sortOrder={state.sortOrder} />
             </div>
           </TableHead>
           <TableHead
             className="cursor-pointer hover:bg-neutral-100 select-none"
-            onClick={() => handleSort('name')}
+            onClick={() => toggleSort('name')}
           >
             <div className="flex items-center gap-2">
               Name
-              <SortIcon column="name" sortBy={sortBy} sortOrder={sortOrder} />
+              <SortIcon column="name" sortBy={state.sortBy} sortOrder={state.sortOrder} />
             </div>
           </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {sports.map((sport) => (
+        {sortedSports.map((sport) => (
           <TableRow key={sport.id} className="hover:bg-neutral-50">
             <TableCell className="font-mono text-sm w-24">{sport.id}</TableCell>
             <TableCell className="font-medium w-40">{sport.name}</TableCell>

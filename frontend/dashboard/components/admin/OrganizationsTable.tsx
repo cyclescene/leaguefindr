@@ -2,15 +2,13 @@
 
 import { Table, TableHead, TableHeader, TableRow, TableBody, TableCell } from "@/components/ui/table"
 import { Copy, Check, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import type { AdminOrganization } from "@/hooks/useAdminOrganizations"
+import { useAdminTable } from "@/context/AdminTableContext"
 
 interface OrganizationsTableProps {
   organizations: AdminOrganization[]
   isLoading?: boolean
-  onSort?: (column: string, order: 'asc' | 'desc') => void
-  sortBy?: string
-  sortOrder?: 'asc' | 'desc'
 }
 
 interface SortIconProps {
@@ -24,8 +22,9 @@ function SortIcon({ column, sortBy, sortOrder }: SortIconProps) {
   return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
 }
 
-export function OrganizationsTable({ organizations, isLoading, onSort, sortBy, sortOrder }: OrganizationsTableProps) {
+export function OrganizationsTable({ organizations, isLoading }: OrganizationsTableProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const { state, toggleSort } = useAdminTable('organizations')
 
   const handleCopyId = (id: string) => {
     navigator.clipboard.writeText(id)
@@ -33,11 +32,24 @@ export function OrganizationsTable({ organizations, isLoading, onSort, sortBy, s
     setTimeout(() => setCopiedId(null), 2000)
   }
 
-  const handleSort = (column: string) => {
-    if (!onSort) return
-    const newOrder = sortBy === column && sortOrder === 'asc' ? 'desc' : 'asc'
-    onSort(column, newOrder)
-  }
+  const sortedOrganizations = useMemo(() => {
+    const sorted = [...organizations]
+    sorted.sort((a, b) => {
+      let aVal: any = a[state.sortBy as keyof AdminOrganization]
+      let bVal: any = b[state.sortBy as keyof AdminOrganization]
+
+      // Handle string sorting
+      if (typeof aVal === 'string') {
+        aVal = aVal.toLowerCase()
+        bVal = bVal.toLowerCase()
+      }
+
+      if (aVal < bVal) return state.sortOrder === 'asc' ? -1 : 1
+      if (aVal > bVal) return state.sortOrder === 'asc' ? 1 : -1
+      return 0
+    })
+    return sorted
+  }, [organizations, state.sortBy, state.sortOrder])
 
   if (isLoading) {
     return (
@@ -56,17 +68,17 @@ export function OrganizationsTable({ organizations, isLoading, onSort, sortBy, s
   }
 
   return (
-    <Table className="mt-4 w-full bg-white rounded-lg shadow-md">
+    <Table className="w-full bg-white rounded-lg shadow-md">
       <TableHeader>
         <TableRow>
           <TableHead className="w-32">ID</TableHead>
           <TableHead
             className="w-96 cursor-pointer hover:bg-neutral-100 select-none"
-            onClick={() => handleSort('org_name')}
+            onClick={() => toggleSort('org_name')}
           >
             <div className="flex items-center gap-2">
               Name
-              <SortIcon column="org_name" sortBy={sortBy} sortOrder={sortOrder} />
+              <SortIcon column="org_name" sortBy={state.sortBy} sortOrder={state.sortOrder} />
             </div>
           </TableHead>
           <TableHead className="w-96">Email</TableHead>
@@ -76,7 +88,7 @@ export function OrganizationsTable({ organizations, isLoading, onSort, sortBy, s
         </TableRow>
       </TableHeader>
       <TableBody>
-        {organizations.map((org) => (
+        {sortedOrganizations.map((org) => (
           <TableRow key={org.id} className="hover:bg-neutral-50">
             <TableCell>
               <div className="flex items-center gap-2">
