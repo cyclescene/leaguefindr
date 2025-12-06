@@ -79,8 +79,8 @@ export function OrganizerDraftsAndTemplatesTable({
           bVal = b.name || ''
           break
         case 'created':
-          aVal = new Date(a.dateCreated || a.dateSubmitted || 0).getTime()
-          bVal = new Date(b.dateCreated || b.dateSubmitted || 0).getTime()
+          aVal = new Date(a.created_at || 0).getTime()
+          bVal = new Date(b.created_at || 0).getTime()
           break
         case 'type':
           aVal = a.type || ''

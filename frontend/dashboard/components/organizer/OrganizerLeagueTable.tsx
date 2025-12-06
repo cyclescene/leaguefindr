@@ -70,16 +70,16 @@ export function OrganizerLeagueTable({
           bVal = b.league_name || ''
           break
         case 'sport':
-          aVal = a.sport_name || ''
-          bVal = b.sport_name || ''
+          aVal = a.form_data?.sport_name || ''
+          bVal = b.form_data?.sport_name || ''
           break
         case 'status':
           aVal = a.status || ''
           bVal = b.status || ''
           break
         case 'date':
-          aVal = new Date(a.date_submitted || 0).getTime()
-          bVal = new Date(b.date_submitted || 0).getTime()
+          aVal = new Date(a.created_at || 0).getTime()
+          bVal = new Date(b.created_at || 0).getTime()
           break
         default:
           return 0
