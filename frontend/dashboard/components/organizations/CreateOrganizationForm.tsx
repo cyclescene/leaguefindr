@@ -100,7 +100,7 @@ export function CreateOrganizationForm({ onSuccess, onClose, organization }: Cre
 
         // Handle 409 Conflict - Organization with this URL already exists
         if (response.status === 409) {
-          errorMessage = `An organization with the website URL "${data.url}" is already registered. Please reach out to info@leaguefindr.com to get access to the organization.`;
+          errorMessage = "This organization is already registered. Please ask your league manager for the organization ID to join, or reach out to info@leaguefindr.com for access.";
         }
 
         throw new Error(errorMessage);
