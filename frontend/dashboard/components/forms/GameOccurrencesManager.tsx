@@ -63,13 +63,13 @@ export function GameOccurrencesManager({
   }
 
   return (
-    <div>
+    <div className="">
       {/* Add Game Occurrence */}
       <div className="mb-6">
-        <p className="text-sm text-gray-600 mb-4">Add all days and times when games occur</p>
-        <div className="flex gap-4 items-end">
+        <p className="text-sm text-gray-600 mb-4">Add all weekdays and timeframes when games could occur</p>
+        <div className="flex gap-3 items-end w-full">
           {/* Day */}
-          <div className="space-y-2 flex-1">
+          <div className="space-y-2 grow w-28 ">
             <Label htmlFor="new_game_day">Day</Label>
             <select
               id="new_game_day"
@@ -90,8 +90,8 @@ export function GameOccurrencesManager({
           </div>
 
           {/* Start Time */}
-          <div className="space-y-2 flex-1">
-            <Label htmlFor="new_game_start_time">Start Time</Label>
+          <div className="space-y-2 grow w-24">
+            <Label htmlFor="new_game_start_time">Earliest Start Time</Label>
             <Input
               id="new_game_start_time"
               type="time"
@@ -102,8 +102,8 @@ export function GameOccurrencesManager({
           </div>
 
           {/* End Time */}
-          <div className="space-y-2 flex-1">
-            <Label htmlFor="new_game_end_time">End Time</Label>
+          <div className="space-y-2 grow w-24">
+            <Label htmlFor="new_game_end_time">Latest End Time</Label>
             <Input
               id="new_game_end_time"
               type="time"
@@ -114,9 +114,9 @@ export function GameOccurrencesManager({
           </div>
 
           {!isViewingLeague && (
-            <Button type="button" onClick={handleAddGameOccurrence} className="h-10">
-              <Plus size={16} />
-              Add
+            <Button type="button" onClick={handleAddGameOccurrence} className="h-10 shrink-0">
+              <Plus size={16} className="mr-2" />
+              Add to Game Schedule
             </Button>
           )}
         </div>

@@ -84,14 +84,23 @@ export function CreateOrganizationForm({ onSuccess, onClose, organization }: Cre
         let errorMessage = `Failed to ${isEditMode ? "update" : "create"} organization`;
 
         try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          // If response body is not JSON, use the response text or default message
-          const text = await response.text();
-          if (text) {
-            errorMessage = text;
+          const responseText = await response.text();
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            // If response body is not JSON, use the response text as-is
+            if (responseText) {
+              errorMessage = responseText;
+            }
           }
+        } catch {
+          // Ignore if we can't read the response
+        }
+
+        // Handle 409 Conflict - Organization with this URL already exists
+        if (response.status === 409) {
+          errorMessage = `An organization with the website URL "${data.url}" is already registered. Please reach out to info@leaguefindr.com to get access to the organization.`;
         }
 
         throw new Error(errorMessage);
@@ -103,13 +112,7 @@ export function CreateOrganizationForm({ onSuccess, onClose, organization }: Cre
       onSuccess(orgId, orgName);
       onClose();
     } catch (err) {
-      let message = err instanceof Error ? err.message : "An error occurred";
-
-      // Add contact email for duplicate organization errors
-      if (message.toLowerCase().includes("duplicate") || message.toLowerCase().includes("already exists")) {
-        message = `${message}. Please contact info@leaguefindr.com if you believe this is an error.`;
-      }
-
+      const message = err instanceof Error ? err.message : "An error occurred";
       setError(message);
     } finally {
       setIsSubmitting(false);

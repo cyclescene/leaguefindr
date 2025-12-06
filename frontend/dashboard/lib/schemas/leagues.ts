@@ -15,15 +15,33 @@ export type GameOccurrence = z.infer<typeof gameOccurrenceSchema>;
 
 // Main league form schema
 export const addLeagueSchema = z.object({
-  sport_id: z.number()
-    .optional()
-    .nullable(),
+  sport_id: z.any()
+    .transform((val) => {
+      if (val === undefined || val === null || val === '' || Object.is(val, NaN)) return null
+      if (typeof val === 'string') {
+        const num = parseInt(val, 10)
+        return isNaN(num) ? null : num
+      }
+      if (typeof val === 'number') {
+        return isNaN(val) ? null : val
+      }
+      return null
+    }),
   sport_name: z.string()
     .min(1, "Sport name is required")
     .max(255, "Sport name must be at most 255 characters"),
-  venue_id: z.number()
-    .optional()
-    .nullable(),
+  venue_id: z.any()
+    .transform((val) => {
+      if (val === undefined || val === null || val === '' || Object.is(val, NaN)) return null
+      if (typeof val === 'string') {
+        const num = parseInt(val, 10)
+        return isNaN(num) ? null : num
+      }
+      if (typeof val === 'number') {
+        return isNaN(val) ? null : val
+      }
+      return null
+    }),
   venue_name: z.string()
     .min(1, "Venue is required")
     .max(255, "Venue name must be at most 255 characters"),
@@ -31,12 +49,30 @@ export const addLeagueSchema = z.object({
     .max(500, "Venue address must be at most 500 characters")
     .optional()
     .nullable(),
-  venue_lat: z.number()
-    .optional()
-    .nullable(),
-  venue_lng: z.number()
-    .optional()
-    .nullable(),
+  venue_lat: z.any()
+    .transform((val) => {
+      if (val === undefined || val === null || val === '' || Object.is(val, NaN)) return null
+      if (typeof val === 'string') {
+        const num = parseFloat(val)
+        return isNaN(num) ? null : num
+      }
+      if (typeof val === 'number') {
+        return isNaN(val) ? null : val
+      }
+      return null
+    }),
+  venue_lng: z.any()
+    .transform((val) => {
+      if (val === undefined || val === null || val === '' || Object.is(val, NaN)) return null
+      if (typeof val === 'string') {
+        const num = parseFloat(val)
+        return isNaN(num) ? null : num
+      }
+      if (typeof val === 'number') {
+        return isNaN(val) ? null : val
+      }
+      return null
+    }),
   league_name: z.string()
     .min(1, "League name is required")
     .max(255, "League name must be at most 255 characters"),

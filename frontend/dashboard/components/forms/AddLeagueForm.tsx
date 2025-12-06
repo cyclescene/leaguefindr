@@ -1,33 +1,32 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
+import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { addLeagueSchema, type AddLeagueFormData, type GameOccurrence } from '@/lib/schemas'
 import { useAuth } from '@clerk/nextjs'
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { useLeagueFormContext } from '@/context/LeagueFormContext'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { DatePicker } from '@/components/ui/date-picker'
-import { MapboxAddressInput } from './MapboxAddressInput'
 import { format, parse } from 'date-fns'
-import { GameOccurrencesManager } from './GameOccurrencesManager'
 import { LeagueFormButtons } from './LeagueFormButtons'
-import { SportAutocomplete } from './SportAutocomplete'
-import { VenueAutocomplete } from './VenueAutocomplete'
 import { SaveLeagueModal } from '@/components/leagues/SaveLeagueModal'
 import { useLeagueFormData } from '@/lib/hooks/useLeagueFormData'
 import { useLeagueFormPopulation } from '@/lib/hooks/useLeagueFormPopulation'
 import { useLeagueDraftOperations } from '@/lib/hooks/useLeagueDraftOperations'
+import { SportAndLeagueInformationSection } from './sections/SportAndLeagueInformationSection'
+import { SeasonDatesSection } from './sections/SeasonDatesSection'
+import { VenueSection } from './sections/VenueSection'
+import { GameScheduleSection } from './sections/GameScheduleSection'
+import { PricingSection } from './sections/PricingSection'
+import { AdditionalInformationSection } from './sections/AdditionalInformationSection'
 import dynamic from 'next/dynamic'
 
 // Dynamically import AddressAutofill to avoid SSR issues
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
 const AddressAutofill = dynamic(
   () => import('@mapbox/search-js-react').then(mod => mod.AddressAutofill),
   { ssr: false }
-) as any
+) as unknown
 
 interface Sport {
   id: number
@@ -78,15 +77,7 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
   const isViewingLeague = mode === 'view'
   const { getToken, userId } = useAuth()
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    setValue,
-    watch,
-    reset,
-    getValues,
-  } = useForm<AddLeagueFormData>({
+  const methods = useForm<AddLeagueFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(addLeagueSchema) as any,
     mode: 'onBlur',
@@ -116,6 +107,16 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
       organization_name: organizationName || '',
     },
   })
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setValue,
+    watch,
+    reset,
+    getValues,
+  } = methods
 
   // State management
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -541,470 +542,117 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
     }
   }
 
-  // When creating a template, don't show any validation errors
-  const displayErrors = isCreatingTemplate ? {} : errors
-
   return (
-    <form onSubmit={handleFormSubmit} onClick={(e) => e.stopPropagation()} className="space-y-6 w-full">
-      {/* Show rejection reason if league was rejected */}
-      {isViewingLeague && leagueStatus === 'rejected' && leagueRejectionReason && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-4">
-          <p className="text-red-800 font-semibold mb-2">Rejection Reason:</p>
-          <p className="text-red-900">{leagueRejectionReason}</p>
-        </div>
-      )}
-
-      {/* Hidden organization ID field */}
-      <input
-        type="hidden"
-        {...register('org_id')}
-        value={organizationId}
-      />
-
-      {/* Hidden organization name field */}
-      <input
-        type="hidden"
-        {...register('organization_name')}
-      />
-
-      {/* Section: Sport & League Info */}
-      <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Sport & League Information</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Sport Autocomplete */}
-          <div>
-            <SportAutocomplete
-              selectedSport={selectedSport}
-              sportSearchInput={sportSearchInput}
-              onSportChange={(sport) => {
-                setSelectedSport(sport)
-                if (sport) {
-                  setValue('sport_id', sport.id)
-                  setValue('sport_name', sport.name)
-                } else {
-                  setValue('sport_id', undefined)
-                  setValue('sport_name', '')
-                }
-              }}
-              onSportSearchChange={(input) => {
-                setSportSearchInput(input)
-                setValue('sport_name', input)
-              }}
-              sportError={displayErrors.sport_name?.message}
-              isViewingLeague={isViewingLeague}
-            />
-          </div>
-
-          {/* League Name */}
-          <div className="space-y-2">
-            <Label htmlFor="league_name">League Name *</Label>
-            <Input
-              {...register('league_name')}
-              id="league_name"
-              type="text"
-              placeholder="e.g., Summer Basketball League"
-              disabled={isViewingLeague}
-              aria-invalid={displayErrors.league_name ? 'true' : 'false'}
-            />
-            {displayErrors.league_name && (
-              <p className="text-sm text-red-600">{displayErrors.league_name.message}</p>
-            )}
-          </div>
-
-          {/* Division/Skill Level */}
-          <div className="space-y-2">
-            <Label htmlFor="division">Skill Level *</Label>
-            <input
-              {...register('division')}
-              id="division"
-              type="text"
-              placeholder="e.g., Beginner, Intermediate, Expert"
-              disabled={isViewingLeague}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-              aria-invalid={displayErrors.division ? 'true' : 'false'}
-            />
-            {displayErrors.division && (
-              <p className="text-sm text-red-600">{displayErrors.division.message}</p>
-            )}
-          </div>
-
-          {/* Gender */}
-          <div className="space-y-2">
-            <Label htmlFor="gender">Gender *</Label>
-            <select
-              {...register('gender')}
-              id="gender"
-              disabled={isViewingLeague}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-              aria-invalid={displayErrors.gender ? 'true' : 'false'}
-            >
-              <option value="">Select a gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="co-ed">Co-ed</option>
-            </select>
-            {displayErrors.gender && (
-              <p className="text-sm text-red-600">{displayErrors.gender.message}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Hidden sport_id field */}
-        <input type="hidden" {...register('sport_id', { valueAsNumber: true })} />
-      </div>
-
-      {/* Section: Dates */}
-      <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Season Dates</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {/* Registration Deadline */}
-          <div className="space-y-2">
-            <Label htmlFor="registration_deadline">Registration Deadline *</Label>
-            <DatePicker
-              date={registrationDeadline}
-              onDateChange={handleRegistrationDeadlineChange}
-              placeholder="Select deadline"
-              disabled={isViewingLeague}
-            />
-            {displayErrors.registration_deadline && (
-              <p className="text-sm text-red-600">{displayErrors.registration_deadline.message}</p>
-            )}
-          </div>
-
-          {/* Registration URL */}
-          <div className="space-y-2">
-            <Label htmlFor="registration_url">Registration URL *</Label>
-            <Input
-              {...register('registration_url')}
-              id="registration_url"
-              type="text"
-              placeholder="https://example.com/register"
-              disabled={isViewingLeague}
-              aria-invalid={displayErrors.registration_url ? 'true' : 'false'}
-            />
-            {displayErrors.registration_url && (
-              <p className="text-sm text-red-600">{displayErrors.registration_url.message}</p>
-            )}
-          </div>
-
-          {/* Season Start Date */}
-          <div className="space-y-2">
-            <Label htmlFor="season_start_date">Season Start Date *</Label>
-            <DatePicker
-              date={seasonStartDate}
-              onDateChange={handleSeasonStartDateChange}
-              placeholder="Select start date"
-              disabled={isViewingLeague}
-            />
-            {displayErrors.season_start_date && (
-              <p className="text-sm text-red-600">{displayErrors.season_start_date.message}</p>
-            )}
-          </div>
-
-          {/* Season End Date */}
-          <div className="space-y-2">
-            <Label htmlFor="season_end_date">Season End Date (Optional)</Label>
-            <DatePicker
-              date={seasonEndDate}
-              onDateChange={handleSeasonEndDateChange}
-              placeholder="Select end date"
-              disabled={isViewingLeague}
-            />
-            {displayErrors.season_end_date && (
-              <p className="text-sm text-red-600">{displayErrors.season_end_date.message}</p>
-            )}
-          </div>
-
-          {/* Duration */}
-          <div className="space-y-2">
-            <Label htmlFor="duration">Duration (weeks) *</Label>
-            <Input
-              {...register('duration', { valueAsNumber: true })}
-              id="duration"
-              type="number"
-              placeholder="8"
-              disabled={isViewingLeague}
-              aria-invalid={displayErrors.duration ? 'true' : 'false'}
-              onWheel={(e) => e.currentTarget.blur()}
-            />
-            {displayErrors.duration && (
-              <p className="text-sm text-red-600">{displayErrors.duration.message}</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Section: Venue */}
-      <div className="border-t pt-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Venue</h3>
-          {!showNewVenueForm && (
-            <button
-              type="button"
-              onClick={() => setShowNewVenueForm(true)}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
-            >
-              + Add New Venue
-            </button>
-          )}
-        </div>
-
-        {!showNewVenueForm ? (
-          // Show only venue autocomplete
-          <VenueAutocomplete
-            selectedVenue={selectedVenue}
-            venueSearchInput={venueSearchInput}
-            onVenueChange={(venue) => {
-              setSelectedVenue(venue)
-              if (venue) {
-                setValue('venue_id', venue.id)
-                setValue('venue_name', venue.name)
-                setValue('venue_address', venue.address)
-                setValue('venue_lat', venue.lat)
-                setValue('venue_lng', venue.lng)
-              } else {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                setValue('venue_id', null as any)
-                setValue('venue_name', '')
-                setValue('venue_address', '')
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                setValue('venue_lat', null as any)
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                setValue('venue_lng', null as any)
-              }
-            }}
-            onVenueSearchChange={handleVenueSearchChange}
-            onVenueAddressChange={handleVenueAddressChange}
-            onMapboxDropdownStateChange={setIsMapboxDropdownOpen}
-            venueError={displayErrors.venue_name?.message}
-            isViewingLeague={isViewingLeague}
-            customVenueAddress={watch('venue_address') || undefined}
-            hideAddressInput={true}
-          />
-        ) : (
-          // Show new venue flow
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="new_venue_address" className="text-sm font-medium text-gray-700">
-                Search Location
-              </label>
-              <p className="text-sm text-gray-600">Find address or enter custom location</p>
-              <MapboxAddressInput
-                ref={newVenueAddressInputRef}
-                id="new_venue_address"
-                placeholder="Search address..."
-                onRetrieve={handleVenueAddressChange}
-                onMapboxDropdownStateChange={setIsMapboxDropdownOpen}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="venue_name_new" className="text-sm font-medium text-gray-700">
-                Venue Name (Optional)
-              </label>
-              <input
-                type="text"
-                id="venue_name_new"
-                placeholder="e.g., Central Sports Complex"
-                disabled={isViewingLeague}
-                aria-invalid={displayErrors.venue_name ? 'true' : 'false'}
-                value={watch('venue_name') || ''}
-                onChange={(e) => setValue('venue_name', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
-              />
-              {displayErrors.venue_name && (
-                <p className="text-sm text-red-600">{displayErrors.venue_name.message}</p>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowNewVenueForm(false)}
-              className="text-sm text-gray-600 hover:text-gray-700 font-medium"
-            >
-              Cancel
-            </button>
+    <FormProvider {...methods}>
+      <form onSubmit={handleFormSubmit} onClick={(e) => e.stopPropagation()} className="space-y-6 w-full">
+        {/* Show rejection reason if league was rejected */}
+        {isViewingLeague && leagueStatus === 'rejected' && leagueRejectionReason && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-4">
+            <p className="text-red-800 font-semibold mb-2">Rejection Reason:</p>
+            <p className="text-red-900">{leagueRejectionReason}</p>
           </div>
         )}
 
-        {/* Hidden venue fields */}
-        <input type="hidden" {...register('venue_id', { valueAsNumber: true })} />
-        <input type="hidden" {...register('venue_name')} />
-        <input type="hidden" {...register('venue_address')} />
-        <input type="hidden" {...register('venue_lat', { valueAsNumber: true })} />
-        <input type="hidden" {...register('venue_lng', { valueAsNumber: true })} />
-      </div>
+        {/* Hidden organization ID field */}
+        <input
+          type="hidden"
+          {...register('org_id')}
+          value={organizationId}
+        />
 
-      {/* Section: Game Schedule */}
-      <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Game Schedule</h3>
-        <GameOccurrencesManager
+        {/* Hidden organization name field */}
+        <input
+          type="hidden"
+          {...register('organization_name')}
+        />
+
+        {/* Sport & League Information Section */}
+        <SportAndLeagueInformationSection
+          selectedSport={selectedSport}
+          sportSearchInput={sportSearchInput}
+          onSportChange={setSelectedSport}
+          onSportSearchChange={setSportSearchInput}
+          isViewingLeague={isViewingLeague}
+        />
+
+        {/* Season Dates Section */}
+        <SeasonDatesSection
+          registrationDeadline={registrationDeadline}
+          seasonStartDate={seasonStartDate}
+          seasonEndDate={seasonEndDate}
+          onRegistrationDeadlineChange={handleRegistrationDeadlineChange}
+          onSeasonStartDateChange={handleSeasonStartDateChange}
+          onSeasonEndDateChange={handleSeasonEndDateChange}
+          isViewingLeague={isViewingLeague}
+        />
+
+        {/* Venue Section */}
+        <VenueSection
+          selectedVenue={selectedVenue}
+          venueSearchInput={venueSearchInput}
+          showNewVenueForm={showNewVenueForm}
+          onVenueChange={setSelectedVenue}
+          onVenueSearchChange={handleVenueSearchChange}
+          onVenueAddressChange={handleVenueAddressChange}
+          onShowNewVenueFormChange={setShowNewVenueForm}
+          onMapboxDropdownStateChange={setIsMapboxDropdownOpen}
+          isViewingLeague={isViewingLeague}
+        />
+
+        {/* Game Schedule Section */}
+        <GameScheduleSection
           gameOccurrences={gameOccurrences}
           onGameOccurrencesChange={handleGameOccurrencesChange}
           isViewingLeague={isViewingLeague}
-          errors={displayErrors.game_occurrences?.message}
         />
-      </div>
 
-      {/* Section: Pricing */}
-      <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Pricing</h3>
+        {/* Pricing Section */}
+        <PricingSection isViewingLeague={isViewingLeague} />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {/* Pricing Strategy */}
-          <div className="space-y-2">
-            <Label htmlFor="pricing_strategy">Pricing Strategy *</Label>
-            <select
-              {...register('pricing_strategy')}
-              id="pricing_strategy"
-              disabled={isViewingLeague}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-              aria-invalid={displayErrors.pricing_strategy ? 'true' : 'false'}
-            >
-              <option value="per_person">Per Person</option>
-              <option value="per_team">Per Team</option>
-            </select>
-            {displayErrors.pricing_strategy && (
-              <p className="text-sm text-red-600">{displayErrors.pricing_strategy.message}</p>
-            )}
-          </div>
+        {/* Additional Information Section */}
+        <AdditionalInformationSection isViewingLeague={isViewingLeague} />
 
-          {/* Pricing Amount */}
-          <div className="space-y-2">
-            <Label htmlFor="pricing_amount">
-              {pricingStrategy === 'per_team' ? 'Team Cost ($)' : 'Price per Person ($)'} *
-            </Label>
-            <Input
-              {...register('pricing_amount', { valueAsNumber: true })}
-              id="pricing_amount"
-              type="number"
-              step="0.01"
-              placeholder="0.00"
-              disabled={isViewingLeague}
-              aria-invalid={displayErrors.pricing_amount ? 'true' : 'false'}
-              onWheel={(e) => e.currentTarget.blur()}
-            />
-            {displayErrors.pricing_amount && (
-              <p className="text-sm text-red-600">{displayErrors.pricing_amount.message}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Per Game Fee */}
-        <div className="space-y-2 mb-6">
-          <Label htmlFor="per_game_fee">Per Game Fee (Optional)</Label>
-          <p className="text-sm text-gray-600">Additional fee per game for referee, equipment, or facility costs</p>
-          <Input
-            {...register('per_game_fee')}
-            id="per_game_fee"
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            disabled={isViewingLeague}
-            aria-invalid={displayErrors.per_game_fee ? 'true' : 'false'}
-            onWheel={(e) => e.currentTarget.blur()}
-          />
-          {displayErrors.per_game_fee && (
-            <p className="text-sm text-red-600">{displayErrors.per_game_fee.message}</p>
-          )}
-        </div>
-
-        {/* Minimum Team Players */}
-        <div className="space-y-2 mb-6">
-          <Label htmlFor="minimum_team_players">Minimum Team Players *</Label>
-          <Input
-            {...register('minimum_team_players', { valueAsNumber: true })}
-            id="minimum_team_players"
-            type="number"
-            placeholder="5"
-            disabled={isViewingLeague}
-            aria-invalid={displayErrors.minimum_team_players ? 'true' : 'false'}
-            onWheel={(e) => e.currentTarget.blur()}
-          />
-          {displayErrors.minimum_team_players && (
-            <p className="text-sm text-red-600">{displayErrors.minimum_team_players.message}</p>
-          )}
-        </div>
-
-        {/* Price Preview */}
-        {perPlayerPrice !== null && (
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-            <p className="text-sm text-gray-700">
-              <span className="font-medium">Estimated price per player:</span>{' '}
-              <span className="text-lg font-bold text-blue-600">${perPlayerPrice.toFixed(2)}</span>
-            </p>
-            {pricingStrategy === 'per_team' && (
-              <p className="text-xs text-gray-600 mt-1">
-                (Calculated by dividing team cost by {minimumPlayers} players)
-              </p>
-            )}
+        {/* Draft Status */}
+        {draftSaveStatus && (
+          <div className="rounded-md bg-green-50 p-4">
+            <p className="text-sm text-green-800">{draftSaveStatus}</p>
           </div>
         )}
-      </div>
 
-      {/* Section: Season Details */}
-      <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Information</h3>
+        {/* Draft Error */}
+        {draftError && (
+          <div className="rounded-md bg-yellow-50 p-4">
+            <p className="text-sm text-yellow-800">{draftError}</p>
+          </div>
+        )}
 
-        <div className="space-y-2">
-          <Label htmlFor="season_details">Season Details (Optional)</Label>
-          <textarea
-            {...register('season_details')}
-            id="season_details"
-            placeholder="Additional details about the season format, rules, etc."
-            disabled={isViewingLeague}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:text-gray-500"
-            rows={3}
-            aria-invalid={displayErrors.season_details ? 'true' : 'false'}
-          />
-          {displayErrors.season_details && (
-            <p className="text-sm text-red-600">{displayErrors.season_details.message}</p>
-          )}
-        </div>
-      </div>
+        {/* Submit Error Message */}
+        {submitError && (
+          <div className="rounded-md bg-red-50 p-4">
+            <p className="text-sm text-red-800">{submitError}</p>
+          </div>
+        )}
 
-      {/* Draft Status */}
-      {draftSaveStatus && (
-        <div className="rounded-md bg-green-50 p-4">
-          <p className="text-sm text-green-800">{draftSaveStatus}</p>
-        </div>
-      )}
+        <LeagueFormButtons
+          mode={mode}
+          isSubmitting={isSubmitting}
+          isSavingDraft={isDraftOperationLoading}
+          draftName={draftName}
+          onDraftNameChange={setDraftName}
+          onSaveDraft={handleSaveDraft}
+          onSubmit={handleSubmit(onSubmit)}
+          onUpdateTemplate={handleUpdateTemplate}
+          onClose={onClose}
+        />
 
-      {/* Draft Error */}
-      {draftError && (
-        <div className="rounded-md bg-yellow-50 p-4">
-          <p className="text-sm text-yellow-800">{draftError}</p>
-        </div>
-      )}
-
-      {/* Submit Error Message */}
-      {submitError && (
-        <div className="rounded-md bg-red-50 p-4">
-          <p className="text-sm text-red-800">{submitError}</p>
-        </div>
-      )}
-
-      <LeagueFormButtons
-        mode={mode}
-        isSubmitting={isSubmitting}
-        isSavingDraft={isDraftOperationLoading}
-        draftName={draftName}
-        onDraftNameChange={setDraftName}
-        onSaveDraft={handleSaveDraft}
-        onSubmit={handleSubmit(onSubmit)}
-        onUpdateTemplate={handleUpdateTemplate}
-        onClose={onClose}
-      />
-
-      {/* Save League Modal for new submissions */}
-      <SaveLeagueModal
-        open={showSaveModal}
-        onOpenChange={setShowSaveModal}
-        onSaveAsDraft={handleSaveAsDraft}
-        onSaveAsTemplate={handleSaveAsTemplateFromModal}
-      />
-    </form>
+        {/* Save League Modal for new submissions */}
+        <SaveLeagueModal
+          open={showSaveModal}
+          onOpenChange={setShowSaveModal}
+          onSaveAsDraft={handleSaveAsDraft}
+          onSaveAsTemplate={handleSaveAsTemplateFromModal}
+        />
+      </form>
+    </FormProvider>
   )
 }
