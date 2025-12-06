@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 import { SubmittedLeaguesTab } from "./SubmittedLeaguesTab";
 import { DraftsAndTemplatesTab } from "./DraftsAndTemplatesTab";
+import { OrganizerTableProvider } from "@/context/OrganizerTableContext";
 import type { SubmittedLeague, Draft } from "@/hooks/useDrafts";
 
 interface LeaguesActionBarProps {
@@ -44,43 +45,45 @@ export function LeaguesActionBar({
   onSaveAsTemplate,
 }: LeaguesActionBarProps) {
   return (
-    <Tabs defaultValue="submitted">
-      <div className="flex flex-row w-full justify-between items-center mb-6">
-        <TabsList>
-          <TabsTrigger value="submitted">Submitted Leagues ({submittedLeagues.length})</TabsTrigger>
-          <TabsTrigger value="drafts-templates">Drafts & Templates ({displayDrafts.length + displayTemplates.length})</TabsTrigger>
-        </TabsList>
+    <OrganizerTableProvider>
+      <Tabs defaultValue="submitted">
+        <div className="flex flex-row w-full justify-between items-center mb-6">
+          <TabsList>
+            <TabsTrigger value="submitted">Submitted Leagues ({submittedLeagues.length})</TabsTrigger>
+            <TabsTrigger value="drafts-templates">Drafts & Templates ({displayDrafts.length + displayTemplates.length})</TabsTrigger>
+          </TabsList>
 
-        <ButtonGroup>
-          <Button variant="brandDarkOutline" onClick={onCreateTemplate}>
-            Create Template
-          </Button>
-          <Button variant="brandDark" onClick={onSubmitLeague}>
-            <Plus className="w-4 h-4 mr-2" />
-            Submit League
-          </Button>
-        </ButtonGroup>
-      </div>
+          <ButtonGroup>
+            <Button variant="brandDarkOutline" onClick={onCreateTemplate}>
+              Create Template
+            </Button>
+            <Button variant="brandDark" onClick={onSubmitLeague}>
+              <Plus className="w-4 h-4 mr-2" />
+              Submit League
+            </Button>
+          </ButtonGroup>
+        </div>
 
-      <SubmittedLeaguesTab
-        leagues={submittedLeagues}
-        onViewLeague={onViewLeague}
-        onSubmitLeague={onSubmitLeague}
-        onSaveAsDraft={onSaveAsDraft}
-        onSaveAsTemplate={onSaveAsTemplate}
-      />
+        <SubmittedLeaguesTab
+          leagues={submittedLeagues}
+          onViewLeague={onViewLeague}
+          onSubmitLeague={onSubmitLeague}
+          onSaveAsDraft={onSaveAsDraft}
+          onSaveAsTemplate={onSaveAsTemplate}
+        />
 
-      <DraftsAndTemplatesTab
-        drafts={displayDrafts}
-        templates={displayTemplates}
-        isLoading={draftsLoading || templatesLoading}
-        onEditDraft={onEditDraft}
-        onDeleteDraft={onDeleteDraft}
-        onEditTemplate={onEditTemplate}
-        onUseTemplate={onUseTemplate}
-        onDeleteTemplate={onDeleteTemplate}
-        onSubmitLeague={onSubmitLeague}
-      />
-    </Tabs>
+        <DraftsAndTemplatesTab
+          drafts={displayDrafts}
+          templates={displayTemplates}
+          isLoading={draftsLoading || templatesLoading}
+          onEditDraft={onEditDraft}
+          onDeleteDraft={onDeleteDraft}
+          onEditTemplate={onEditTemplate}
+          onUseTemplate={onUseTemplate}
+          onDeleteTemplate={onDeleteTemplate}
+          onSubmitLeague={onSubmitLeague}
+        />
+      </Tabs>
+    </OrganizerTableProvider>
   );
 }
