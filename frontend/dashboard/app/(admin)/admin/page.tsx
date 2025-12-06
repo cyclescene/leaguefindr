@@ -23,7 +23,7 @@ import { useAdminSports } from "@/hooks/useAdminSports";
 import { useAdminVenues } from "@/hooks/useAdminVenues";
 import { useAdminDrafts } from "@/hooks/useAdminDrafts";
 import type { AdminDraft } from "@/hooks/useAdminDrafts";
-import { AdminTableProvider } from "@/context/AdminTableContext";
+import { AdminTableProvider, useAdminTable } from "@/context/AdminTableContext";
 
 const ITEMS_PER_PAGE = 20
 
@@ -31,6 +31,12 @@ function DashboardContent() {
   const { user, isLoaded } = useUser();
   const { session, isLoaded: isSessionLoaded } = useSession();
   const { getToken } = useAuth();
+
+  // Get sort state from context
+  const orgTableState = useAdminTable('organizations').state
+  const sportsTableState = useAdminTable('sports').state
+  const venuesTableState = useAdminTable('venues').state
+  const draftsTableState = useAdminTable('drafts').state
 
   useEffect(() => {
     session?.reload()
@@ -117,29 +123,29 @@ function DashboardContent() {
     ITEMS_PER_PAGE,
     orgPage * ITEMS_PER_PAGE,
     debouncedOrgFilter ? { name: debouncedOrgFilter } : undefined,
-    orgSortBy as 'name' | 'created_at',
-    orgSortOrder
+    orgTableState.sortBy as 'name' | 'created_at',
+    orgTableState.sortOrder
   )
   const { data: sports, total: totalSports, isLoading: isLoadingSports, refetch: refetchSports } = useAdminSports(
     ITEMS_PER_PAGE,
     sportsPage * ITEMS_PER_PAGE,
     debouncedSportsFilter ? { name: debouncedSportsFilter } : undefined,
-    sportsSortBy as 'name',
-    sportsSortOrder
+    sportsTableState.sortBy as 'name',
+    sportsTableState.sortOrder
   )
   const { data: venues, total: totalVenues, isLoading: isLoadingVenues, refetch: refetchVenues } = useAdminVenues(
     ITEMS_PER_PAGE,
     venuesPage * ITEMS_PER_PAGE,
     debouncedVenuesFilter ? { name: debouncedVenuesFilter } : undefined,
-    venuesSortBy as 'name',
-    venuesSortOrder
+    venuesTableState.sortBy as 'name',
+    venuesTableState.sortOrder
   )
   const { data: drafts, total: totalDrafts, isLoading: isLoadingDrafts, refetch: refetchDrafts } = useAdminDrafts(
     ITEMS_PER_PAGE,
     draftsPage * ITEMS_PER_PAGE,
     debouncedDraftsFilter ? { name: debouncedDraftsFilter, type: draftsTypeFilter || undefined } : { type: draftsTypeFilter || undefined },
-    draftsSortBy as 'name' | 'date',
-    draftsSortOrder,
+    draftsTableState.sortBy as 'name' | 'date',
+    draftsTableState.sortOrder,
     user?.id
   )
 
@@ -172,21 +178,6 @@ function DashboardContent() {
   const allLeaguesTransformed: League[] = allLeagues.map(transformLeague)
 
 
-  // Sort sports based on current sort state
-  const sortedSports = sports ? [...sports].sort((a, b) => {
-    let aVal: any = a[sportsSortBy as keyof typeof a]
-    let bVal: any = b[sportsSortBy as keyof typeof b]
-
-    // Handle string sorting
-    if (typeof aVal === 'string') {
-      aVal = aVal.toLowerCase()
-      bVal = bVal.toLowerCase()
-    }
-
-    if (aVal < bVal) return sportsSortOrder === 'asc' ? -1 : 1
-    if (aVal > bVal) return sportsSortOrder === 'asc' ? 1 : -1
-    return 0
-  }) : []
 
 
   const handleViewLeague = (leagueId: number) => {
@@ -524,9 +515,6 @@ function DashboardContent() {
                 <OrganizationsTable
                   organizations={organizations || []}
                   isLoading={isLoadingOrganizations}
-                  onSort={(column, order) => { setOrgSortBy(column); setOrgSortOrder(order); setOrgPage(0); }}
-                  sortBy={orgSortBy}
-                  sortOrder={orgSortOrder}
                 />
                 {totalOrganizations > ITEMS_PER_PAGE && renderPagination(orgPage, Math.ceil(totalOrganizations / ITEMS_PER_PAGE), setOrgPage)}
               </>
@@ -551,11 +539,8 @@ function DashboardContent() {
                 {totalSports > ITEMS_PER_PAGE && renderPagination(sportsPage, Math.ceil(totalSports / ITEMS_PER_PAGE), setSportsPage)}
                 <div className="flex justify-center">
                   <SportsTable
-                    sports={sortedSports}
+                    sports={sports || []}
                     isLoading={isLoadingSports}
-                    onSort={(column, order) => { setSportsSortBy(column); setSportsSortOrder(order); setSportsPage(0); }}
-                    sortBy={sportsSortBy}
-                    sortOrder={sportsSortOrder}
                   />
                 </div>
                 {totalSports > ITEMS_PER_PAGE && renderPagination(sportsPage, Math.ceil(totalSports / ITEMS_PER_PAGE), setSportsPage)}
@@ -582,9 +567,6 @@ function DashboardContent() {
                 <VenuesTable
                   venues={venues || []}
                   isLoading={isLoadingVenues}
-                  onSort={(column, order) => { setVenuesSortBy(column); setVenuesSortOrder(order); setVenuesPage(0); }}
-                  sortBy={venuesSortBy}
-                  sortOrder={venuesSortOrder}
                 />
                 {totalVenues > ITEMS_PER_PAGE && renderPagination(venuesPage, Math.ceil(totalVenues / ITEMS_PER_PAGE), setVenuesPage)}
               </>
@@ -620,9 +602,6 @@ function DashboardContent() {
                   drafts={drafts || []}
                   isLoading={isLoadingDrafts}
                   onView={handleViewDraft}
-                  onSort={(column, order) => { setDraftsSortBy(column); setDraftsSortOrder(order); setDraftsPage(0); }}
-                  sortBy={draftsSortBy}
-                  sortOrder={draftsSortOrder}
                 />
                 {totalDrafts > ITEMS_PER_PAGE && renderPagination(draftsPage, Math.ceil(totalDrafts / ITEMS_PER_PAGE), setDraftsPage)}
               </>
