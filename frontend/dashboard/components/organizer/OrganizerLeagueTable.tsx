@@ -50,8 +50,8 @@ export function OrganizerLeagueTable({
       const query = state.searchQuery.toLowerCase()
       result = result.filter(league =>
         league.league_name?.toLowerCase().includes(query) ||
-        league.sport_name?.toLowerCase().includes(query) ||
-        league.venue_name?.toLowerCase().includes(query)
+        league.form_data?.sport_name?.toLowerCase().includes(query) ||
+        league.form_data?.venue_name?.toLowerCase().includes(query)
       )
     }
 
