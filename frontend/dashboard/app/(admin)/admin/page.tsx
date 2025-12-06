@@ -23,6 +23,7 @@ import { useAdminSports } from "@/hooks/useAdminSports";
 import { useAdminVenues } from "@/hooks/useAdminVenues";
 import { useAdminDrafts } from "@/hooks/useAdminDrafts";
 import type { AdminDraft } from "@/hooks/useAdminDrafts";
+import { AdminTableProvider } from "@/context/AdminTableContext";
 
 const ITEMS_PER_PAGE = 20
 
@@ -49,17 +50,6 @@ function DashboardContent() {
   const [venuesPage, setVenuesPage] = useState(0)
   const [draftsPage, setDraftsPage] = useState(0)
 
-  // Sort state for each table
-  const [leaguesSortBy, setLeaguesSortBy] = useState<string>('dateSubmitted')
-  const [leaguesSortOrder, setLeaguesSortOrder] = useState<'asc' | 'desc'>('desc')
-  const [orgSortBy, setOrgSortBy] = useState<string>('org_name')
-  const [orgSortOrder, setOrgSortOrder] = useState<'asc' | 'desc'>('asc')
-  const [sportsSortBy, setSportsSortBy] = useState<string>('name')
-  const [sportsSortOrder, setSportsSortOrder] = useState<'asc' | 'desc'>('asc')
-  const [venuesSortBy, setVenuesSortBy] = useState<string>('name')
-  const [venuesSortOrder, setVenuesSortOrder] = useState<'asc' | 'desc'>('asc')
-  const [draftsSortBy, setDraftsSortBy] = useState<string>('created_at')
-  const [draftsSortOrder, setDraftsSortOrder] = useState<'asc' | 'desc'>('desc')
 
   // Filter state for each table
   const [leagueStatusFilter, setLeagueStatusFilter] = useState<'pending' | 'approved' | 'rejected' | ''>('')
@@ -181,34 +171,6 @@ function DashboardContent() {
   const pendingLeaguesTransformed: League[] = pendingLeagues.map(transformLeague)
   const allLeaguesTransformed: League[] = allLeagues.map(transformLeague)
 
-  // Sort leagues based on current sort state
-  const sortLeagues = (leagues: League[]) => {
-    const sorted = [...leagues]
-    sorted.sort((a, b) => {
-      let aVal: any = a[leaguesSortBy as keyof League]
-      let bVal: any = b[leaguesSortBy as keyof League]
-
-      // Handle date sorting
-      if (leaguesSortBy === 'startDate' || leaguesSortBy === 'dateSubmitted') {
-        aVal = new Date(aVal).getTime()
-        bVal = new Date(bVal).getTime()
-      }
-
-      // Handle string sorting
-      if (typeof aVal === 'string') {
-        aVal = aVal.toLowerCase()
-        bVal = bVal.toLowerCase()
-      }
-
-      if (aVal < bVal) return leaguesSortOrder === 'asc' ? -1 : 1
-      if (aVal > bVal) return leaguesSortOrder === 'asc' ? 1 : -1
-      return 0
-    })
-    return sorted
-  }
-
-  const sortedPendingLeagues = sortLeagues(pendingLeaguesTransformed)
-  const sortedAllLeagues = sortLeagues(allLeaguesTransformed)
 
   // Sort sports based on current sort state
   const sortedSports = sports ? [...sports].sort((a, b) => {
@@ -510,13 +472,10 @@ function DashboardContent() {
                 </div>
                 {totalAll > ITEMS_PER_PAGE && renderPagination(allPage, totalPagingAll, setAllPage)}
                 <LeagueTable
-                  leagues={sortedAllLeagues}
+                  leagues={allLeaguesTransformed}
                   onView={handleViewLeague}
                   onApprove={handleApprove}
                   onReject={handleReject}
-                  onSort={(column, order) => { setLeaguesSortBy(column); setLeaguesSortOrder(order); setAllPage(0); }}
-                  sortBy={leaguesSortBy}
-                  sortOrder={leaguesSortOrder}
                   onSaveAsDraft={handleSaveAsDraft}
                   onSaveAsTemplate={handleSaveAsTemplate}
                 />
@@ -534,13 +493,10 @@ function DashboardContent() {
               <>
                 {totalPending > ITEMS_PER_PAGE && renderPagination(pendingPage, totalPagingPending, setPendingPage)}
                 <LeagueTable
-                  leagues={sortedPendingLeagues}
+                  leagues={pendingLeaguesTransformed}
                   onView={handleViewLeague}
                   onApprove={handleApprove}
                   onReject={handleReject}
-                  onSort={(column, order) => { setLeaguesSortBy(column); setLeaguesSortOrder(order); setPendingPage(0); }}
-                  sortBy={leaguesSortBy}
-                  sortOrder={leaguesSortOrder}
                   onSaveAsDraft={handleSaveAsDraft}
                   onSaveAsTemplate={handleSaveAsTemplate}
                 />
@@ -723,7 +679,9 @@ export default function Dashboard() {
         </div>
       </div>
     }>
-      <DashboardContent />
+      <AdminTableProvider>
+        <DashboardContent />
+      </AdminTableProvider>
     </Suspense>
   );
 }
