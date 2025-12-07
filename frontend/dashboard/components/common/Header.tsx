@@ -27,13 +27,11 @@ export function Header({ organizationName, email }: HeaderProps) {
 
   return (
     <header className="bg-brand-dark text-white shadow-lg">
-      <div className="max-w-7xl mx-auto px-6 py-8 flex flex-row items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link href={homeUrl} title="Home">
-            <Image src="/logo.svg" className="w-auto h-auto cursor-pointer hover:opacity-80 transition-opacity" alt="LeagueFindr" loading="eager" width={200} height={200} />
-          </Link>
-          <p className="text-brand-light text-lg">Welcome, {displayEmail}</p>
-        </div>
+      <div className="max-w-7xl mx-auto px-6 py-8 flex flex-row items-center justify-between relative">
+        <Link href={homeUrl} title="Home">
+          <Image src="/logo.svg" className="w-auto h-auto cursor-pointer hover:opacity-80 transition-opacity" alt="LeagueFindr" loading="eager" width={200} height={200} />
+        </Link>
+        <p className="text-brand-light text-lg absolute left-1/2 transform -translate-x-1/2">Welcome, {displayEmail}</p>
         <div className="flex items-center gap-6">
           {/* Notification Center */}
           <NotificationCenter />
