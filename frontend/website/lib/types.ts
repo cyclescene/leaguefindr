@@ -17,9 +17,6 @@ export interface BaseEntity {
 // BUSINESS DOMAIN TYPES
 // ====================================
 
-// Age group filter options (matching database values)
-export type AgeGroup = 'Adult' | 'Youth'
-
 // Sport categories (these match your database sport names)
 export type Sport = 'Basketball' | 'Softball' | 'Football' | 'Soccer' | 'Baseball' | 'Volleyball' | 
                    'Hockey' | 'Spikeball' | 'Tennis' | 'Golf' | 'Ultimate Frisbee' | 'Dodgeball' | 
@@ -41,8 +38,17 @@ export interface DatabaseSport {
   name: string
 }
 
-export interface DatabaseOrganization {
+export interface DatabaseGameOccurrence {
   id: number
+  league_id: string  // UUID reference
+  day: string
+  start_time: string
+  end_time: string
+  created_at: string
+}
+
+export interface DatabaseOrganization {
+  id: string  // UUID
   org_name: string
   org_url: string | null
   org_phone_number: string | null
@@ -59,23 +65,27 @@ export interface DatabaseVenue {
 }
 
 export interface DatabaseLeague {
-  id: number
-  org_id: number
+  id: string  // UUID
+  org_id: string  // UUID
   sport_id: number
   venue_id: number
+  league_name: string
   division: string | null
   registration_deadline: string  // Date string from DB
   season_start_date: string     // Date string from DB
   season_end_date: string       // Date string from DB
-  game_days: string            // JSON string like "{Tuesday,Thursday}"
-  game_start_time: string      // Time string "18:00:00"
-  game_end_time: string        // Time string "22:00:00"
-  season_fee: number | null
+  pricing_strategy: string | null  // 'per_person' | 'per_team' | null
+  pricing_amount: number | null
+  pricing_per_player: number | null
   per_game_fee: number | null
-  age_group: string           // "Adult" | "Youth"
   gender: string              // "Male" | "Female" | "Co-ed"
   season_details: string      // Long text description
   registration_url: string
+  form_data?: Record<string, any> | null  // JSONB data (optional)
+  created_by?: string | null   // User ID (optional)
+  rejection_reason?: string | null  // (optional)
+  created_at: string
+  updated_at: string
   duration: number | null     // Number of weeks
   minimum_team_players: number | null
 }
@@ -85,6 +95,7 @@ export interface DatabaseLeagueWithRelations extends DatabaseLeague {
   organization: DatabaseOrganization
   venue: DatabaseVenue
   sport: DatabaseSport
+  game_occurrences: DatabaseGameOccurrence[]
 }
 
 // ====================================
@@ -92,7 +103,7 @@ export interface DatabaseLeagueWithRelations extends DatabaseLeague {
 // ====================================
 
 export interface Organization {
-  id: number
+  id: string  // UUID
   name: string
   url?: string
   phoneNumber?: string
@@ -116,7 +127,7 @@ export interface SportInfo {
 }
 
 export interface League {
-  id: number
+  id: string  // UUID
   organization: Organization
   venue: Venue
   sport: SportInfo
@@ -129,7 +140,6 @@ export interface League {
   gameEndTime: string        // Formatted time "10:00 PM"
   seasonFee?: number
   perGameFee?: number
-  ageGroup: AgeGroup
   gender: Gender
   seasonDetails: string
   registrationUrl: string
@@ -145,8 +155,7 @@ export interface League {
 // ====================================
 
 export interface FilterState {
-  ageGroup?: AgeGroup[]  // Changed to array for multi-select
-  sport?: string[]       // Changed to array for multi-select (Sport names or IDs)
+  sport?: string[]       // Changed to array for multi-select (Sport names)
   gender?: Gender[]      // Changed to array for multi-select
   gameDay?: GameDay[]    // Changed to array for multi-select
   distance?: number      // in miles (remains single value)
@@ -168,15 +177,69 @@ export interface SortOption {
 // DATA MAPPING UTILITIES
 // ====================================
 
-export function parseGameDays(gameDaysString: string): GameDay[] {
-  try {
-    // Parse JSON string like "{Tuesday,Thursday}" into array
-    const cleaned = gameDaysString.replace(/[{}]/g, '')
-    const days = cleaned.split(',').map(day => day.trim())
-    return days as GameDay[]
-  } catch {
-    return []
+// Weekday order for sorting game occurrences
+const WEEKDAY_ORDER: Record<string, number> = {
+  'Monday': 0,
+  'Tuesday': 1,
+  'Wednesday': 2,
+  'Thursday': 3,
+  'Friday': 4,
+  'Saturday': 5,
+  'Sunday': 6,
+}
+
+export function processGameOccurrences(
+  occurrences: DatabaseGameOccurrence[]
+): { gameDays: GameDay[]; gameStartTime: string; gameEndTime: string } {
+  if (!occurrences || occurrences.length === 0) {
+    return { gameDays: [], gameStartTime: '', gameEndTime: '' }
   }
+
+  // Extract unique days and sort by weekday order
+  const uniqueDays = Array.from(new Set(occurrences.map(o => o.day)))
+  const sortedDays = uniqueDays.sort((a, b) => (WEEKDAY_ORDER[a] ?? 7) - (WEEKDAY_ORDER[b] ?? 7))
+
+  // Find earliest start time and latest end time
+  const startTimes = occurrences.map(o => o.start_time).filter(Boolean)
+  const endTimes = occurrences.map(o => o.end_time).filter(Boolean)
+
+  const gameStartTime = startTimes.length > 0 ? startTimes.sort()[0] : ''
+  const gameEndTime = endTimes.length > 0 ? endTimes.sort().reverse()[0] : ''
+
+  return {
+    gameDays: sortedDays as GameDay[],
+    gameStartTime,
+    gameEndTime,
+  }
+}
+
+export function calculateSeasonFee(
+  pricingStrategy: string | null,
+  pricingAmount: number | null,
+  pricingPerPlayer: number | null,
+  minimumTeamPlayers: number | null
+): number | undefined {
+  // Prefer pricing_per_player if available (already calculated)
+  if (pricingPerPlayer !== null && pricingPerPlayer !== undefined) {
+    return pricingPerPlayer
+  }
+
+  // If no pricing amount, can't calculate
+  if (pricingAmount === null || pricingAmount === undefined) {
+    return undefined
+  }
+
+  // If per_person pricing, use the amount directly
+  if (pricingStrategy === 'per_person') {
+    return pricingAmount
+  }
+
+  // If per_team pricing, divide by minimum team players
+  if (pricingStrategy === 'per_team' && minimumTeamPlayers && minimumTeamPlayers > 0) {
+    return Math.round(pricingAmount / minimumTeamPlayers)
+  }
+
+  return undefined
 }
 
 export function formatTime(timeString: string): string {
@@ -229,6 +292,19 @@ export function mapDatabaseLeagueToLeague(dbLeague: DatabaseLeagueWithRelations)
   }
 
   try {
+    // Process game occurrences
+    const { gameDays, gameStartTime, gameEndTime } = processGameOccurrences(
+      dbLeague.game_occurrences || []
+    )
+
+    // Calculate season fee from pricing data
+    const seasonFee = calculateSeasonFee(
+      dbLeague.pricing_strategy,
+      dbLeague.pricing_amount,
+      dbLeague.pricing_per_player,
+      dbLeague.minimum_team_players
+    )
+
     return {
       id: dbLeague.id,
       organization: mapDatabaseOrganizationToOrganization(dbLeague.organization),
@@ -238,12 +314,11 @@ export function mapDatabaseLeagueToLeague(dbLeague: DatabaseLeagueWithRelations)
       registrationDeadline: new Date(dbLeague.registration_deadline),
       seasonStartDate: new Date(dbLeague.season_start_date),
       seasonEndDate: new Date(dbLeague.season_end_date),
-      gameDays: parseGameDays(dbLeague.game_days),
-      gameStartTime: formatTime(dbLeague.game_start_time),
-      gameEndTime: formatTime(dbLeague.game_end_time),
-      seasonFee: dbLeague.season_fee || undefined,
+      gameDays,
+      gameStartTime: formatTime(gameStartTime),
+      gameEndTime: formatTime(gameEndTime),
+      seasonFee,
       perGameFee: dbLeague.per_game_fee || undefined,
-      ageGroup: dbLeague.age_group as AgeGroup,
       gender: dbLeague.gender as Gender,
       seasonDetails: dbLeague.season_details,
       registrationUrl: dbLeague.registration_url,

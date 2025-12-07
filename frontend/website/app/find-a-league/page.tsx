@@ -182,7 +182,6 @@ function FindALeagueContent() {
     const query = searchParams.get('query')
     
     // Parse all possible filter parameters
-    const ageGroupParam = searchParams.get('ageGroup')
     const sportParam = searchParams.get('sport')
     const genderParam = searchParams.get('gender')
     const gameDayParam = searchParams.get('gameDay')
@@ -190,7 +189,7 @@ function FindALeagueContent() {
 
     // Clear cache when there ARE URL parameters (new search from hero/navbar/quickfilters)
     // BUT NOT when returning from league detail page (which would have cached filters)
-    const hasUrlParams = location || query || ageGroupParam || sportParam || genderParam || gameDayParam || distanceParam
+    const hasUrlParams = location || query || sportParam || genderParam || gameDayParam || distanceParam
     const isReturningFromLeagueDetail = typeof window !== 'undefined' && 
       document.referrer && 
       document.referrer.includes('/leagues/') &&
@@ -236,11 +235,8 @@ function FindALeagueContent() {
     let shouldUseCache = false
     
     // Parse filter URL parameters (highest priority)
-    if (ageGroupParam || sportParam || genderParam || gameDayParam || distanceParam) {
+    if (sportParam || genderParam || gameDayParam || distanceParam) {
       // Convert comma-separated values to arrays (except distance)
-      if (ageGroupParam) {
-        initialFilters.ageGroup = ageGroupParam.split(',').map(s => s.trim()) as any
-      }
       if (sportParam) {
         initialFilters.sport = sportParam.split(',').map(s => s.trim())
       }
