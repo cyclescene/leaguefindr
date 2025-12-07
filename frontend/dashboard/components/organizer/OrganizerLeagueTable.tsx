@@ -41,21 +41,11 @@ export function OrganizerLeagueTable({
 }: OrganizerLeagueTableProps) {
   const { state, setSearchQuery, setFilterValue, toggleSort } = useOrganizerTable('leagues')
 
-  // Filter and sort leagues
+  // Sort leagues (filtering is now server-side)
   const filteredAndSortedLeagues = useMemo(() => {
     let result = [...leagues]
 
-    // Filter by search query
-    if (state.searchQuery) {
-      const query = state.searchQuery.toLowerCase()
-      result = result.filter(league =>
-        league.league_name?.toLowerCase().includes(query) ||
-        league.form_data?.sport_name?.toLowerCase().includes(query) ||
-        league.form_data?.venue_name?.toLowerCase().includes(query)
-      )
-    }
-
-    // Filter by status
+    // Filter by status (client-side only, status isn't part of search)
     if (state.filterValue !== 'all') {
       result = result.filter(league => league.status === state.filterValue)
     }
@@ -95,7 +85,7 @@ export function OrganizerLeagueTable({
     })
 
     return result
-  }, [leagues, state.searchQuery, state.filterValue, state.sortBy, state.sortOrder])
+  }, [leagues, state.filterValue, state.sortBy, state.sortOrder])
 
   // Get unique statuses for filter
   const uniqueStatuses = useMemo(() => {

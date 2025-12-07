@@ -3,7 +3,7 @@
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { ClerkUser } from "@/types/clerk";
 import type { League } from "@/types/leagues";
 import type { AddLeagueFormData } from "@/lib/schemas/leagues";
@@ -47,11 +47,21 @@ function OrganizationDashboardContent() {
   const [viewingLeagueId, setViewingLeagueId] = useState<number | undefined>();
   const [viewingLeagueStatus, setViewingLeagueStatus] = useState<string | undefined>();
   const [viewingLeagueRejectionReason, setViewingLeagueRejectionReason] = useState<string | null | undefined>();
+  const [leaguesSearchInput, setLeaguesSearchInput] = useState('');
+  const [debouncedLeaguesSearch, setDebouncedLeaguesSearch] = useState('');
 
   const { organization, isLoading, error, refetch } = useOrganization(orgId);
 
+  // Debounce leagues search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedLeaguesSearch(leaguesSearchInput);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [leaguesSearchInput]);
+
   // Fetch real leagues, drafts and templates from API
-  const { leagues: apiLeagues, isLoading: leaguesLoading, refetch: refetchLeagues } = useLeagues(orgId);
+  const { leagues: apiLeagues, isLoading: leaguesLoading, refetch: refetchLeagues } = useLeagues(orgId, debouncedLeaguesSearch);
   const { draftsAndTemplates, isLoading: draftsAndTemplatesLoading, refetch: refetchDraftsAndTemplates } = useDraftsAndTemplates(orgId);
 
   // Filter drafts and templates

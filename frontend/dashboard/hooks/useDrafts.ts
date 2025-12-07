@@ -450,7 +450,7 @@ export interface SubmittedLeague {
   }
 }
 
-export function useLeagues(orgId: string) {
+export function useLeagues(orgId: string, searchQuery?: string) {
   const { supabase, isLoaded } = useSupabase()
   const [state, setState] = useState({
     data: null as SubmittedLeague[] | null,
@@ -462,10 +462,21 @@ export function useLeagues(orgId: string) {
     if (!supabase || !orgId) return
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('leagues')
         .select('*')
         .eq('org_id', orgId)
+
+      // Add server-side search filtering for league name and form_data fields
+      if (searchQuery) {
+        query = query.or(
+          `league_name.ilike.%${searchQuery}%,` +
+          `form_data->>sport_name.ilike.%${searchQuery}%,` +
+          `form_data->>venue_name.ilike.%${searchQuery}%`
+        )
+      }
+
+      const { data, error } = await query
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -494,7 +505,7 @@ export function useLeagues(orgId: string) {
         error: new Error(errorMessage),
       })
     }
-  }, [supabase, orgId])
+  }, [supabase, orgId, searchQuery])
 
   useEffect(() => {
     if (!isLoaded || !supabase || !orgId) return
@@ -567,7 +578,7 @@ export function useLeagues(orgId: string) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [isLoaded, supabase, orgId, fetch])
+  }, [isLoaded, supabase, orgId, fetch, searchQuery])
 
   return {
     leagues: state.data || [],
