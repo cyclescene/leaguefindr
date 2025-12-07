@@ -122,17 +122,36 @@ function DashboardContent() {
     return () => clearTimeout(timer)
   }, [draftsTableState.searchQuery])
 
+  // Map table column names to server sort values
+  const mapLeaguesSortBy = (column: any): 'league_name' | 'sport' | 'venue' | 'organization' | 'gender' | 'date' | 'status' => {
+    const sortMap: { [key: string]: 'league_name' | 'sport' | 'venue' | 'organization' | 'gender' | 'date' | 'status' } = {
+      'name': 'league_name',
+      'organizationName': 'organization',
+      'sport': 'sport',
+      'gender': 'gender',
+      'startDate': 'date',
+      'venue': 'venue',
+      'dateSubmitted': 'date',
+      'status': 'status',
+    };
+    return sortMap[column] || 'date';
+  };
+
   // Fetch all data immediately - always load to avoid refetches on tab switches
   const { pendingLeagues, total: totalPending, isLoading: isLoadingPending, refetch: refetchPendingLeagues } = usePendingLeagues(
     ITEMS_PER_PAGE,
     pendingPage * ITEMS_PER_PAGE,
-    debouncedPendingLeaguesSearch || undefined
+    debouncedPendingLeaguesSearch || undefined,
+    mapLeaguesSortBy(pendingLeaguesTableState.displaySortBy || pendingLeaguesTableState.sortBy),
+    pendingLeaguesTableState.sortOrder
   )
   const { allLeagues, total: totalAll, isLoading: isLoadingAll, refetch: refetchAllLeagues } = useAllLeagues(
     ITEMS_PER_PAGE,
     allPage * ITEMS_PER_PAGE,
     (leaguesTableState.filterValue as 'pending' | 'approved' | 'rejected' | undefined) || undefined,
-    debouncedLeaguesSearch || undefined
+    debouncedLeaguesSearch || undefined,
+    mapLeaguesSortBy(leaguesTableState.displaySortBy || leaguesTableState.sortBy),
+    leaguesTableState.sortOrder
   )
 
   // Admin operations
@@ -500,6 +519,7 @@ function DashboardContent() {
                   onReject={handleReject}
                   onSaveAsDraft={handleSaveAsDraft}
                   onSaveAsTemplate={handleSaveAsTemplate}
+                  tableType="leagues"
                 />
                 {totalAll > ITEMS_PER_PAGE && renderPagination(allPage, totalPagingAll, setAllPage)}
               </>
@@ -529,6 +549,7 @@ function DashboardContent() {
                   onReject={handleReject}
                   onSaveAsDraft={handleSaveAsDraft}
                   onSaveAsTemplate={handleSaveAsTemplate}
+                  tableType="pending-leagues"
                 />
                 {totalPending > ITEMS_PER_PAGE && renderPagination(pendingPage, totalPagingPending, setPendingPage)}
               </>

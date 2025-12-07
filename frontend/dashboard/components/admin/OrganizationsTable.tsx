@@ -2,7 +2,7 @@
 
 import { Table, TableHead, TableHeader, TableRow, TableBody, TableCell } from "@/components/ui/table"
 import { Copy, Check, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import type { AdminOrganization } from "@/hooks/useAdminOrganizations"
 import { useAdminTable } from "@/context/AdminTableContext"
 
@@ -31,25 +31,6 @@ export function OrganizationsTable({ organizations, isLoading }: OrganizationsTa
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 2000)
   }
-
-  const sortedOrganizations = useMemo(() => {
-    const sorted = [...organizations]
-    sorted.sort((a, b) => {
-      let aVal: any = a[state.sortBy as keyof AdminOrganization]
-      let bVal: any = b[state.sortBy as keyof AdminOrganization]
-
-      // Handle string sorting
-      if (typeof aVal === 'string') {
-        aVal = aVal.toLowerCase()
-        bVal = bVal.toLowerCase()
-      }
-
-      if (aVal < bVal) return state.sortOrder === 'asc' ? -1 : 1
-      if (aVal > bVal) return state.sortOrder === 'asc' ? 1 : -1
-      return 0
-    })
-    return sorted
-  }, [organizations, state.sortBy, state.sortOrder])
 
   if (isLoading) {
     return (
@@ -88,7 +69,7 @@ export function OrganizationsTable({ organizations, isLoading }: OrganizationsTa
         </TableRow>
       </TableHeader>
       <TableBody>
-        {sortedOrganizations.map((org) => (
+        {organizations.map((org) => (
           <TableRow key={org.id} className="hover:bg-neutral-50">
             <TableCell>
               <div className="flex items-center gap-2">
@@ -114,8 +95,15 @@ export function OrganizationsTable({ organizations, isLoading }: OrganizationsTa
             </TableCell>
             <TableCell>
               {org.org_url ? (
-                <a href={org.org_url} target="_blank" rel="noopener noreferrer" className="text-brand-dark hover:underline cursor-pointer">
-                  {new URL(org.org_url).hostname}
+                <a href={org.org_url.startsWith('http') ? org.org_url : `https://${org.org_url}`} target="_blank" rel="noopener noreferrer" className="text-brand-dark hover:underline cursor-pointer">
+                  {(() => {
+                    try {
+                      const url = new URL(org.org_url.startsWith('http') ? org.org_url : `https://${org.org_url}`);
+                      return url.hostname;
+                    } catch {
+                      return org.org_url;
+                    }
+                  })()}
                 </a>
               ) : (
                 '-'

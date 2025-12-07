@@ -9,21 +9,13 @@ import {
   TableBody,
 } from "@/components/ui/table";
 import { OrganizerLeagueTableRow } from "./OrganizerLeagueTableRow";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useOrganizerTable } from "@/context/OrganizerTableContext";
 import type { SubmittedLeague } from "@/hooks/useDrafts";
 
 interface OrganizerLeagueTableProps {
   leagues: SubmittedLeague[];
-  onView: (leagueId: number) => void;
+  onView: (league: any) => void;
   onSaveAsDraft: (leagueData: any, name?: string) => void;
   onSaveAsTemplate: (leagueData: any, name?: string) => void;
 }
@@ -41,7 +33,7 @@ export function OrganizerLeagueTable({
 }: OrganizerLeagueTableProps) {
   const { state, setSearchQuery, setFilterValue, toggleSort } = useOrganizerTable('leagues')
 
-  // Sort leagues (filtering is now server-side)
+  // Filter leagues (sorting is now server-side, only filter by status client-side)
   const filteredAndSortedLeagues = useMemo(() => {
     let result = [...leagues]
 
@@ -50,42 +42,8 @@ export function OrganizerLeagueTable({
       result = result.filter(league => league.status === state.filterValue)
     }
 
-    // Sort
-    result.sort((a, b) => {
-      let aVal: any, bVal: any
-
-      switch (state.sortBy) {
-        case 'name':
-          aVal = a.league_name || ''
-          bVal = b.league_name || ''
-          break
-        case 'sport':
-          aVal = a.form_data?.sport_name || ''
-          bVal = b.form_data?.sport_name || ''
-          break
-        case 'status':
-          aVal = a.status || ''
-          bVal = b.status || ''
-          break
-        case 'date':
-          aVal = new Date(a.created_at || 0).getTime()
-          bVal = new Date(b.created_at || 0).getTime()
-          break
-        default:
-          return 0
-      }
-
-      if (typeof aVal === 'string') {
-        aVal = aVal.toLowerCase()
-        bVal = bVal.toLowerCase()
-        return state.sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
-      }
-
-      return state.sortOrder === 'asc' ? aVal - bVal : bVal - aVal
-    })
-
     return result
-  }, [leagues, state.filterValue, state.sortBy, state.sortOrder])
+  }, [leagues, state.filterValue])
 
   // Get unique statuses for filter
   const uniqueStatuses = useMemo(() => {
@@ -94,29 +52,6 @@ export function OrganizerLeagueTable({
 
   return (
     <div className="space-y-4">
-      {/* Search and Filter Controls */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <Input
-          placeholder="Search by league name, sport, or venue..."
-          value={state.searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 bg-white"
-        />
-        <Select value={state.filterValue} onValueChange={setFilterValue}>
-          <SelectTrigger className="w-full md:w-48 bg-white">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            {uniqueStatuses.map(status => (
-              <SelectItem key={status} value={status || ''}>
-                {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown'}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Table */}
       <Table className="w-full bg-white rounded-lg shadow-md">
         <TableHeader>

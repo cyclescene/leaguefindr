@@ -5,10 +5,17 @@ import { useSession, useUser } from '@clerk/nextjs'
 import { useEffect, useState, createContext, useContext, useRef } from 'react'
 import { toast } from 'sonner'
 
+type ExecuteQueryFn = <T>(
+  queryFn: () => Promise<{ data: T | null; error: any; count?: number | null }>,
+  operationName?: string
+) => Promise<{ data: T | null; error: any; count?: number | null }>
+
 type SupabaseContext = {
   supabase: SupabaseClient | null
   isLoaded: boolean
   isError: boolean
+  refreshToken: () => Promise<string | null>
+  executeWithRetry: ExecuteQueryFn
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -18,7 +25,9 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
 const Context = createContext<SupabaseContext>({
   supabase: null,
   isLoaded: false,
-  isError: false
+  isError: false,
+  refreshToken: async () => null,
+  executeWithRetry: async (queryFn) => queryFn()
 })
 
 type Props = {
@@ -55,6 +64,52 @@ export default function SupabaseProvider({ children }: Props) {
 
     if (shouldInitialize) {
       initializationAttempted.current = session.id
+
+      const refreshToken = async () => {
+        try {
+          const newToken = await session?.getToken()
+          if (newToken) {
+            cachedToken.current = newToken
+            return newToken
+          }
+        } catch (err) {
+          console.error('[SupabaseContext] Token refresh failed:', err)
+        }
+        return null
+      }
+
+      const executeWithRetry: ExecuteQueryFn = async (queryFn, operationName = 'Query') => {
+        try {
+          // First attempt
+          const result = await queryFn()
+
+          if (result.error) {
+            // Check if it's an auth/token error
+            const isAuthError =
+              result.error.code === 'PGRST301' ||
+              result.error.message?.includes('JWT') ||
+              result.error.message?.includes('Unauthorized') ||
+              result.error.message?.includes('401')
+
+            if (isAuthError) {
+              console.warn(`[SupabaseContext] ${operationName} - Token expired, refreshing and retrying...`)
+              await refreshToken()
+
+              // Retry once
+              const retryResult = await queryFn()
+              if (retryResult.error) {
+                console.error(`[SupabaseContext] ${operationName} - Retry failed:`, retryResult.error)
+              }
+              return retryResult
+            }
+          }
+
+          return result
+        } catch (error) {
+          console.error(`[SupabaseContext] ${operationName} - Exception:`, error)
+          return { data: null, error }
+        }
+      }
 
       const initializeSupabase = async () => {
         try {
@@ -102,7 +157,7 @@ export default function SupabaseProvider({ children }: Props) {
             } catch (refreshErr) {
               console.error('[SupabaseContext] Token refresh failed:', refreshErr)
             }
-          }, 50000) // Refresh every 55 seconds
+          }, 50000) // Refresh every 50 seconds
 
           setSupabase(client)
           setIsLoaded(true)
@@ -126,8 +181,60 @@ export default function SupabaseProvider({ children }: Props) {
     }
   }, [isSessionLoaded, session?.id, user?.id, isUserLoaded])
 
+  // Create the executeWithRetry function that can be used in the provider value
+  const createExecuteWithRetry = (): ExecuteQueryFn => {
+    return async (queryFn, operationName = 'Query') => {
+      try {
+        // First attempt
+        const result = await queryFn()
+
+        if (result.error) {
+          // Check if it's an auth/token error
+          const isAuthError =
+            result.error.code === 'PGRST301' ||
+            result.error.message?.includes('JWT') ||
+            result.error.message?.includes('Unauthorized') ||
+            result.error.message?.includes('401')
+
+          if (isAuthError) {
+            console.warn(`[SupabaseContext] ${operationName} - Token expired, refreshing and retrying...`)
+            const newToken = await session?.getToken()
+            if (newToken) {
+              cachedToken.current = newToken
+            }
+
+            // Retry once
+            const retryResult = await queryFn()
+            if (retryResult.error) {
+              console.error(`[SupabaseContext] ${operationName} - Retry failed:`, retryResult.error)
+            }
+            return retryResult
+          }
+        }
+
+        return result
+      } catch (error) {
+        console.error(`[SupabaseContext] ${operationName} - Exception:`, error)
+        return { data: null, error }
+      }
+    }
+  }
+
   return (
-    <Context.Provider value={{ supabase, isLoaded, isError }}>
+    <Context.Provider value={{
+      supabase,
+      isLoaded,
+      isError,
+      refreshToken: async () => {
+        const newToken = await session?.getToken()
+        if (newToken) {
+          cachedToken.current = newToken
+          return newToken
+        }
+        return null
+      },
+      executeWithRetry: createExecuteWithRetry()
+    }}>
       {!isLoaded ? (
         <div className="flex items-center justify-center min-h-screen bg-neutral-light">
           <div className="text-center">
@@ -147,6 +254,8 @@ export const useSupabase = () => {
   }
   return {
     supabase: context.supabase,
-    isLoaded: context.isLoaded
+    isLoaded: context.isLoaded,
+    refreshToken: context.refreshToken,
+    executeWithRetry: context.executeWithRetry
   }
 }

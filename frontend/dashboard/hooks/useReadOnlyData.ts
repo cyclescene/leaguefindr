@@ -81,7 +81,7 @@ export function useSports() {
       const { data, error } = await supabase
         .from('sports')
         .select('*')
-        .order('name');
+        .order('lower_sport_name', { ascending: true });
 
       if (error) throw error;
 
@@ -131,7 +131,7 @@ export function useVenues() {
       const { data, error } = await supabase
         .from('venues')
         .select('*')
-        .order('name');
+        .order('lower_venue_name', { ascending: true });
 
       if (error) throw error;
 
@@ -353,7 +353,7 @@ export function useUserOrganizations() {
       const { data, error } = await supabase
         .from('organizations')
         .select('*')
-        .order('org_name');
+        .order('lower_org_name', { ascending: true });
 
       if (error) throw error;
 
@@ -410,7 +410,7 @@ export function useAllOrganizations() {
           *,
           user_organizations(count)
         `)
-        .order('org_name');
+        .order('lower_org_name', { ascending: true });
 
       if (error) throw error;
 

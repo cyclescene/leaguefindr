@@ -17,7 +17,7 @@ export function useAdminSports(
   sortBy?: 'name',
   sortOrder?: 'asc' | 'desc'
 ) {
-  const { supabase, isLoaded } = useSupabase()
+  const { supabase, isLoaded, executeWithRetry } = useSupabase()
   const [state, setState] = useState({
     data: null as AdminSport[] | null,
     total: 0,
@@ -38,12 +38,21 @@ export function useAdminSports(
         query = query.ilike('name', `%${filters.name}%`)
       }
 
-      // Apply sorting (default by name)
+      // Apply sorting with case-insensitive collation
+      const sortColumn = sortBy === 'name' ? 'lower_sport_name' : 'lower_sport_name'
       const ascending = sortOrder === 'asc'
-      query = query.order('name', { ascending })
+      query = query.order(sortColumn, {
+        ascending,
+        nullsFirst: false,
+      })
 
-      // Apply pagination
-      const { data, count, error } = await query.range(offset, offset + limit - 1)
+      // Apply pagination with automatic token refresh on auth errors
+      const { data, count, error } = await executeWithRetry(
+        async () => {
+          return await query.range(offset, offset + limit - 1)
+        },
+        'useAdminSports'
+      )
 
       if (error) {
         throw error
@@ -62,7 +71,7 @@ export function useAdminSports(
         error: error instanceof Error ? error : new Error(stringifyError(error)),
       }))
     }
-  }, [supabase, offset, limit, filters?.name, sortOrder])
+  }, [supabase, offset, limit, filters?.name, sortBy, sortOrder, executeWithRetry])
 
   useEffect(() => {
     if (!isLoaded) return

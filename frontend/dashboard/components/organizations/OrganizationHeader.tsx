@@ -18,7 +18,7 @@ export function OrganizationHeader({
   const router = useRouter();
 
   return (
-    <div className="flex items-center justify-between gap-4 text-sm mb-6">
+    <div className="flex items-center justify-between gap-4 text-sm mb-2">
       <div className="flex items-center gap-2">
         <button
           onClick={() => router.push("/")}

@@ -23,7 +23,7 @@ export function useAdminOrganizations(
   sortBy?: 'name' | 'created_at',
   sortOrder?: 'asc' | 'desc'
 ) {
-  const { supabase, isLoaded } = useSupabase()
+  const { supabase, isLoaded, executeWithRetry } = useSupabase()
   const [state, setState] = useState({
     data: null as AdminOrganization[] | null,
     total: 0,
@@ -45,13 +45,21 @@ export function useAdminOrganizations(
         query = query.ilike('org_name', `%${filters.name}%`)
       }
 
-      // Apply sorting
-      const sortColumn = sortBy === 'created_at' ? 'created_at' : 'org_name'
+      // Apply sorting with case-insensitive collation
+      const sortColumn = sortBy === 'created_at' ? 'created_at' : 'lower_org_name'
       const ascending = sortOrder === 'asc'
-      query = query.order(sortColumn, { ascending })
+      query = query.order(sortColumn, {
+        ascending,
+        nullsFirst: false,
+      })
 
-      // Apply pagination
-      const { data, count, error } = await query.range(offset, offset + limit - 1)
+      // Apply pagination with automatic token refresh on auth errors
+      const { data, count, error } = await executeWithRetry(
+        async () => {
+          return await query.range(offset, offset + limit - 1)
+        },
+        'useAdminOrganizations'
+      )
 
       if (error) {
         throw error
@@ -70,7 +78,7 @@ export function useAdminOrganizations(
         error: error instanceof Error ? error : new Error(stringifyError(error)),
       }))
     }
-  }, [supabase, offset, limit, filters?.name, sortBy, sortOrder])
+  }, [supabase, offset, limit, filters?.name, sortBy, sortOrder, executeWithRetry])
 
   useEffect(() => {
     if (!isLoaded) return

@@ -1,6 +1,5 @@
 import { Table, TableHead, TableHeader, TableRow, TableBody } from "@/components/ui/table";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { useMemo } from "react";
 import { LeagueTableRow } from "./LeagueTableRow";
 import { useAdminTable } from "@/context/AdminTableContext";
 
@@ -23,6 +22,7 @@ interface LeagueTableProps {
   onReject: (leagueId: number) => void;
   onSaveAsDraft: (leagueData: Record<string, unknown>, name?: string) => void;
   onSaveAsTemplate: (leagueData: Record<string, unknown>, name?: string) => void;
+  tableType?: 'leagues' | 'pending-leagues';
 }
 
 interface SortIconProps {
@@ -36,35 +36,8 @@ function SortIcon({ column, sortBy, sortOrder }: SortIconProps) {
   return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
 }
 
-export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraft, onSaveAsTemplate }: LeagueTableProps) {
-  const { state, toggleSort } = useAdminTable('leagues');
-
-  const sortedLeagues = useMemo(() => {
-    const sorted = [...leagues];
-
-    // Sort the results
-    sorted.sort((a, b) => {
-      let aVal: any = a[state.sortBy as keyof League];
-      let bVal: any = b[state.sortBy as keyof League];
-
-      // Handle date sorting
-      if (state.sortBy === 'startDate' || state.sortBy === 'dateSubmitted') {
-        aVal = new Date(aVal).getTime();
-        bVal = new Date(bVal).getTime();
-      }
-
-      // Handle string sorting
-      if (typeof aVal === 'string') {
-        aVal = aVal.toLowerCase();
-        bVal = bVal.toLowerCase();
-      }
-
-      if (aVal < bVal) return state.sortOrder === 'asc' ? -1 : 1;
-      if (aVal > bVal) return state.sortOrder === 'asc' ? 1 : -1;
-      return 0;
-    });
-    return sorted;
-  }, [leagues, state.sortBy, state.sortOrder]);
+export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraft, onSaveAsTemplate, tableType = 'leagues' }: LeagueTableProps) {
+  const { state, toggleSort } = useAdminTable(tableType as 'leagues' | 'pending-leagues');
 
   if (!leagues || leagues.length === 0) {
     return (
@@ -85,7 +58,7 @@ export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraf
           >
             <div className="w-60 flex items-center gap-2">
               League Org Name
-              <SortIcon column="organizationName" sortBy={state.sortBy} sortOrder={state.sortOrder} />
+              <SortIcon column="organizationName" sortBy={state.displaySortBy || state.sortBy} sortOrder={state.sortOrder} />
             </div>
           </TableHead>
           <TableHead
@@ -94,7 +67,7 @@ export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraf
           >
             <div className="w-40 flex items-center gap-2">
               Sport
-              <SortIcon column="sport" sortBy={state.sortBy} sortOrder={state.sortOrder} />
+              <SortIcon column="sport" sortBy={state.displaySortBy || state.sortBy} sortOrder={state.sortOrder} />
             </div>
           </TableHead>
           <TableHead
@@ -103,7 +76,7 @@ export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraf
           >
             <div className="flex items-center gap-2">
               Gender
-              <SortIcon column="gender" sortBy={state.sortBy} sortOrder={state.sortOrder} />
+              <SortIcon column="gender" sortBy={state.displaySortBy || state.sortBy} sortOrder={state.sortOrder} />
             </div>
           </TableHead>
           <TableHead
@@ -112,7 +85,7 @@ export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraf
           >
             <div className="w-32 flex items-center gap-2">
               Start Date
-              <SortIcon column="startDate" sortBy={state.sortBy} sortOrder={state.sortOrder} />
+              <SortIcon column="startDate" sortBy={state.displaySortBy || state.sortBy} sortOrder={state.sortOrder} />
             </div>
           </TableHead>
           <TableHead
@@ -121,7 +94,7 @@ export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraf
           >
             <div className="w-52 flex items-center gap-2">
               Venue
-              <SortIcon column="venue" sortBy={state.sortBy} sortOrder={state.sortOrder} />
+              <SortIcon column="venue" sortBy={state.displaySortBy || state.sortBy} sortOrder={state.sortOrder} />
             </div>
           </TableHead>
           <TableHead
@@ -130,7 +103,7 @@ export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraf
           >
             <div className="flex items-center gap-2">
               Date Submitted
-              <SortIcon column="dateSubmitted" sortBy={state.sortBy} sortOrder={state.sortOrder} />
+              <SortIcon column="dateSubmitted" sortBy={state.displaySortBy || state.sortBy} sortOrder={state.sortOrder} />
             </div>
           </TableHead>
           <TableHead>Status</TableHead>
@@ -138,7 +111,7 @@ export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraf
         </TableRow>
       </TableHeader>
       <TableBody>
-        {sortedLeagues.map((league) => (
+        {leagues.map((league) => (
           <LeagueTableRow
             key={league.id}
             league={league}

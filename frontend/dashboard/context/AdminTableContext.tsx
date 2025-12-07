@@ -13,6 +13,7 @@ interface TableState {
   sortBy: AdminSortColumn
   sortOrder: SortOrder
   page: number
+  displaySortBy?: AdminSortColumn
 }
 
 interface AdminTableContextType {
@@ -97,10 +98,10 @@ export function AdminTableProvider({ children }: { children: React.ReactNode }) 
   const toggleSort = (tableType: AdminTableType, column: AdminSortColumn) => {
     setTableStates(prev => {
       const current = prev[tableType]
-      const newOrder = current.sortBy === column && current.sortOrder === 'asc' ? 'desc' : 'asc'
+      const newOrder = (current.displaySortBy || current.sortBy) === column && current.sortOrder === 'asc' ? 'desc' : 'asc'
       return {
         ...prev,
-        [tableType]: { ...current, sortBy: column, sortOrder: newOrder },
+        [tableType]: { ...current, sortBy: column, displaySortBy: column, sortOrder: newOrder },
       }
     })
   }

@@ -25,7 +25,7 @@ import { Button as DialogButton } from "@/components/ui/button";
 interface OrganizerLeagueActionsProps {
   leagueId: number;
   leagueData: any;
-  onView: (leagueId: number) => void;
+  onView: (league: any) => void;
   onSaveAsDraft: (leagueData: any, name?: string) => void;
   onSaveAsTemplate: (leagueData: any, name?: string) => void;
 }
@@ -64,7 +64,7 @@ export function OrganizerLeagueActions({
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuGroup>
           <DropdownMenuItem onClick={() => {
-            onView(leagueId);
+            onView(leagueData);
           }}>
             View
           </DropdownMenuItem>

@@ -6,7 +6,7 @@ import type { SubmittedLeague } from "@/hooks/useDrafts";
 
 interface OrganizerLeagueTableRowProps {
   league: SubmittedLeague;
-  onView: (leagueId: number) => void;
+  onView: (league: any) => void;
   onSaveAsDraft: (leagueData: any, name?: string) => void;
   onSaveAsTemplate: (leagueData: any, name?: string) => void;
 }

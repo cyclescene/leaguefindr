@@ -14,7 +14,7 @@ export interface Draft {
 }
 
 export function useDrafts(orgId: string) {
-  const { supabase, isLoaded } = useSupabase()
+  const { supabase, isLoaded, executeWithRetry } = useSupabase()
   const [state, setState] = useState({
     data: null as Draft[] | null,
     isLoading: true,
@@ -25,12 +25,17 @@ export function useDrafts(orgId: string) {
     if (!supabase || !orgId) return
 
     try {
-      const { data, error } = await supabase
-        .from('leagues_drafts')
-        .select('*')
-        .eq('org_id', orgId)
-        .eq('type', 'draft')
-        .order('updated_at', { ascending: false })
+      const { data, error } = await executeWithRetry(
+        async () => {
+          return await supabase
+            .from('leagues_drafts')
+            .select('*')
+            .eq('org_id', orgId)
+            .eq('type', 'draft')
+            .order('updated_at', { ascending: false, nullsFirst: false })
+        },
+        'useDrafts'
+      )
 
       if (error) {
         // Handle 416 gracefully
@@ -59,7 +64,7 @@ export function useDrafts(orgId: string) {
         error: new Error(errorMessage),
       })
     }
-  }, [supabase, orgId])
+  }, [supabase, orgId, executeWithRetry])
 
   useEffect(() => {
     if (!isLoaded || !supabase || !orgId) return
@@ -289,7 +294,7 @@ export function useTemplates(orgId: string) {
   }
 }
 
-export function useDraftsAndTemplates(orgId: string) {
+export function useDraftsAndTemplates(orgId: string, searchQuery?: string, sortBy?: 'name' | 'created' | 'type', sortOrder?: 'asc' | 'desc') {
   const { supabase, isLoaded } = useSupabase()
   const [state, setState] = useState({
     data: null as Draft[] | null,
@@ -301,11 +306,20 @@ export function useDraftsAndTemplates(orgId: string) {
     if (!supabase || !orgId) return
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('leagues_drafts')
         .select('*')
         .eq('org_id', orgId)
-        .order('updated_at', { ascending: false })
+
+      // Add server-side search filtering for name
+      if (searchQuery) {
+        query = query.ilike('name', `%${searchQuery}%`)
+      }
+
+      // Add server-side sorting with case-insensitive collation
+      const sortColumn = sortBy === 'created' ? 'created_at' : sortBy === 'type' ? 'lower_draft_type' : 'updated_at'
+      const { data, error } = await query
+        .order(sortColumn, { ascending: sortOrder === 'asc' })
 
       if (error) {
         // Handle 416 gracefully
@@ -334,7 +348,7 @@ export function useDraftsAndTemplates(orgId: string) {
         error: new Error(errorMessage),
       })
     }
-  }, [supabase, orgId])
+  }, [supabase, orgId, searchQuery, sortBy, sortOrder])
 
   useEffect(() => {
     if (!isLoaded || !supabase || !orgId) return
@@ -407,7 +421,7 @@ export function useDraftsAndTemplates(orgId: string) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [isLoaded, supabase, orgId, fetch])
+  }, [isLoaded, supabase, orgId, fetch, searchQuery, sortBy, sortOrder])
 
   return {
     draftsAndTemplates: state.data || [],
@@ -450,7 +464,7 @@ export interface SubmittedLeague {
   }
 }
 
-export function useLeagues(orgId: string, searchQuery?: string) {
+export function useLeagues(orgId: string, searchQuery?: string, sortBy?: 'name' | 'sport' | 'status' | 'date', sortOrder?: 'asc' | 'desc') {
   const { supabase, isLoaded } = useSupabase()
   const [state, setState] = useState({
     data: null as SubmittedLeague[] | null,
@@ -476,8 +490,10 @@ export function useLeagues(orgId: string, searchQuery?: string) {
         )
       }
 
+      // Add server-side sorting with case-insensitive collation
+      const sortColumn = sortBy === 'date' ? 'created_at' : sortBy === 'status' ? 'lower_league_status' : 'id';
       const { data, error } = await query
-        .order('created_at', { ascending: false })
+        .order(sortColumn, { ascending: sortOrder === 'asc' })
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -505,7 +521,7 @@ export function useLeagues(orgId: string, searchQuery?: string) {
         error: new Error(errorMessage),
       })
     }
-  }, [supabase, orgId, searchQuery])
+  }, [supabase, orgId, searchQuery, sortBy, sortOrder])
 
   useEffect(() => {
     if (!isLoaded || !supabase || !orgId) return
@@ -578,7 +594,7 @@ export function useLeagues(orgId: string, searchQuery?: string) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [isLoaded, supabase, orgId, fetch, searchQuery])
+  }, [isLoaded, supabase, orgId, fetch, searchQuery, sortBy, sortOrder])
 
   return {
     leagues: state.data || [],

@@ -39,8 +39,8 @@ export interface PendingLeague {
 /**
  * Hook to fetch pending leagues that need admin review with pagination support
  */
-export function usePendingLeagues(limit: number = 20, offset: number = 0, searchQuery?: string) {
-  const { supabase, isLoaded } = useSupabase()
+export function usePendingLeagues(limit: number = 20, offset: number = 0, searchQuery?: string, sortBy?: 'league_name' | 'sport' | 'venue' | 'organization' | 'gender' | 'date' | 'status', sortOrder?: 'asc' | 'desc') {
+  const { supabase, isLoaded, executeWithRetry } = useSupabase()
   const [state, setState] = useState({
     data: null as PendingLeague[] | null,
     total: 0,
@@ -67,9 +67,42 @@ export function usePendingLeagues(limit: number = 20, offset: number = 0, search
         )
       }
 
-      const { data, count, error } = await query
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1)
+      // Apply server-side sorting with case-insensitive collation for string columns
+      let sortColumn: string
+      switch (sortBy) {
+        case 'sport':
+          sortColumn = 'lower_league_sport_name'
+          break
+        case 'venue':
+          sortColumn = 'lower_league_venue_name'
+          break
+        case 'organization':
+          sortColumn = 'lower_league_organization_name'
+          break
+        case 'gender':
+          sortColumn = 'lower_league_gender'
+          break
+        case 'status':
+          sortColumn = 'lower_league_status'
+          break
+        case 'date':
+          sortColumn = 'created_at'
+          break
+        case 'league_name':
+        default:
+          sortColumn = 'lower_league_name'
+      }
+      const { data, count, error } = await executeWithRetry(
+        async () => {
+          return await query
+            .order(sortColumn, {
+              ascending: sortOrder === 'asc',
+              nullsFirst: false,
+            })
+            .range(offset, offset + limit - 1)
+        },
+        'usePendingLeagues'
+      )
 
       if (error) {
         // Handle 416 (Range Not Satisfiable) gracefully - just means no data at this offset
@@ -82,6 +115,7 @@ export function usePendingLeagues(limit: number = 20, offset: number = 0, search
           })
           return
         }
+
         throw error
       }
 
@@ -101,7 +135,7 @@ export function usePendingLeagues(limit: number = 20, offset: number = 0, search
         error: new Error(errorMessage),
       })
     }
-  }, [supabase, offset, limit, searchQuery])
+  }, [supabase, offset, limit, searchQuery, sortBy, sortOrder, executeWithRetry])
 
   useEffect(() => {
     if (!isLoaded || !supabase) return
@@ -192,8 +226,8 @@ export function usePendingLeagues(limit: number = 20, offset: number = 0, search
 /**
  * Hook to fetch all leagues (all statuses) for admin view with pagination and filtering
  */
-export function useAllLeagues(limit: number = 20, offset: number = 0, status?: 'pending' | 'approved' | 'rejected', searchQuery?: string) {
-  const { supabase, isLoaded } = useSupabase()
+export function useAllLeagues(limit: number = 20, offset: number = 0, status?: 'pending' | 'approved' | 'rejected', searchQuery?: string, sortBy?: 'league_name' | 'sport' | 'venue' | 'organization' | 'gender' | 'date' | 'status', sortOrder?: 'asc' | 'desc') {
+  const { supabase, isLoaded, executeWithRetry } = useSupabase()
   const [state, setState] = useState({
     data: null as PendingLeague[] | null,
     total: 0,
@@ -224,9 +258,42 @@ export function useAllLeagues(limit: number = 20, offset: number = 0, status?: '
         )
       }
 
-      const { data, count, error } = await query
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1)
+      // Apply server-side sorting with case-insensitive collation for string columns
+      let sortColumn: string
+      switch (sortBy) {
+        case 'sport':
+          sortColumn = 'lower_league_sport_name'
+          break
+        case 'venue':
+          sortColumn = 'lower_league_venue_name'
+          break
+        case 'organization':
+          sortColumn = 'lower_league_organization_name'
+          break
+        case 'gender':
+          sortColumn = 'lower_league_gender'
+          break
+        case 'status':
+          sortColumn = 'lower_league_status'
+          break
+        case 'date':
+          sortColumn = 'created_at'
+          break
+        case 'league_name':
+        default:
+          sortColumn = 'lower_league_name'
+      }
+      const { data, count, error } = await executeWithRetry(
+        async () => {
+          return await query
+            .order(sortColumn, {
+              ascending: sortOrder === 'asc',
+              nullsFirst: false,
+            })
+            .range(offset, offset + limit - 1)
+        },
+        'useAllLeagues'
+      )
 
       if (error) throw error
 
@@ -246,7 +313,7 @@ export function useAllLeagues(limit: number = 20, offset: number = 0, status?: '
         error: new Error(errorMessage),
       })
     }
-  }, [supabase, offset, limit, status, searchQuery])
+  }, [supabase, offset, limit, status, searchQuery, sortBy, sortOrder, executeWithRetry])
 
   useEffect(() => {
     if (!isLoaded || !supabase) return

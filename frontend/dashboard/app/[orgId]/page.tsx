@@ -3,7 +3,7 @@
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import type { ClerkUser } from "@/types/clerk";
 import type { League } from "@/types/leagues";
 import type { AddLeagueFormData } from "@/lib/schemas/leagues";
@@ -26,6 +26,155 @@ import { SubmitLeagueDialog } from "@/components/leagues/SubmitLeagueDialog";
 import { CreateTemplateDialog } from "@/components/leagues/CreateTemplateDialog";
 import { useOrganization } from "@/hooks/useOrganizations";
 import { useDraftsAndTemplates, useLeagues } from "@/hooks/useDrafts";
+import { useOrganizerLeagues } from "@/hooks/useOrganizerLeagues";
+import { useOrganizerDraftsAndTemplates } from "@/hooks/useOrganizerDraftsAndTemplates";
+import { OrganizerTableProvider, useOrganizerTable } from "@/context/OrganizerTableContext";
+
+function LeaguesSection({
+  orgId,
+  debouncedLeaguesSearch,
+  debouncedDraftsSearch,
+  setLeaguesSearchInput,
+  getToken,
+  onCreateTemplate,
+  onSubmitLeague,
+  onViewLeague,
+  onEditTemplate,
+  onUseTemplate,
+  onDeleteTemplate,
+  onEditDraft,
+  onDeleteDraft,
+  onSaveAsDraft,
+  onSaveAsTemplate,
+  setPrePopulatedFormData,
+  setIsEditingDraft,
+  setEditingDraftId,
+  setIsEditingTemplate,
+  setEditingTemplateId,
+  setOpenDialog,
+  refetchLeaguesRef,
+  refetchDraftsRef,
+}: any) {
+  // Get context for search state
+  const { state: leaguesState } = useOrganizerTable('leagues');
+
+  // Use the context-aware hooks for sorting, with context search for submitted leagues
+  const { leagues: apiLeagues, isLoading: leaguesLoading, refetch: refetchLeagues } = useOrganizerLeagues(orgId, leaguesState.searchQuery);
+  const { draftsAndTemplates, isLoading: draftsAndTemplatesLoading, refetch: refetchDraftsAndTemplates } = useOrganizerDraftsAndTemplates(orgId, debouncedDraftsSearch);
+
+  // Expose refetch to parent via refs
+  if (refetchLeaguesRef) {
+    refetchLeaguesRef.current = refetchLeagues;
+  }
+  if (refetchDraftsRef) {
+    refetchDraftsRef.current = refetchDraftsAndTemplates;
+  }
+
+  const submittedLeagues = apiLeagues;
+  const displayDrafts = draftsAndTemplates.filter(d => d.type === 'draft');
+  const displayTemplates = draftsAndTemplates.filter(d => d.type === 'template');
+
+  // Handlers that need draftsAndTemplates access
+  const handleEditDraft = (draftId: number) => {
+    const draft = draftsAndTemplates.find((d) => d.id === draftId && d.type === 'draft');
+    if (draft && draft.form_data) {
+      setPrePopulatedFormData(draft.form_data as AddLeagueFormData);
+      setIsEditingDraft(true);
+      setEditingDraftId(draftId);
+      setOpenDialog("league");
+    }
+  };
+
+  const handleDeleteDraft = async (draftId: number) => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/drafts/${draftId}?org_id=${orgId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      refetchDraftsAndTemplates();
+    } catch (error) {
+      console.error("Failed to delete draft:", error);
+    }
+  };
+
+  const handleEditTemplate = (templateId: number) => {
+    const template = draftsAndTemplates.find((t) => t.id === templateId && t.type === 'template');
+    if (template && template.form_data) {
+      setPrePopulatedFormData(template.form_data as AddLeagueFormData);
+      setIsEditingTemplate(true);
+      setEditingTemplateId(templateId);
+      setOpenDialog("league");
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: number) => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/templates/${templateId}?org_id=${orgId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      refetchDraftsAndTemplates();
+    } catch (error) {
+      console.error("Failed to delete template:", error);
+    }
+  };
+
+  const handleUseTemplate = (templateId: number) => {
+    const template = draftsAndTemplates.find((t) => t.id === templateId && t.type === 'template');
+    if (template && template.form_data) {
+      setPrePopulatedFormData(template.form_data as AddLeagueFormData);
+      setOpenDialog("league");
+    }
+  };
+
+  return (
+    <div>
+      {/* Leagues Section */}
+      <div className="mb-8">
+        <p className="text-neutral-600">
+          Manage your organization's leagues and templates
+        </p>
+      </div>
+
+      <LeaguesActionBar
+        onCreateTemplate={onCreateTemplate}
+        onSubmitLeague={onSubmitLeague}
+        submittedLeagues={submittedLeagues}
+        displayDrafts={displayDrafts}
+        displayTemplates={displayTemplates}
+        submittedLeaguesLoading={leaguesLoading}
+        draftsLoading={draftsAndTemplatesLoading}
+        templatesLoading={draftsAndTemplatesLoading}
+        onViewLeague={onViewLeague}
+        onEditTemplate={onEditTemplate}
+        onUseTemplate={onUseTemplate}
+        onDeleteTemplate={onDeleteTemplate}
+        onEditDraft={onEditDraft}
+        onDeleteDraft={onDeleteDraft}
+        onSaveAsDraft={onSaveAsDraft}
+        onSaveAsTemplate={onSaveAsTemplate}
+      />
+    </div>
+  );
+}
 
 function OrganizationDashboardContent() {
   const { user, isLoaded } = useUser() as { user: ClerkUser | null; isLoaded: boolean };
@@ -33,6 +182,9 @@ function OrganizationDashboardContent() {
   const router = useRouter();
   const orgId = params.orgId as string;
   const { getToken } = useAuth();
+
+  const refetchLeaguesRef = useRef<(() => void) | null>(null);
+  const refetchDraftsRef = useRef<(() => void) | null>(null);
 
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -49,6 +201,9 @@ function OrganizationDashboardContent() {
   const [viewingLeagueRejectionReason, setViewingLeagueRejectionReason] = useState<string | null | undefined>();
   const [leaguesSearchInput, setLeaguesSearchInput] = useState('');
   const [debouncedLeaguesSearch, setDebouncedLeaguesSearch] = useState('');
+  const [draftsSearchInput, setDraftsSearchInput] = useState('');
+  const [debouncedDraftsSearch, setDebouncedDraftsSearch] = useState('');
+
 
   const { organization, isLoading, error, refetch } = useOrganization(orgId);
 
@@ -60,16 +215,15 @@ function OrganizationDashboardContent() {
     return () => clearTimeout(timer);
   }, [leaguesSearchInput]);
 
-  // Fetch real leagues, drafts and templates from API
-  const { leagues: apiLeagues, isLoading: leaguesLoading, refetch: refetchLeagues } = useLeagues(orgId, debouncedLeaguesSearch);
-  const { draftsAndTemplates, isLoading: draftsAndTemplatesLoading, refetch: refetchDraftsAndTemplates } = useDraftsAndTemplates(orgId);
+  // Debounce drafts/templates search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedDraftsSearch(draftsSearchInput);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [draftsSearchInput]);
 
-  // Filter drafts and templates
-  const displayDrafts = draftsAndTemplates.filter(d => d.type === 'draft');
-  const displayTemplates = draftsAndTemplates.filter(d => d.type === 'template');
-
-  // Keep apiLeagues as is for full form_data access, create display format separately if needed
-  const submittedLeagues = apiLeagues;
+  // Note: Drafts and templates fetching moved to LeaguesSection component
 
   // Redirect to home if user doesn't have access (403 error)
   useEffect(() => {
@@ -95,10 +249,7 @@ function OrganizationDashboardContent() {
     setViewingLeagueRejectionReason(undefined);
   };
 
-  const handleViewLeague = (leagueId: number) => {
-    const league = apiLeagues.find((l) => l.id === leagueId);
-    if (!league) return;
-
+  const handleViewLeague = (league: any) => {
     if (league.form_data) {
       setPrePopulatedFormData(league.form_data as AddLeagueFormData);
     } else {
@@ -131,85 +282,19 @@ function OrganizationDashboardContent() {
     }
 
     setIsViewingLeague(true);
-    setViewingLeagueId(leagueId);
+    setViewingLeagueId(league.id);
     setViewingLeagueStatus(league.status);
     setViewingLeagueRejectionReason(league.rejection_reason);
     setOpenDialog("league");
   };
 
-  const handleDeleteDraft = async (draftId: number) => {
-    try {
-      const token = await getToken();
-      if (!token) return;
-
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/drafts/org/${orgId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            draft_id: draftId,
-          }),
-        }
-      );
-
-      refetchDraftsAndTemplates();
-    } catch (error) {
-      console.error("Failed to delete draft:", error);
-    }
-  };
-
-  const handleEditDraft = (draftId: number) => {
-    const draft = draftsAndTemplates.find((d) => d.id === draftId && d.type === 'draft');
-    if (draft && draft.form_data) {
-      setPrePopulatedFormData(draft.form_data as AddLeagueFormData);
-      setIsEditingDraft(true);
-      setEditingDraftId(draftId);
-      setOpenDialog("league");
-    }
-  };
-
-  const handleDeleteTemplate = async (templateId: number) => {
-    try {
-      const token = await getToken();
-      if (!token) return;
-
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/leagues/templates/${templateId}?org_id=${orgId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      refetchDraftsAndTemplates();
-    } catch (error) {
-      console.error("Failed to delete template:", error);
-    }
-  };
-
-  const handleEditTemplate = (templateId: number) => {
-    const template = draftsAndTemplates.find((t) => t.id === templateId && t.type === 'template');
-    if (template && template.form_data) {
-      setPrePopulatedFormData(template.form_data as AddLeagueFormData);
-      setIsEditingTemplate(true);
-      setEditingTemplateId(templateId);
-      setOpenDialog("league");
-    }
-  };
-
-  const handleUseTemplate = (templateId: number) => {
-    const template = draftsAndTemplates.find((t) => t.id === templateId && t.type === 'template');
-    if (template && template.form_data) {
-      setPrePopulatedFormData(template.form_data as AddLeagueFormData);
-      setOpenDialog("league");
-    }
-  };
+  // These handlers are now defined in LeaguesSection component
+  // where they have access to draftsAndTemplates data
+  const handleDeleteDraft = (draftId: number) => { }; // Placeholder
+  const handleEditDraft = (draftId: number) => { }; // Placeholder
+  const handleDeleteTemplate = (templateId: number) => { }; // Placeholder
+  const handleEditTemplate = (templateId: number) => { }; // Placeholder
+  const handleUseTemplate = (templateId: number) => { }; // Placeholder
 
   const handleSaveAsDraft = async (leagueData: any, name?: string) => {
     try {
@@ -283,7 +368,15 @@ function OrganizationDashboardContent() {
   };
 
   const handleLeagueSubmitted = () => {
-    refetchLeagues();
+    refetchLeaguesRef.current?.();
+  };
+
+  const refetchLeagues = async () => {
+    refetchLeaguesRef.current?.();
+  };
+
+  const refetchDraftsAndTemplates = async () => {
+    refetchDraftsRef.current?.();
   };
 
 
@@ -352,7 +445,7 @@ function OrganizationDashboardContent() {
       <Header email={user?.primaryEmailAddress?.emailAddress || user?.emailAddresses[0]?.emailAddress} />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12">
-        <div className="mb-8">
+        <div className="mb-2">
           <OrganizationHeader
             orgId={orgId}
             orgName={organization.org_name}
@@ -368,32 +461,33 @@ function OrganizationDashboardContent() {
           />
         </div>
 
-        {/* Leagues Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-brand-dark mb-2">Leagues</h2>
-          <p className="text-neutral-600">
-            Manage your organization's leagues and templates
-          </p>
-        </div>
-
-        <LeaguesActionBar
-          onCreateTemplate={() => setOpenDialog("template")}
-          onSubmitLeague={() => setOpenDialog("league")}
-          submittedLeagues={submittedLeagues}
-          displayDrafts={displayDrafts}
-          displayTemplates={displayTemplates}
-          submittedLeaguesLoading={leaguesLoading}
-          draftsLoading={draftsAndTemplatesLoading}
-          templatesLoading={draftsAndTemplatesLoading}
-          onViewLeague={handleViewLeague}
-          onEditTemplate={handleEditTemplate}
-          onUseTemplate={handleUseTemplate}
-          onDeleteTemplate={handleDeleteTemplate}
-          onEditDraft={handleEditDraft}
-          onDeleteDraft={handleDeleteDraft}
-          onSaveAsDraft={handleSaveAsDraft}
-          onSaveAsTemplate={handleSaveAsTemplate}
-        />
+        <OrganizerTableProvider>
+          <LeaguesSection
+            orgId={orgId}
+            debouncedLeaguesSearch={debouncedLeaguesSearch}
+            debouncedDraftsSearch={debouncedDraftsSearch}
+            setLeaguesSearchInput={setLeaguesSearchInput}
+            getToken={getToken}
+            onCreateTemplate={() => setOpenDialog("template")}
+            onSubmitLeague={() => setOpenDialog("league")}
+            onViewLeague={handleViewLeague}
+            onEditTemplate={handleEditTemplate}
+            onUseTemplate={handleUseTemplate}
+            onDeleteTemplate={handleDeleteTemplate}
+            onEditDraft={handleEditDraft}
+            onDeleteDraft={handleDeleteDraft}
+            onSaveAsDraft={handleSaveAsDraft}
+            onSaveAsTemplate={handleSaveAsTemplate}
+            setPrePopulatedFormData={setPrePopulatedFormData}
+            setIsEditingDraft={setIsEditingDraft}
+            setEditingDraftId={setEditingDraftId}
+            setIsEditingTemplate={setIsEditingTemplate}
+            setEditingTemplateId={setEditingTemplateId}
+            setOpenDialog={setOpenDialog}
+            refetchLeaguesRef={refetchLeaguesRef}
+            refetchDraftsRef={refetchDraftsRef}
+          />
+        </OrganizerTableProvider>
       </main>
 
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>

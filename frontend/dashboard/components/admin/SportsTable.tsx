@@ -2,7 +2,6 @@
 
 import { Table, TableHead, TableHeader, TableRow, TableBody, TableCell } from "@/components/ui/table"
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
-import { useMemo } from "react"
 import type { AdminSport } from "@/hooks/useAdminSports"
 import { useAdminTable } from "@/context/AdminTableContext"
 
@@ -24,25 +23,6 @@ function SortIcon({ column, sortBy, sortOrder }: SortIconProps) {
 
 export function SportsTable({ sports, isLoading }: SportsTableProps) {
   const { state, toggleSort } = useAdminTable('sports')
-
-  const sortedSports = useMemo(() => {
-    const sorted = [...sports]
-    sorted.sort((a, b) => {
-      let aVal: any = a[state.sortBy as keyof AdminSport]
-      let bVal: any = b[state.sortBy as keyof AdminSport]
-
-      // Handle string sorting
-      if (typeof aVal === 'string') {
-        aVal = aVal.toLowerCase()
-        bVal = bVal.toLowerCase()
-      }
-
-      if (aVal < bVal) return state.sortOrder === 'asc' ? -1 : 1
-      if (aVal > bVal) return state.sortOrder === 'asc' ? 1 : -1
-      return 0
-    })
-    return sorted
-  }, [sports, state.sortBy, state.sortOrder])
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -84,7 +64,7 @@ export function SportsTable({ sports, isLoading }: SportsTableProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {sortedSports.map((sport) => (
+        {sports.map((sport) => (
           <TableRow key={sport.id} className="hover:bg-neutral-50">
             <TableCell className="font-mono text-sm w-24">{sport.id}</TableCell>
             <TableCell className="font-medium w-40">{sport.name}</TableCell>

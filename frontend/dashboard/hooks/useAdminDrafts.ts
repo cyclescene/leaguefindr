@@ -23,7 +23,7 @@ export function useAdminDrafts(
   sortOrder?: 'asc' | 'desc',
   userId?: string
 ) {
-  const { supabase, isLoaded } = useSupabase()
+  const { supabase, isLoaded, executeWithRetry } = useSupabase()
   const [state, setState] = useState({
     data: null as AdminDraft[] | null,
     total: 0,
@@ -52,18 +52,26 @@ export function useAdminDrafts(
         query = query.ilike('form_data->>sport_name', `%${filters.sport}%`)
       }
 
-      // Apply sorting
+      // Apply sorting with case-insensitive collation
       let sortColumn: string
       if (sortBy === 'name') {
-        sortColumn = 'name'
+        sortColumn = 'lower_draft_name'
       } else {
         sortColumn = 'updated_at'
       }
       const ascending = sortOrder === 'asc'
-      query = query.order(sortColumn, { ascending })
+      query = query.order(sortColumn, {
+        ascending,
+        nullsFirst: false,
+      })
 
-      // Apply pagination
-      const { data, count, error } = await query.range(offset, offset + limit - 1)
+      // Apply pagination with automatic token refresh on auth errors
+      const { data, count, error } = await executeWithRetry(
+        async () => {
+          return await query.range(offset, offset + limit - 1)
+        },
+        'useAdminDrafts'
+      )
 
       if (error) {
         throw error
@@ -82,7 +90,7 @@ export function useAdminDrafts(
         error: error instanceof Error ? error : new Error(stringifyError(error)),
       }))
     }
-  }, [supabase, offset, limit, filters?.name, filters?.type, filters?.sport, sortBy, sortOrder, userId])
+  }, [supabase, offset, limit, filters?.name, filters?.type, filters?.sport, sortBy, sortOrder, userId, executeWithRetry])
 
   useEffect(() => {
     if (!isLoaded || !supabase || !userId) return
