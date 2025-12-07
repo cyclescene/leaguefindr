@@ -25,8 +25,27 @@ export class LeaguesApi {
       let query = supabaseClient
         .from('leagues')
         .select(`
-          *,
-          organization!org_id (
+          id,
+          org_id,
+          sport_id,
+          venue_id,
+          league_name,
+          division,
+          registration_deadline,
+          season_start_date,
+          season_end_date,
+          pricing_strategy,
+          pricing_amount,
+          pricing_per_player,
+          per_game_fee,
+          gender,
+          season_details,
+          registration_url,
+          created_at,
+          updated_at,
+          duration,
+          minimum_team_players,
+          organizations!org_id (
             id,
             org_name,
             org_url,
@@ -34,28 +53,35 @@ export class LeaguesApi {
             org_email,
             org_address
           ),
-          venue!venue_id (
+          venues!venue_id (
             id,
             name,
             address,
             lng,
             lat
           ),
-          sport!sport_id (
+          sports!sport_id (
             id,
             name
+          ),
+          game_occurrences!league_id (
+            id,
+            league_id,
+            day,
+            start_time,
+            end_time,
+            created_at
           )
         `)
 
       // Apply filters with multi-select support
+      // Sport filtering: search in form_data JSONB for sport_name since we can't filter on joined table fields
       if (request.filters?.sport && request.filters.sport.length > 0) {
-        // For multiple sports, use the 'in' operator
-        query = query.in('sport.name', request.filters.sport)
-      }
-
-      if (request.filters?.ageGroup && request.filters.ageGroup.length > 0) {
-        // For multiple age groups, use the 'in' operator
-        query = query.in('age_group', request.filters.ageGroup)
+        // Build OR conditions for each sport name in form_data.sport_name
+        const sportConditions = request.filters.sport
+          .map(sport => `form_data->>'sport_name'.ilike.%${sport}%`)
+          .join(',')
+        query = query.or(sportConditions)
       }
 
       if (request.filters?.gender && request.filters.gender.length > 0) {
@@ -85,7 +111,6 @@ export class LeaguesApi {
       const hasLocationFilter = !!request.userLocation
       const hasFilters = !!(
         (request.filters?.sport && request.filters.sport.length > 0) ||
-        (request.filters?.ageGroup && request.filters.ageGroup.length > 0) ||
         (request.filters?.gender && request.filters.gender.length > 0) ||
         (request.filters?.gameDay && request.filters.gameDay.length > 0) ||
         (request.query && request.query.trim())
@@ -125,8 +150,8 @@ export class LeaguesApi {
 
 
       // Map database results to frontend types
-      const leagueResults = (data || [])
-        .map((dbLeague: DatabaseLeagueWithRelations) => {
+      const leagueResults = ((data as any) || [])
+        .map((dbLeague: any) => {
           try {
             const league = mapDatabaseLeagueToLeague(dbLeague)
             
@@ -286,14 +311,33 @@ export class LeaguesApi {
   }
 
   // Get league by ID with full details
-  static async getLeagueById(id: number): Promise<LeagueDetailsResponse> {
+  static async getLeagueById(id: string): Promise<LeagueDetailsResponse> {
     try {
       const supabaseClient = supabase()
       const { data, error } = await supabaseClient
         .from('leagues')
         .select(`
-          *,
-          organization!org_id (
+          id,
+          org_id,
+          sport_id,
+          venue_id,
+          league_name,
+          division,
+          registration_deadline,
+          season_start_date,
+          season_end_date,
+          pricing_strategy,
+          pricing_amount,
+          pricing_per_player,
+          per_game_fee,
+          gender,
+          season_details,
+          registration_url,
+          created_at,
+          updated_at,
+          duration,
+          minimum_team_players,
+          organizations!org_id (
             id,
             org_name,
             org_url,
@@ -301,16 +345,24 @@ export class LeaguesApi {
             org_email,
             org_address
           ),
-          venue!venue_id (
+          venues!venue_id (
             id,
             name,
             address,
             lng,
             lat
           ),
-          sport!sport_id (
+          sports!sport_id (
             id,
             name
+          ),
+          game_occurrences!league_id (
+            id,
+            league_id,
+            day,
+            start_time,
+            end_time,
+            created_at
           )
         `)
         .eq('id', id)
@@ -324,7 +376,7 @@ export class LeaguesApi {
         }
       }
 
-      const league = mapDatabaseLeagueToLeague(data as DatabaseLeagueWithRelations)
+      const league = mapDatabaseLeagueToLeague(data as any)
 
       return {
         data: league,
