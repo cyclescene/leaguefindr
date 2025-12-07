@@ -1,4 +1,3 @@
-export { AgeGroupIcon } from './AgeGroupIcon'
 export { Container } from './Container'
 export { ErrorBoundary } from './ErrorBoundary'
 export { FeatureIcon } from './FeatureIcon'

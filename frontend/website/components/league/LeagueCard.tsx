@@ -181,7 +181,6 @@ export function LeagueCard({ league, className = '', variant = 'default' }: Leag
               <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-700 mt-0.5">
                 {[
                   league.sport?.name,
-                  league.ageGroup,
                   league.gender,
                   league.division
                 ].filter(Boolean).map((item, index, filteredArray) => (
@@ -265,7 +264,6 @@ export function LeagueCard({ league, className = '', variant = 'default' }: Leag
             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700 mt-1">
               {[
                 league.sport?.name,
-                league.ageGroup,
                 league.gender,
                 league.division
               ].filter(Boolean).map((item, index, filteredArray) => (

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, MapPin, Users, Zap, X, Calendar } from 'lucide-react'
-import { FilterState, AgeGroup, Gender } from '@/lib/types'
+import { FilterState, Gender } from '@/lib/types'
 import { Analytics } from '@/lib/analytics'
 
 interface FilterBarProps {
@@ -25,7 +25,6 @@ export function FilterBar({ filters, onFiltersChange, className = '', userLocati
   }, [])
 
   // Simple, hardcoded options that we know exist in the database
-  const ageGroups: AgeGroup[] = ['Adult', 'Youth']
   const sports = [
     'Basketball', 'Soccer', 'Flag Football', 'Baseball', 'Softball', 'Volleyball',
     'Pickleball', 'Bowling', 'Kickball', 'Tennis', 'Cornhole', 'Football',
@@ -48,9 +47,6 @@ export function FilterBar({ filters, onFiltersChange, className = '', userLocati
       
       // Track filter application only when adding
       switch (key) {
-        case 'ageGroup':
-          Analytics.appliedFilterAgeGroup(value)
-          break
         case 'sport':
           Analytics.appliedFilterSport(value)
           break
@@ -185,16 +181,6 @@ export function FilterBar({ filters, onFiltersChange, className = '', userLocati
           </div>
         )}
 
-        {/* Age Group Filter Button */}
-        <FilterButton
-          label="Age Group"
-          icon={<Users className="w-4 h-4" />}
-          value={getFilterDisplayValue('ageGroup')}
-          isExpanded={expandedFilter === 'ageGroup'}
-          onToggle={() => setExpandedFilter(expandedFilter === 'ageGroup' ? null : 'ageGroup')}
-          onClear={() => clearFilter('ageGroup')}
-        />
-
         {/* Sport Filter Button */}
         <FilterButton
           label="Sport"
@@ -245,7 +231,7 @@ export function FilterBar({ filters, onFiltersChange, className = '', userLocati
             <div className="flex items-center justify-between p-4 lg:p-0 lg:mb-4 border-b lg:border-b-0 border-gray-200">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {expandedFilter === 'ageGroup' ? 'Age Group' : expandedFilter === 'gameDay' ? 'Game Day' : expandedFilter === 'sport' ? 'Sport' : expandedFilter === 'gender' ? 'Gender' : expandedFilter}
+                  {expandedFilter === 'gameDay' ? 'Game Day' : expandedFilter === 'sport' ? 'Sport' : expandedFilter === 'gender' ? 'Gender' : expandedFilter}
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">Select multiple options</p>
               </div>
@@ -283,25 +269,6 @@ export function FilterBar({ filters, onFiltersChange, className = '', userLocati
                       }`}
                     >
                       {sport}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Age Group Options */}
-              {expandedFilter === 'ageGroup' && (
-                <div className="grid grid-cols-2 gap-3">
-                  {ageGroups.map((ageGroup) => (
-                    <button
-                      key={ageGroup}
-                      onClick={() => toggleFilterValue('ageGroup', ageGroup)}
-                      className={`px-3 py-2 lg:px-4 lg:py-3 text-center text-sm rounded-lg font-medium transition-all duration-200 ${
-                        isValueSelected('ageGroup', ageGroup)
-                          ? 'bg-light-green text-white shadow-sm'
-                          : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:shadow-sm border border-gray-200'
-                      }`}
-                    >
-                      {ageGroup}
                     </button>
                   ))}
                 </div>
@@ -385,7 +352,7 @@ export function FilterBar({ filters, onFiltersChange, className = '', userLocati
                 <div className="flex items-center justify-between p-4 border-b border-gray-200">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      {expandedFilter === 'ageGroup' ? 'Age Group' : expandedFilter === 'gameDay' ? 'Game Day' : expandedFilter === 'sport' ? 'Sport' : expandedFilter === 'gender' ? 'Gender' : expandedFilter}
+                      {expandedFilter === 'gameDay' ? 'Game Day' : expandedFilter === 'sport' ? 'Sport' : expandedFilter === 'gender' ? 'Gender' : expandedFilter}
                     </h3>
                     <p className="text-sm text-gray-500 mt-1">Select multiple options</p>
                   </div>
@@ -431,25 +398,6 @@ export function FilterBar({ filters, onFiltersChange, className = '', userLocati
                           }`}
                         >
                           {sport}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Age Group Options */}
-                  {expandedFilter === 'ageGroup' && (
-                    <div className="grid grid-cols-2 gap-3">
-                      {ageGroups.map((ageGroup) => (
-                        <button
-                          key={ageGroup}
-                          onClick={() => toggleFilterValue('ageGroup', ageGroup)}
-                          className={`px-3 py-2 text-center text-sm rounded-lg font-medium transition-all duration-200 ${
-                            isValueSelected('ageGroup', ageGroup)
-                              ? 'bg-light-green text-white shadow-sm'
-                              : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:shadow-sm border border-gray-200'
-                          }`}
-                        >
-                          {ageGroup}
                         </button>
                       ))}
                     </div>

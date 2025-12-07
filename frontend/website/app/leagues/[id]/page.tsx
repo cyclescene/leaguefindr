@@ -137,7 +137,7 @@ export default function LeagueDetailsPage() {
       setLoading(true)
       setError(null)
       try {
-        const response = await LeaguesApi.getLeagueById(Number(params.id))
+        const response = await LeaguesApi.getLeagueById(params.id as string)
         if (!response.success || !response.data) {
           throw new Error(response.error || 'League not found')
         }
@@ -210,7 +210,7 @@ export default function LeagueDetailsPage() {
               <div>
                 <div className="uppercase text-xs font-bold tracking-wide text-gray-700 mb-1">{league.sport.name}</div>
                 <div className="font-black text-lg text-gray-900 leading-tight">{league.organization.name}</div>
-                <div className="text-sm text-gray-600">{league.ageGroup} {league.gender} League{league.distance && `  3 ${Math.round(league.distance)} mi away`}</div>
+                <div className="text-sm text-gray-600">{league.gender} League{league.distance && `  3 ${Math.round(league.distance)} mi away`}</div>
               </div>
               <div className="flex-shrink-0">{/* Placeholder for sport icon or logo if needed */}</div>
             </div>

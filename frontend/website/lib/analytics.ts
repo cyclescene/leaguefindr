@@ -76,7 +76,7 @@ export const Analytics = {
     trackEvent('page_view_find_a_league')
   },
 
-  pageViewLeagueDetail: (leagueId: number, leagueName: string, sport: string) => {
+  pageViewLeagueDetail: (leagueId: string | number, leagueName: string, sport: string) => {
     trackEvent('page_view_league_detail', {
       league_id: leagueId,
       league_name: leagueName,
@@ -92,7 +92,7 @@ export const Analytics = {
     trackEvent('entered_on_find_a_league_page')
   },
 
-  enteredOnLeagueInfo: (leagueId: number) => {
+  enteredOnLeagueInfo: (leagueId: string | number) => {
     trackEvent('entered_on_league_info_page', {
       league_id: leagueId
     })
@@ -104,7 +104,7 @@ export const Analytics = {
   },
 
   // CTA Buttons
-  clickedSignUpFindALeague: (leagueId: number, leagueName: string, sport: string) => {
+  clickedSignUpFindALeague: (leagueId: string | number, leagueName: string, sport: string) => {
     trackEvent('clicked_sign_up_button_find_a_league_page', {
       league_id: leagueId,
       league_name: leagueName,
@@ -112,7 +112,7 @@ export const Analytics = {
     })
   },
 
-  clickedSignUpLeagueInfo: (leagueId: number, leagueName: string, sport: string) => {
+  clickedSignUpLeagueInfo: (leagueId: string | number, leagueName: string, sport: string) => {
     trackEvent('clicked_sign_up_button_league_info_page', {
       league_id: leagueId,
       league_name: leagueName,
@@ -120,7 +120,7 @@ export const Analytics = {
     })
   },
 
-  clickedMoreInfoFindALeague: (leagueId: number, leagueName: string, sport: string) => {
+  clickedMoreInfoFindALeague: (leagueId: string | number, leagueName: string, sport: string) => {
     trackEvent('clicked_more_info_button_find_a_league_page', {
       league_id: leagueId,
       league_name: leagueName,
@@ -129,7 +129,7 @@ export const Analytics = {
   },
 
   // Share Buttons
-  clickedShareFindALeague: (leagueId: number, leagueName: string, sport: string) => {
+  clickedShareFindALeague: (leagueId: string | number, leagueName: string, sport: string) => {
     trackEvent('clicked_share_button_find_a_league_page_league_card', {
       league_id: leagueId,
       league_name: leagueName,
@@ -137,7 +137,7 @@ export const Analytics = {
     })
   },
 
-  clickedShareLeagueDetails: (leagueId: number, leagueName: string, sport: string) => {
+  clickedShareLeagueDetails: (leagueId: string | number, leagueName: string, sport: string) => {
     trackEvent('clicked_share_button_league_details_page', {
       league_id: leagueId,
       league_name: leagueName,
@@ -146,7 +146,7 @@ export const Analytics = {
   },
 
   // League Card Interactions
-  swipeLeftLeagueCard: (leagueId: number, leagueName: string) => {
+  swipeLeftLeagueCard: (leagueId: string | number, leagueName: string) => {
     trackEvent('swipe_left_on_league_card_league_information', {
       league_id: leagueId,
       league_name: leagueName
@@ -315,7 +315,7 @@ export const Analytics = {
     trackEvent('clicked_back_to_results_button_on_find_a_league_page')
   },
 
-  clickedLeagueSite: (leagueId: number, leagueName: string) => {
+  clickedLeagueSite: (leagueId: string | number, leagueName: string) => {
     trackEvent('clicked_league_site_button_on_find_a_league_page', {
       league_id: leagueId,
       league_name: leagueName

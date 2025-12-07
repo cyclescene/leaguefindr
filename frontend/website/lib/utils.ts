@@ -171,7 +171,6 @@ export function buildSearchParams(filters: Record<string, any>): URLSearchParams
 
 export function parseSearchParams(searchParams: URLSearchParams): FilterState {
   return {
-    ageGroup: searchParams.get('ageGroup') as any || undefined,
     sport: searchParams.get('sport') as any || undefined,
     gender: searchParams.get('gender') as any || undefined,
     gameDay: searchParams.get('gameDay') as any || undefined,

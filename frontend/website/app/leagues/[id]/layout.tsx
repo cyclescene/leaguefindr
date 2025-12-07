@@ -5,13 +5,13 @@ import { Metadata } from 'next'
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const resolvedParams = await params
   try {
-    const response = await LeaguesApi.getLeagueById(Number(resolvedParams.id))
-    
+    const response = await LeaguesApi.getLeagueById(resolvedParams.id)
+
     if (response.success && response.data) {
       const league = response.data
       const title = `${league.organization.name} - ${league.sport.name} League | LeagueFindr`
       const fee = league.seasonFee ? `$${league.seasonFee}` : league.perGameFee ? `$${league.perGameFee}/game` : 'Contact for pricing'
-      const description = `Join ${league.organization.name}'s ${league.sport.name} league. ${league.ageGroup} ${league.gender} league starting ${league.seasonStartDate.toLocaleDateString()}. Fee: ${fee}.`
+      const description = `Join ${league.organization.name}'s ${league.sport.name} league. ${league.gender} league starting ${league.seasonStartDate.toLocaleDateString()}. Fee: ${fee}.`
       
       return {
         title,
