@@ -17,6 +17,7 @@ import { VenuesTable } from "@/components/admin/VenuesTable";
 import { AdminDraftsTable } from "@/components/admin/AdminDraftsTable";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePendingLeagues, useAllLeagues, useAdminLeagueOperations } from "@/hooks/useAdminLeagues";
 import { useAdminOrganizations } from "@/hooks/useAdminOrganizations";
 import { useAdminSports } from "@/hooks/useAdminSports";
@@ -32,11 +33,20 @@ function DashboardContent() {
   const { session, isLoaded: isSessionLoaded } = useSession();
   const { getToken } = useAuth();
 
-  // Get sort state from context
-  const orgTableState = useAdminTable('organizations').state
-  const sportsTableState = useAdminTable('sports').state
-  const venuesTableState = useAdminTable('venues').state
-  const draftsTableState = useAdminTable('drafts').state
+  // Get sort and filter state and setters from context
+  const leaguesTable = useAdminTable('leagues')
+  const pendingLeaguesTable = useAdminTable('pending-leagues')
+  const orgTable = useAdminTable('organizations')
+  const sportsTable = useAdminTable('sports')
+  const venuesTable = useAdminTable('venues')
+  const draftsTable = useAdminTable('drafts')
+
+  const leaguesTableState = leaguesTable.state
+  const pendingLeaguesTableState = pendingLeaguesTable.state
+  const orgTableState = orgTable.state
+  const sportsTableState = sportsTable.state
+  const venuesTableState = venuesTable.state
+  const draftsTableState = draftsTable.state
 
   useEffect(() => {
     session?.reload()
@@ -56,24 +66,73 @@ function DashboardContent() {
   const [venuesPage, setVenuesPage] = useState(0)
   const [draftsPage, setDraftsPage] = useState(0)
 
+  // Debounced search values for server-side filtering
+  const [debouncedLeaguesSearch, setDebouncedLeaguesSearch] = useState<string>('')
+  const [debouncedPendingLeaguesSearch, setDebouncedPendingLeaguesSearch] = useState<string>('')
+  const [debouncedOrgSearch, setDebouncedOrgSearch] = useState<string>('')
+  const [debouncedSportsSearch, setDebouncedSportsSearch] = useState<string>('')
+  const [debouncedVenuesSearch, setDebouncedVenuesSearch] = useState<string>('')
+  const [debouncedDraftsSearch, setDebouncedDraftsSearch] = useState<string>('')
 
-  // Filter state for each table
-  const [leagueStatusFilter, setLeagueStatusFilter] = useState<'pending' | 'approved' | 'rejected' | ''>('')
-  const [orgFilter, setOrgFilter] = useState<string>('')
-  const [sportsFilter, setSportsFilter] = useState<string>('')
-  const [venuesFilter, setVenuesFilter] = useState<string>('')
-  const [draftsFilter, setDraftsFilter] = useState<string>('')
-  const [draftsTypeFilter, setDraftsTypeFilter] = useState<'draft' | 'template' | ''>('')
+  // Debounce effect for leagues search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedLeaguesSearch(leaguesTableState.searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [leaguesTableState.searchQuery])
+
+  // Debounce effect for pending leagues search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedPendingLeaguesSearch(pendingLeaguesTableState.searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [pendingLeaguesTableState.searchQuery])
+
+  // Debounce effect for org search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedOrgSearch(orgTableState.searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [orgTableState.searchQuery])
+
+  // Debounce effect for sports search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSportsSearch(sportsTableState.searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [sportsTableState.searchQuery])
+
+  // Debounce effect for venues search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedVenuesSearch(venuesTableState.searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [venuesTableState.searchQuery])
+
+  // Debounce effect for drafts search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedDraftsSearch(draftsTableState.searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [draftsTableState.searchQuery])
 
   // Fetch all data immediately - always load to avoid refetches on tab switches
   const { pendingLeagues, total: totalPending, isLoading: isLoadingPending, refetch: refetchPendingLeagues } = usePendingLeagues(
     ITEMS_PER_PAGE,
-    pendingPage * ITEMS_PER_PAGE
+    pendingPage * ITEMS_PER_PAGE,
+    debouncedPendingLeaguesSearch || undefined
   )
   const { allLeagues, total: totalAll, isLoading: isLoadingAll, refetch: refetchAllLeagues } = useAllLeagues(
     ITEMS_PER_PAGE,
     allPage * ITEMS_PER_PAGE,
-    leagueStatusFilter || undefined
+    (leaguesTableState.filterValue as 'pending' | 'approved' | 'rejected' | undefined) || undefined,
+    debouncedLeaguesSearch || undefined
   )
 
   // Admin operations
@@ -81,69 +140,31 @@ function DashboardContent() {
   const [isApproving, setIsApproving] = useState<number | null>(null)
   const [isRejecting, setIsRejecting] = useState<number | null>(null)
 
-  // Debounced filter values
-  const [debouncedOrgFilter, setDebouncedOrgFilter] = useState<string>('')
-  const [debouncedSportsFilter, setDebouncedSportsFilter] = useState<string>('')
-  const [debouncedVenuesFilter, setDebouncedVenuesFilter] = useState<string>('')
-  const [debouncedDraftsFilter, setDebouncedDraftsFilter] = useState<string>('')
-
-  // Debounce effect for org filter
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedOrgFilter(orgFilter)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [orgFilter])
-
-  // Debounce effect for sports filter
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSportsFilter(sportsFilter)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [sportsFilter])
-
-  // Debounce effect for venues filter
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedVenuesFilter(venuesFilter)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [venuesFilter])
-
-  // Debounce effect for drafts filter
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedDraftsFilter(draftsFilter)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [draftsFilter])
-
   const { data: organizations, total: totalOrganizations, isLoading: isLoadingOrganizations, refetch: refetchOrganizations } = useAdminOrganizations(
     ITEMS_PER_PAGE,
     orgPage * ITEMS_PER_PAGE,
-    debouncedOrgFilter ? { name: debouncedOrgFilter } : undefined,
+    debouncedOrgSearch ? { name: debouncedOrgSearch } : undefined,
     orgTableState.sortBy as 'name' | 'created_at',
     orgTableState.sortOrder
   )
   const { data: sports, total: totalSports, isLoading: isLoadingSports, refetch: refetchSports } = useAdminSports(
     ITEMS_PER_PAGE,
     sportsPage * ITEMS_PER_PAGE,
-    debouncedSportsFilter ? { name: debouncedSportsFilter } : undefined,
+    debouncedSportsSearch ? { name: debouncedSportsSearch } : undefined,
     sportsTableState.sortBy as 'name',
     sportsTableState.sortOrder
   )
   const { data: venues, total: totalVenues, isLoading: isLoadingVenues, refetch: refetchVenues } = useAdminVenues(
     ITEMS_PER_PAGE,
     venuesPage * ITEMS_PER_PAGE,
-    debouncedVenuesFilter ? { name: debouncedVenuesFilter } : undefined,
+    debouncedVenuesSearch ? { name: debouncedVenuesSearch } : undefined,
     venuesTableState.sortBy as 'name',
     venuesTableState.sortOrder
   )
   const { data: drafts, total: totalDrafts, isLoading: isLoadingDrafts, refetch: refetchDrafts } = useAdminDrafts(
     ITEMS_PER_PAGE,
     draftsPage * ITEMS_PER_PAGE,
-    debouncedDraftsFilter ? { name: debouncedDraftsFilter, type: draftsTypeFilter || undefined } : { type: draftsTypeFilter || undefined },
+    debouncedDraftsSearch ? { name: debouncedDraftsSearch, type: (draftsTableState.filterValue as 'draft' | 'template' | undefined) || undefined } : { type: (draftsTableState.filterValue as 'draft' | 'template' | undefined) || undefined },
     draftsTableState.sortBy as 'name' | 'date',
     draftsTableState.sortOrder,
     user?.id
@@ -449,17 +470,27 @@ function DashboardContent() {
               </div>
             ) : (
               <>
-                <div className="mb-6">
-                  <select
-                    value={leagueStatusFilter}
-                    onChange={(e) => { setLeagueStatusFilter(e.target.value as '' | 'pending' | 'approved' | 'rejected'); setAllPage(0); }}
-                    className="px-3 py-2 rounded border border-neutral-300 text-sm cursor-pointer bg-white"
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                  <Input
+                    placeholder="Search by league name, organization, sport, or venue..."
+                    value={leaguesTableState.searchQuery}
+                    onChange={(e) => { leaguesTable.setSearchQuery(e.target.value); setAllPage(0); }}
+                    className="flex-1 bg-white"
+                  />
+                  <Select
+                    value={leaguesTableState.filterValue || 'all'}
+                    onValueChange={(value) => { leaguesTable.setFilterValue(value === 'all' ? '' : value); setAllPage(0); }}
                   >
-                    <option value="">All Statuses</option>
-                    <option value="pending">Pending</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                  </select>
+                    <SelectTrigger className="w-full md:w-48 bg-white">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 {totalAll > ITEMS_PER_PAGE && renderPagination(allPage, totalPagingAll, setAllPage)}
                 <LeagueTable
@@ -482,6 +513,14 @@ function DashboardContent() {
               </div>
             ) : (
               <>
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                  <Input
+                    placeholder="Search by league name, organization, sport, or venue..."
+                    value={pendingLeaguesTableState.searchQuery}
+                    onChange={(e) => { pendingLeaguesTable.setSearchQuery(e.target.value); setPendingPage(0); }}
+                    className="flex-1 bg-white"
+                  />
+                </div>
                 {totalPending > ITEMS_PER_PAGE && renderPagination(pendingPage, totalPagingPending, setPendingPage)}
                 <LeagueTable
                   leagues={pendingLeaguesTransformed}
@@ -503,12 +542,12 @@ function DashboardContent() {
               </div>
             ) : (
               <>
-                <div className="mb-6">
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
                   <Input
-                    placeholder="Filter by organization name..."
-                    value={orgFilter}
-                    onChange={(e) => { setOrgFilter(e.target.value); setOrgPage(0); }}
-                    className="max-w-sm bg-white"
+                    placeholder="Search by organization name..."
+                    value={orgTableState.searchQuery}
+                    onChange={(e) => { orgTable.setSearchQuery(e.target.value); setOrgPage(0); }}
+                    className="flex-1 bg-white"
                   />
                 </div>
                 {totalOrganizations > ITEMS_PER_PAGE && renderPagination(orgPage, Math.ceil(totalOrganizations / ITEMS_PER_PAGE), setOrgPage)}
@@ -528,12 +567,12 @@ function DashboardContent() {
               </div>
             ) : (
               <>
-                <div className="mb-6">
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
                   <Input
-                    placeholder="Filter by sport name..."
-                    value={sportsFilter}
-                    onChange={(e) => { setSportsFilter(e.target.value); setSportsPage(0); }}
-                    className="max-w-sm bg-white"
+                    placeholder="Search by sport name..."
+                    value={sportsTableState.searchQuery}
+                    onChange={(e) => { sportsTable.setSearchQuery(e.target.value); setSportsPage(0); }}
+                    className="flex-1 bg-white"
                   />
                 </div>
                 {totalSports > ITEMS_PER_PAGE && renderPagination(sportsPage, Math.ceil(totalSports / ITEMS_PER_PAGE), setSportsPage)}
@@ -555,12 +594,12 @@ function DashboardContent() {
               </div>
             ) : (
               <>
-                <div className="mb-6">
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
                   <Input
-                    placeholder="Filter by venue name..."
-                    value={venuesFilter}
-                    onChange={(e) => { setVenuesFilter(e.target.value); setVenuesPage(0); }}
-                    className="max-w-sm bg-white"
+                    placeholder="Search by venue name..."
+                    value={venuesTableState.searchQuery}
+                    onChange={(e) => { venuesTable.setSearchQuery(e.target.value); setVenuesPage(0); }}
+                    className="flex-1 bg-white"
                   />
                 </div>
                 {totalVenues > ITEMS_PER_PAGE && renderPagination(venuesPage, Math.ceil(totalVenues / ITEMS_PER_PAGE), setVenuesPage)}
@@ -580,22 +619,26 @@ function DashboardContent() {
               </div>
             ) : (
               <>
-                <div className="mb-6 flex gap-4">
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
                   <Input
-                    placeholder="Filter by draft name..."
-                    value={draftsFilter}
-                    onChange={(e) => { setDraftsFilter(e.target.value); setDraftsPage(0); }}
-                    className="max-w-sm bg-white"
+                    placeholder="Search by draft name..."
+                    value={draftsTableState.searchQuery}
+                    onChange={(e) => { draftsTable.setSearchQuery(e.target.value); setDraftsPage(0); }}
+                    className="flex-1 bg-white"
                   />
-                  <select
-                    value={draftsTypeFilter}
-                    onChange={(e) => { setDraftsTypeFilter(e.target.value as "" | "draft" | "template"); setDraftsPage(0); }}
-                    className="px-3 py-2 rounded border border-neutral-300 text-sm cursor-pointer bg-white"
+                  <Select
+                    value={draftsTableState.filterValue || 'all'}
+                    onValueChange={(value) => { draftsTable.setFilterValue(value === 'all' ? '' : value); setDraftsPage(0); }}
                   >
-                    <option value="">All Types</option>
-                    <option value="draft">Draft</option>
-                    <option value="template">Template</option>
-                  </select>
+                    <SelectTrigger className="w-full md:w-48 bg-white">
+                      <SelectValue placeholder="Filter by type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="template">Template</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 {totalDrafts > ITEMS_PER_PAGE && renderPagination(draftsPage, Math.ceil(totalDrafts / ITEMS_PER_PAGE), setDraftsPage)}
                 <AdminDraftsTable

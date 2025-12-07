@@ -93,13 +93,13 @@ function OrganizationDashboardContent() {
       setPrePopulatedFormData(league.form_data as AddLeagueFormData);
     } else {
       const formData: AddLeagueFormData = {
-        sport_id: league.sport_id,
+        sport_id: (league.sport_id ?? null) as any,
         sport_name: '',
-        venue_id: league.venue_id,
+        venue_id: (league.venue_id ?? null) as any,
         venue_name: '',
         venue_address: '',
-        venue_lat: undefined,
-        venue_lng: undefined,
+        venue_lat: null as any,
+        venue_lng: null as any,
         league_name: league.league_name,
         division: league.division,
         gender: league.gender as "male" | "female" | "co-ed",

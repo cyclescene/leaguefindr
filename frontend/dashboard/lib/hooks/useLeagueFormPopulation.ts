@@ -107,7 +107,8 @@ export function useLeagueFormPopulation(
       setValue('sport_name', sport.name)
       onSportSelected?.(sport)
     } else {
-      setValue('sport_id', undefined)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setValue('sport_id', null as any)
       setValue('sport_name', sportName)
       onSportSelected?.(null)
     }
@@ -128,7 +129,8 @@ export function useLeagueFormPopulation(
       onVenueSelected?.(venue)
       onShowNewVenueForm?.(false)
     } else {
-      setValue('venue_id', undefined)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setValue('venue_id', null as any)
       setValue('venue_name', venueName)
       onVenueSelected?.(null)
       // Show new venue form when no venue_id is present

@@ -2,6 +2,7 @@
 
 import { useFormContext } from 'react-hook-form'
 import { useRef } from 'react'
+import { X } from 'lucide-react'
 import { VenueAutocomplete } from '../VenueAutocomplete'
 import { MapboxAddressInput } from '../MapboxAddressInput'
 import { type AddLeagueFormData } from '@/lib/schemas'
@@ -59,7 +60,20 @@ export function VenueSection({
         {!showNewVenueForm && (
           <button
             type="button"
-            onClick={() => onShowNewVenueFormChange(true)}
+            onClick={() => {
+              // Clear any previously selected venue
+              onVenueChange(null)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              setValue('venue_id', null as any)
+              setValue('venue_name', '')
+              setValue('venue_address', '')
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              setValue('venue_lat', null as any)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              setValue('venue_lng', null as any)
+              // Show the new venue form
+              onShowNewVenueFormChange(true)
+            }}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
           >
             + Add New Venue
@@ -135,14 +149,48 @@ export function VenueSection({
             )}
           </div>
 
+          {/* Display selected address from Mapbox */}
+          {watch('venue_address') && (
+            <div className="flex items-start justify-between bg-green-50 p-3 rounded-md border border-green-200">
+              <div className="flex-1">
+                <p className="text-sm text-green-700 font-medium">{watch('venue_name') || 'New Venue'}</p>
+                <p className="text-xs text-green-600 whitespace-normal break-words">{watch('venue_address')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setValue('venue_name', '')
+                  setValue('venue_address', '')
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  setValue('venue_lat', null as any)
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  setValue('venue_lng', null as any)
+                  if (newVenueAddressInputRef.current) {
+                    newVenueAddressInputRef.current.value = ''
+                  }
+                }}
+                className="ml-2 text-gray-400 hover:text-gray-600 flex-shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={() => {
               setValue('venue_name', '')
               setValue('venue_address', '')
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              setValue('venue_lat', null as any)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              setValue('venue_lng', null as any)
+              if (newVenueAddressInputRef.current) {
+                newVenueAddressInputRef.current.value = ''
+              }
               onShowNewVenueFormChange(false)
             }}
-            className="text-sm text-gray-600 hover:text-gray-700 font-medium"
+            className="text-sm text-red-600 hover:text-red-700 font-medium"
           >
             Cancel
           </button>

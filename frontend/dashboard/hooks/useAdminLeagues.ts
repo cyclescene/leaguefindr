@@ -39,7 +39,7 @@ export interface PendingLeague {
 /**
  * Hook to fetch pending leagues that need admin review with pagination support
  */
-export function usePendingLeagues(limit: number = 20, offset: number = 0) {
+export function usePendingLeagues(limit: number = 20, offset: number = 0, searchQuery?: string) {
   const { supabase, isLoaded } = useSupabase()
   const [state, setState] = useState({
     data: null as PendingLeague[] | null,
@@ -52,10 +52,22 @@ export function usePendingLeagues(limit: number = 20, offset: number = 0) {
     if (!supabase) return
 
     try {
-      const { data, count, error } = await supabase
+      let query = supabase
         .from('leagues')
         .select('*', { count: 'exact' })
         .eq('status', 'pending')
+
+      // Apply multi-column search across league_name, sport, venue, and organization
+      if (searchQuery) {
+        query = query.or(
+          `league_name.ilike.%${searchQuery}%,` +
+          `form_data->>sport_name.ilike.%${searchQuery}%,` +
+          `form_data->>venue_name.ilike.%${searchQuery}%,` +
+          `form_data->>organization_name.ilike.%${searchQuery}%`
+        )
+      }
+
+      const { data, count, error } = await query
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1)
 
@@ -89,7 +101,7 @@ export function usePendingLeagues(limit: number = 20, offset: number = 0) {
         error: new Error(errorMessage),
       })
     }
-  }, [supabase, offset, limit])
+  }, [supabase, offset, limit, searchQuery])
 
   useEffect(() => {
     if (!isLoaded || !supabase) return
@@ -180,7 +192,7 @@ export function usePendingLeagues(limit: number = 20, offset: number = 0) {
 /**
  * Hook to fetch all leagues (all statuses) for admin view with pagination and filtering
  */
-export function useAllLeagues(limit: number = 20, offset: number = 0, status?: 'pending' | 'approved' | 'rejected') {
+export function useAllLeagues(limit: number = 20, offset: number = 0, status?: 'pending' | 'approved' | 'rejected', searchQuery?: string) {
   const { supabase, isLoaded } = useSupabase()
   const [state, setState] = useState({
     data: null as PendingLeague[] | null,
@@ -200,6 +212,16 @@ export function useAllLeagues(limit: number = 20, offset: number = 0, status?: '
       // Apply status filter if provided
       if (status) {
         query = query.eq('status', status)
+      }
+
+      // Apply multi-column search across league_name, sport, venue, and organization
+      if (searchQuery) {
+        query = query.or(
+          `league_name.ilike.%${searchQuery}%,` +
+          `form_data->>sport_name.ilike.%${searchQuery}%,` +
+          `form_data->>venue_name.ilike.%${searchQuery}%,` +
+          `form_data->>organization_name.ilike.%${searchQuery}%`
+        )
       }
 
       const { data, count, error } = await query
@@ -224,7 +246,7 @@ export function useAllLeagues(limit: number = 20, offset: number = 0, status?: '
         error: new Error(errorMessage),
       })
     }
-  }, [supabase, offset, limit, status])
+  }, [supabase, offset, limit, status, searchQuery])
 
   useEffect(() => {
     if (!isLoaded || !supabase) return

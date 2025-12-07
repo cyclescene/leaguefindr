@@ -2,9 +2,9 @@
 
 import React, { createContext, useContext, useState } from 'react'
 
-export type AdminSortColumn = 'name' | 'created_at' | 'dateSubmitted' | 'startDate' | 'org_name' | 'sport' | 'gender' | 'venue' | 'organizationName' | 'date'
+export type AdminSortColumn = 'id' | 'name' | 'created_at' | 'dateSubmitted' | 'startDate' | 'org_name' | 'sport' | 'gender' | 'venue' | 'organizationName' | 'date'
 export type SortOrder = 'asc' | 'desc'
-export type AdminTableType = 'leagues' | 'organizations' | 'sports' | 'venues' | 'drafts'
+export type AdminTableType = 'leagues' | 'pending-leagues' | 'organizations' | 'sports' | 'venues' | 'drafts'
 
 interface TableState {
   searchQuery: string
@@ -40,6 +40,7 @@ const defaultTableState: TableState = {
 
 const defaultSortBy: Record<AdminTableType, AdminSortColumn> = {
   'leagues': 'dateSubmitted',
+  'pending-leagues': 'dateSubmitted',
   'organizations': 'org_name',
   'sports': 'name',
   'venues': 'name',
@@ -50,6 +51,7 @@ export function AdminTableProvider({ children }: { children: React.ReactNode }) 
   const [tableStates, setTableStates] = useState<Record<AdminTableType, TableState>>(
     {
       'leagues': { ...defaultTableState, sortBy: 'dateSubmitted', sortOrder: 'desc' },
+      'pending-leagues': { ...defaultTableState, sortBy: 'dateSubmitted', sortOrder: 'desc' },
       'organizations': { ...defaultTableState, sortBy: 'org_name', sortOrder: 'asc' },
       'sports': { ...defaultTableState, sortBy: 'name', sortOrder: 'asc' },
       'venues': { ...defaultTableState, sortBy: 'name', sortOrder: 'asc' },

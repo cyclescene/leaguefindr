@@ -275,15 +275,15 @@ export function VenueAutocomplete({
       )}
 
       {selectedVenue && (
-        <div className="flex items-center justify-between bg-green-50 p-3 rounded-md border border-green-200">
+        <div className="flex items-start justify-between bg-green-50 p-3 rounded-md border border-green-200">
           <div className="flex-1">
             <p className="text-sm text-green-700 font-medium">{selectedVenue.name}</p>
-            <p className="text-xs text-green-600">{selectedVenue.address}</p>
+            <p className="text-xs text-green-600 whitespace-normal break-words">{selectedVenue.address}</p>
           </div>
           <button
             type="button"
             onClick={handleClearVenueSelection}
-            className="ml-2 text-gray-400 hover:text-gray-600"
+            className="ml-2 text-gray-400 hover:text-gray-600 flex-shrink-0"
           >
             <X className="h-4 w-4" />
           </button>
@@ -295,7 +295,7 @@ export function VenueAutocomplete({
         <div className="flex items-start bg-blue-50 p-3 rounded-md border border-blue-200">
           <div className="flex-1">
             <p className="text-sm text-blue-700 font-medium">{venueSearchInput}</p>
-            <p className="text-xs text-blue-600">{customVenueAddress}</p>
+            <p className="text-xs text-blue-600 whitespace-normal break-words">{customVenueAddress}</p>
           </div>
         </div>
       )}

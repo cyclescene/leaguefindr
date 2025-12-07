@@ -285,7 +285,8 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
 
     if (feature && feature.geometry && feature.properties) {
       const [lng, lat] = feature.geometry.coordinates
-      const address = feature.properties.full_address || feature.properties.place_name
+      // Use full_address from Mapbox which includes street, city, state, zip
+      const address = feature.properties.full_address
 
       // Mark venue as not selected since we're using a custom address
       setSelectedVenue(null)
@@ -295,6 +296,19 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
       setValue('venue_address', address)
       setValue('venue_lat', lat)
       setValue('venue_lng', lng)
+
+      // Update the address input field immediately to show full address
+      // We need to do this after a slight delay to override Mapbox's auto-population
+      setTimeout(() => {
+        const addressInputs = document.querySelectorAll('input[id="venue_address"], input[autoComplete="address-line1"]')
+        addressInputs.forEach(input => {
+          if (input instanceof HTMLInputElement) {
+            input.value = address
+            // Trigger change event so any listeners are notified
+            input.dispatchEvent(new Event('input', { bubbles: true }))
+          }
+        })
+      }, 0)
     }
   }
 
@@ -322,19 +336,6 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
       setValue('season_end_date', null as any)
     }
   }
-
-  // Calculate per-player price
-  const calculatePerPlayerPrice = () => {
-    if (!pricingAmount || !minimumPlayers) return null
-    if (pricingStrategy === 'per_person') return pricingAmount
-    if (pricingStrategy === 'per_team') {
-      return Math.ceil(pricingAmount / minimumPlayers)
-    }
-    return null
-  }
-
-  const perPlayerPrice = calculatePerPlayerPrice()
-
   // Handle game occurrences change from GameOccurrencesManager
   const handleGameOccurrencesChange = (occurrences: GameOccurrence[]) => {
     setGameOccurrences(occurrences)

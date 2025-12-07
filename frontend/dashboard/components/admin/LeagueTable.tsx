@@ -41,6 +41,8 @@ export function LeagueTable({ leagues, onView, onApprove, onReject, onSaveAsDraf
 
   const sortedLeagues = useMemo(() => {
     const sorted = [...leagues];
+
+    // Sort the results
     sorted.sort((a, b) => {
       let aVal: any = a[state.sortBy as keyof League];
       let bVal: any = b[state.sortBy as keyof League];

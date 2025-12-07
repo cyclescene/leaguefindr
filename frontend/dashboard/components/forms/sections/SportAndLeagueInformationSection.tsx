@@ -70,7 +70,7 @@ export function SportAndLeagueInformationSection({
                 setValue('sport_id', sport.id)
                 setValue('sport_name', sport.name)
               } else {
-                setValue('sport_id', undefined)
+                setValue('sport_id', null as any)
                 setValue('sport_name', '')
               }
             }}
