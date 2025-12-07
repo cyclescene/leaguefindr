@@ -19,14 +19,14 @@ export function AdditionalInformationSection({ isViewingLeague = false }: Additi
   return (
     <div className="border-t pt-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-1">Additional Information</h3>
-      <p className="text-sm text-gray-600 mb-4">TBD</p>
+      <p className="text-sm text-gray-600 mb-4">Add anything else players should know</p>
 
       <div className="space-y-2">
         <Label htmlFor="season_details">Season Details (Optional)</Label>
         <textarea
           {...register('season_details')}
           id="season_details"
-          placeholder="TBD"
+          placeholder="Include any other information"
           disabled={isViewingLeague}
           className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:text-gray-500"
           rows={3}

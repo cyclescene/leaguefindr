@@ -36,7 +36,7 @@ export function PricingSection({ isViewingLeague = false }: PricingSectionProps)
   return (
     <div className="border-t pt-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-1">Pricing</h3>
-      <p className="text-sm text-gray-600 mb-4">TBD</p>
+      <p className="text-sm text-gray-600 mb-4">Set registrations and game fees</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Pricing Strategy */}

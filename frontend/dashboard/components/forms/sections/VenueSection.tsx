@@ -55,7 +55,7 @@ export function VenueSection({
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-1">Venue</h3>
-          <p className="text-sm text-gray-600">TBD</p>
+          <p className="text-sm text-gray-600">Choose where your league will be played.</p>
         </div>
         {!showNewVenueForm && (
           <button
@@ -116,23 +116,9 @@ export function VenueSection({
       ) : (
         // Show new venue flow
         <div className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="new_venue_address" className="text-sm font-medium text-gray-700">
-              Venue Address
-            </label>
-            <p className="text-sm text-gray-600">Find address or enter custom location</p>
-            <MapboxAddressInput
-              ref={newVenueAddressInputRef}
-              id="new_venue_address"
-              placeholder="Search address..."
-              onRetrieve={onVenueAddressChange}
-              onMapboxDropdownStateChange={onMapboxDropdownStateChange}
-            />
-          </div>
-
-          <div className="space-y-2">
+          <div className="space-y-3">
             <label htmlFor="venue_name_new" className="text-sm font-medium text-gray-700">
-              Venue Name (Optional)
+              Venue Name  *
             </label>
             <input
               type="text"
@@ -148,6 +134,22 @@ export function VenueSection({
               <p className="text-sm text-red-600">{displayErrors.venue_name.message}</p>
             )}
           </div>
+
+
+          <div className="space-y-2">
+            <label htmlFor="new_venue_address" className="text-sm font-medium text-gray-700">
+              Venue Address
+            </label>
+            <p className="text-sm text-gray-600">Find address or enter custom location</p>
+            <MapboxAddressInput
+              ref={newVenueAddressInputRef}
+              id="new_venue_address"
+              placeholder="Search address..."
+              onRetrieve={onVenueAddressChange}
+              onMapboxDropdownStateChange={onMapboxDropdownStateChange}
+            />
+          </div>
+
 
           {/* Display selected address from Mapbox */}
           {watch('venue_address') && (
@@ -176,24 +178,27 @@ export function VenueSection({
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={() => {
-              setValue('venue_name', '')
-              setValue('venue_address', '')
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              setValue('venue_lat', null as any)
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              setValue('venue_lng', null as any)
-              if (newVenueAddressInputRef.current) {
-                newVenueAddressInputRef.current.value = ''
-              }
-              onShowNewVenueFormChange(false)
-            }}
-            className="text-sm text-red-600 hover:text-red-700 font-medium"
-          >
-            Cancel
-          </button>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-500">This venue will be reviewed to help ensure location accuracy.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setValue('venue_name', '')
+                setValue('venue_address', '')
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                setValue('venue_lat', null as any)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                setValue('venue_lng', null as any)
+                if (newVenueAddressInputRef.current) {
+                  newVenueAddressInputRef.current.value = ''
+                }
+                onShowNewVenueFormChange(false)
+              }}
+              className="text-sm text-red-600 hover:text-red-700 font-medium"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
