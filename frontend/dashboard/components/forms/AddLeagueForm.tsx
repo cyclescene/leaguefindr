@@ -587,6 +587,13 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
           isViewingLeague={isViewingLeague}
         />
 
+        {/* Game Schedule Section */}
+        <GameScheduleSection
+          gameOccurrences={gameOccurrences}
+          onGameOccurrencesChange={handleGameOccurrencesChange}
+          isViewingLeague={isViewingLeague}
+        />
+
         {/* Venue Section */}
         <VenueSection
           selectedVenue={selectedVenue}
@@ -600,12 +607,6 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
           isViewingLeague={isViewingLeague}
         />
 
-        {/* Game Schedule Section */}
-        <GameScheduleSection
-          gameOccurrences={gameOccurrences}
-          onGameOccurrencesChange={handleGameOccurrencesChange}
-          isViewingLeague={isViewingLeague}
-        />
 
         {/* Pricing Section */}
         <PricingSection isViewingLeague={isViewingLeague} />
