@@ -134,6 +134,7 @@ export class LeaguesApi {
         .range(actualOffset, actualOffset + actualLimit - 1)
 
       if (error) {
+        console.error('Supabase query error:', error)
         return {
           data: [],
           pagination: {
@@ -147,6 +148,9 @@ export class LeaguesApi {
         }
       }
 
+      // Debug log to see what's being returned
+      console.log('Supabase response:', { dataLength: (data as any)?.length, count, data })
+
 
 
       // Map database results to frontend types
@@ -154,7 +158,7 @@ export class LeaguesApi {
         .map((dbLeague: any) => {
           try {
             const league = mapDatabaseLeagueToLeague(dbLeague)
-            
+
             // Add distance calculation if user location provided
             if (league && request.userLocation) {
               try {
@@ -170,10 +174,11 @@ export class LeaguesApi {
                 league.distance = undefined
               }
             }
-            
+
             return league
           } catch (error) {
-            // League mapping failed, skip this league
+            // League mapping failed, log for debugging
+            console.error('Error mapping league:', error, 'league data:', dbLeague)
             return null
           }
         })
