@@ -94,9 +94,11 @@ export class LeaguesApi {
       }
 
       if (request.filters?.gameDay && request.filters.gameDay.length > 0) {
-        // For multiple game days, we need to check if ANY of the selected days are in the game_days string
-        // Build an OR condition for each selected day
-        const dayConditions = request.filters.gameDay.map(day => `game_days.like.%${day}%`).join(',')
+        // Filter by game days in form_data JSONB game_occurrences array
+        // Use contains operator for array element matching
+        const dayConditions = request.filters.gameDay
+          .map(day => `form_data->game_occurrences.cs.[{"day":"${day}"}]`)
+          .join(',')
         query = query.or(dayConditions)
       }
 
