@@ -14,7 +14,7 @@ const nextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https', 
+        protocol: 'https',
         hostname: 'plus.unsplash.com',
         port: '',
         pathname: '/**',
@@ -23,6 +23,7 @@ const nextConfig = {
     // Production image optimizations
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
+    qualities: [75, 95],
   },
   
   // Security headers for production
@@ -47,17 +48,6 @@ const nextConfig = {
       }
     ]
   },
-  
-  // Allow cross-origin requests during development
-  experimental: {
-    allowedRevalidateHeaderKeys: ['x-vercel-cache-tags'],
-    optimizePackageImports: ['lucide-react']
-  },
-  // ESLint configuration for production deployment
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // Note: Cross-origin dev requests are handled automatically in newer Next.js versions
 }
 
 module.exports = nextConfig 
