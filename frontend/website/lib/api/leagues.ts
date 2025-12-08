@@ -74,7 +74,9 @@ export class LeaguesApi {
             created_at
           )
         `,
-          { count: 'exact' }
+          {
+            count: 'exact'
+          }
         )
 
       // Apply filters with multi-select support
@@ -184,15 +186,6 @@ export class LeaguesApi {
       
       let leagues: League[] = leagueResults
       let totalCount = count
-
-      // Filter by sport if provided (client-side filtering)
-      // We do this client-side because we have the sport data from the join
-      if (request.filters?.sport && request.filters.sport.length > 0) {
-        leagues = leagues.filter(league =>
-          request.filters?.sport?.includes(league.sport.name) || false
-        )
-        totalCount = leagues.length
-      }
 
       // Filter by distance radius if user location provided
       if (request.userLocation) {
@@ -378,7 +371,9 @@ export class LeaguesApi {
             created_at
           )
         `,
-          { count: 'exact' }
+          {
+            count: 'exact'
+          }
         )
         .eq('id', id)
         .single()
