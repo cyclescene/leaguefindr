@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { ChevronDown, MapPin, Users, Zap, X, Calendar } from 'lucide-react'
 import { FilterState, Gender } from '@/lib/types'
 import { Analytics } from '@/lib/analytics'
+import { SportsApi } from '@/lib/api/sports'
 
 interface FilterBarProps {
   filters: FilterState
@@ -18,18 +19,35 @@ interface FilterBarProps {
 export function FilterBar({ filters, onFiltersChange, className = '', userLocation, locationName, onClearLocation }: FilterBarProps) {
   const [expandedFilter, setExpandedFilter] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [sports, setSports] = useState<string[]>([])
+  const [loadingSports, setLoadingSports] = useState(true)
+
+  // Fetch sports from Supabase
+  useEffect(() => {
+    const fetchSports = async () => {
+      try {
+        setLoadingSports(true)
+        const response = await SportsApi.getAllSports()
+        if (response.success && response.data) {
+          const sportNames = response.data.map((sport) => sport.name).sort()
+          setSports(sportNames)
+        }
+      } catch (error) {
+        console.error('Failed to fetch sports:', error)
+        // Fallback to empty array if fetch fails
+        setSports([])
+      } finally {
+        setLoadingSports(false)
+      }
+    }
+
+    fetchSports()
+  }, [])
 
   // Track if component is mounted (for portal)
   useEffect(() => {
     setMounted(true)
   }, [])
-
-  // Simple, hardcoded options that we know exist in the database
-  const sports = [
-    'Basketball', 'Soccer', 'Flag Football', 'Baseball', 'Softball', 'Volleyball',
-    'Pickleball', 'Bowling', 'Kickball', 'Tennis', 'Cornhole', 'Football',
-    'Lacrosse', 'Cheerleading', 'Horseshoes', 'Running'
-  ]
   const genders: Gender[] = ['Male', 'Female', 'Co-ed']
   const gameDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
