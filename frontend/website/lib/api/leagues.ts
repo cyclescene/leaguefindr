@@ -80,14 +80,13 @@ export class LeaguesApi {
         )
 
       // Apply filters with multi-select support
-      // Sport filtering: commented out for now - will do client-side filtering instead
-      // The form_data structure may not have sport_name or the query syntax may need adjustment
-      // if (request.filters?.sport && request.filters.sport.length > 0) {
-      //   const sportConditions = request.filters.sport
-      //     .map(sport => `form_data->>'sport_name'.ilike.%${sport}%`)
-      //     .join(',')
-      //   query = query.or(sportConditions)
-      // }
+      // Sport filtering: filter by sport_name in form_data JSONB
+      if (request.filters?.sport && request.filters.sport.length > 0) {
+        const sportConditions = request.filters.sport
+          .map(sport => `form_data->>sport_name.ilike.${sport}`)
+          .join(',')
+        query = query.or(sportConditions)
+      }
 
       if (request.filters?.gender && request.filters.gender.length > 0) {
         // For multiple genders, use the 'in' operator
