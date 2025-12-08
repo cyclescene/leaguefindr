@@ -25,13 +25,24 @@ CREATE OR REPLACE FUNCTION trigger_organizations_staging()
 RETURNS TRIGGER AS $$
 DECLARE
   v_new_org_id UUID;
+  v_existing_org_id UUID;
 BEGIN
-  -- Create new organization with UUID
-  INSERT INTO organizations (org_name, org_url, org_phone_number, org_email, org_address)
-  VALUES (NEW.org_name, NEW.org_url, NEW.org_phone_number, NEW.org_email, NEW.org_address)
-  RETURNING id INTO v_new_org_id;
+  -- Check if an organization with this URL already exists
+  SELECT id INTO v_existing_org_id
+  FROM organizations
+  WHERE org_url = NEW.org_url;
 
-  -- Create mapping entry for this organization
+  -- If organization already exists, skip it and use the existing one
+  IF v_existing_org_id IS NOT NULL THEN
+    v_new_org_id := v_existing_org_id;
+  ELSE
+    -- Create new organization with UUID only if it doesn't already exist
+    INSERT INTO organizations (org_name, org_url, org_phone_number, org_email, org_address)
+    VALUES (NEW.org_name, NEW.org_url, NEW.org_phone_number, NEW.org_email, NEW.org_address)
+    RETURNING id INTO v_new_org_id;
+  END IF;
+
+  -- Create or update mapping entry for this organization
   INSERT INTO org_id_mapping (old_id, new_id, org_name)
   VALUES (NEW.id, v_new_org_id, NEW.org_name)
   ON CONFLICT (old_id) DO UPDATE SET
@@ -48,4 +59,4 @@ BEFORE INSERT ON organizations_staging
 FOR EACH ROW
 EXECUTE FUNCTION trigger_organizations_staging();
 
-COMMENT ON FUNCTION trigger_organizations_staging() IS 'Transforms organizations CSV staging data to new schema: creates new organization with UUID, creates mapping entry from old INT ID to new UUID.';
+COMMENT ON FUNCTION trigger_organizations_staging() IS 'Transforms organizations CSV staging data to new schema: creates new organization with UUID (or skips if org_url already exists), creates mapping entry from old INT ID to new UUID. Duplicate URLs are automatically handled by reusing the existing organization.';

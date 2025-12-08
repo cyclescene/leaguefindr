@@ -68,20 +68,20 @@ WHERE id NOT IN (
 DELETE FROM organizations_staging
 WHERE org_url IS NULL;
 
--- Step 9: Update organizations_staging table to also enforce uniqueness (if not already exists)
--- This prevents CSV import issues
+-- Step 9: Remove uniqueness constraint from organizations_staging table
+-- The staging table can now accept duplicate URLs - the trigger will handle them intelligently
+-- by reusing existing organizations instead of creating duplicates
 DO $$
 BEGIN
-  IF NOT EXISTS (
+  IF EXISTS (
     SELECT 1 FROM information_schema.table_constraints
     WHERE constraint_name = 'unique_staging_org_url' AND table_name = 'organizations_staging'
   ) THEN
     ALTER TABLE organizations_staging
-    ADD CONSTRAINT unique_staging_org_url UNIQUE(org_url);
+    DROP CONSTRAINT unique_staging_org_url;
   END IF;
 END
 $$;
 
 -- Step 10: Add comment documenting the change
 COMMENT ON CONSTRAINT unique_org_url ON organizations IS 'Ensures each organization has a unique website URL to prevent duplicates';
-COMMENT ON CONSTRAINT unique_staging_org_url ON organizations_staging IS 'Staging table constraint to validate URLs before import';
