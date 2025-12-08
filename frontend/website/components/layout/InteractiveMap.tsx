@@ -5,6 +5,8 @@ import { League, FilterState, MapPin } from '@/lib/types'
 import { MapPin as MapPinIcon } from 'lucide-react'
 import { LeagueCard } from '@/components/league'
 import { Analytics } from '@/lib/analytics'
+// Import Leaflet CSS at module level for proper HMR support
+import 'leaflet/dist/leaflet.css'
 
 // Initialize Leaflet lazily when component mounts
 let L: any = null
@@ -12,8 +14,8 @@ const initializeLeaflet = () => {
   if (L !== null) return L
   if (typeof window === 'undefined') return null
 
+  // Dynamically require only the Leaflet JS library (CSS already imported above)
   L = require('leaflet')
-  require('leaflet/dist/leaflet.css')
 
   // Fix for default markers in Leaflet
   delete (L.Icon.Default.prototype as any)._getIconUrl

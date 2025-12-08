@@ -183,7 +183,7 @@ export class LeaguesApi {
           }
         })
         .filter((league: League | null): league is League => league !== null)
-      
+
       let leagues: League[] = leagueResults
       let totalCount = count
 
@@ -234,7 +234,7 @@ export class LeaguesApi {
       const startIndex = (page - 1) * limit
       const endIndex = startIndex + limit
       const finalLeagues = leagues.slice(startIndex, endIndex)
-      
+
       // Calculate pagination info
       const totalPages = Math.ceil(finalTotalCount / limit)
       const currentPage = page
