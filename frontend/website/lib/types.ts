@@ -92,9 +92,9 @@ export interface DatabaseLeague {
 
 // Database query result with joins
 export interface DatabaseLeagueWithRelations extends DatabaseLeague {
-  organization: DatabaseOrganization
-  venue: DatabaseVenue
-  sport: DatabaseSport
+  organizations: DatabaseOrganization
+  venues: DatabaseVenue
+  sports: DatabaseSport
   game_occurrences: DatabaseGameOccurrence[]
 }
 
@@ -287,12 +287,12 @@ export function mapDatabaseSportToSport(dbSport: DatabaseSport): SportInfo {
 
 export function mapDatabaseLeagueToLeague(dbLeague: DatabaseLeagueWithRelations): League | null {
   // Check if all required relationships are present
-  if (!dbLeague.organization || !dbLeague.venue || !dbLeague.sport) {
+  if (!dbLeague.organizations || !dbLeague.venues || !dbLeague.sports) {
     console.error('Missing required relationships in league:', {
       id: dbLeague.id,
-      hasOrganization: !!dbLeague.organization,
-      hasVenue: !!dbLeague.venue,
-      hasSport: !!dbLeague.sport,
+      hasOrganization: !!dbLeague.organizations,
+      hasVenue: !!dbLeague.venues,
+      hasSport: !!dbLeague.sports,
       dbLeague
     })
     return null
@@ -314,9 +314,9 @@ export function mapDatabaseLeagueToLeague(dbLeague: DatabaseLeagueWithRelations)
 
     return {
       id: dbLeague.id,
-      organization: mapDatabaseOrganizationToOrganization(dbLeague.organization),
-      venue: mapDatabaseVenueToVenue(dbLeague.venue),
-      sport: mapDatabaseSportToSport(dbLeague.sport),
+      organization: mapDatabaseOrganizationToOrganization(dbLeague.organizations),
+      venue: mapDatabaseVenueToVenue(dbLeague.venues),
+      sport: mapDatabaseSportToSport(dbLeague.sports),
       division: dbLeague.division || undefined,
       registrationDeadline: new Date(dbLeague.registration_deadline),
       seasonStartDate: new Date(dbLeague.season_start_date),
