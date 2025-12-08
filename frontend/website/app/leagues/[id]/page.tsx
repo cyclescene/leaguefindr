@@ -184,12 +184,8 @@ export default function LeagueDetailsPage() {
   // --- UI ---
   return (
     <main className="min-h-screen bg-gray-1 flex flex-col">
-      {league && (
-        <head>
-          <StructuredData type="SportsEvent" data={league} />
-        </head>
-      )}
-      
+      {league && <StructuredData type="SportsEvent" data={league} />}
+
       {/* Back link */}
       <div className="w-full max-w-4xl mx-auto pt-4 px-2">
         <button
