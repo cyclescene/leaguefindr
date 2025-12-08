@@ -75,14 +75,14 @@ export class LeaguesApi {
         `)
 
       // Apply filters with multi-select support
-      // Sport filtering: search in form_data JSONB for sport_name since we can't filter on joined table fields
-      if (request.filters?.sport && request.filters.sport.length > 0) {
-        // Build OR conditions for each sport name in form_data.sport_name
-        const sportConditions = request.filters.sport
-          .map(sport => `form_data->>'sport_name'.ilike.%${sport}%`)
-          .join(',')
-        query = query.or(sportConditions)
-      }
+      // Sport filtering: commented out for now - will do client-side filtering instead
+      // The form_data structure may not have sport_name or the query syntax may need adjustment
+      // if (request.filters?.sport && request.filters.sport.length > 0) {
+      //   const sportConditions = request.filters.sport
+      //     .map(sport => `form_data->>'sport_name'.ilike.%${sport}%`)
+      //     .join(',')
+      //   query = query.or(sportConditions)
+      // }
 
       if (request.filters?.gender && request.filters.gender.length > 0) {
         // For multiple genders, use the 'in' operator
@@ -181,6 +181,15 @@ export class LeaguesApi {
       
       let leagues: League[] = leagueResults
       let totalCount = count
+
+      // Filter by sport if provided (client-side filtering)
+      // We do this client-side because we have the sport data from the join
+      if (request.filters?.sport && request.filters.sport.length > 0) {
+        leagues = leagues.filter(league =>
+          request.filters?.sport?.includes(league.sport.name) || false
+        )
+        totalCount = leagues.length
+      }
 
       // Filter by distance radius if user location provided
       if (request.userLocation) {
