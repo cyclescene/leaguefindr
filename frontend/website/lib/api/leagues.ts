@@ -24,7 +24,8 @@ export class LeaguesApi {
 
       let query = supabaseClient
         .from('leagues')
-        .select(`
+        .select(
+          `
           id,
           org_id,
           sport_id,
@@ -72,7 +73,9 @@ export class LeaguesApi {
             end_time,
             created_at
           )
-        `)
+        `,
+          { count: 'exact' }
+        )
 
       // Apply filters with multi-select support
       // Sport filtering: commented out for now - will do client-side filtering instead
@@ -325,7 +328,8 @@ export class LeaguesApi {
       const supabaseClient = supabase()
       const { data, error } = await supabaseClient
         .from('leagues')
-        .select(`
+        .select(
+          `
           id,
           org_id,
           sport_id,
@@ -373,7 +377,9 @@ export class LeaguesApi {
             end_time,
             created_at
           )
-        `)
+        `,
+          { count: 'exact' }
+        )
         .eq('id', id)
         .single()
 
