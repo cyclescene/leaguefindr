@@ -6,12 +6,15 @@ import { MapPin as MapPinIcon } from 'lucide-react'
 import { LeagueCard } from '@/components/league'
 import { Analytics } from '@/lib/analytics'
 
-// Import Leaflet dynamically to avoid SSR issues
+// Initialize Leaflet lazily when component mounts
 let L: any = null
-if (typeof window !== 'undefined') {
+const initializeLeaflet = () => {
+  if (L !== null) return L
+  if (typeof window === 'undefined') return null
+
   L = require('leaflet')
   require('leaflet/dist/leaflet.css')
-  
+
   // Fix for default markers in Leaflet
   delete (L.Icon.Default.prototype as any)._getIconUrl
   L.Icon.Default.mergeOptions({
@@ -20,7 +23,7 @@ if (typeof window !== 'undefined') {
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
   })
 
-
+  return L
 }
 
 interface InteractiveMapProps {
@@ -131,6 +134,8 @@ export default function InteractiveMap({ leagues, mapPins, userLocation, filters
 
   // Initialize map with error handling and loading states
   useEffect(() => {
+    // Initialize Leaflet on first load
+    L = initializeLeaflet()
     if (!mapRef.current || !L || mapInstanceRef.current) return
 
     try {
