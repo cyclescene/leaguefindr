@@ -134,7 +134,6 @@ export class LeaguesApi {
         .range(actualOffset, actualOffset + actualLimit - 1)
 
       if (error) {
-        console.error('Supabase query error:', error)
         return {
           data: [],
           pagination: {
@@ -147,9 +146,6 @@ export class LeaguesApi {
           error: `Failed to search leagues: ${error.message || 'Unknown error'}. Details: ${error.details || 'No additional details'}`
         }
       }
-
-      // Debug log to see what's being returned
-      console.log('Supabase response:', { dataLength: (data as any)?.length, count, data })
 
 
 
@@ -177,8 +173,7 @@ export class LeaguesApi {
 
             return league
           } catch (error) {
-            // League mapping failed, log for debugging
-            console.error('Error mapping league:', error, 'league data:', dbLeague)
+            // League mapping failed, skip this league
             return null
           }
         })

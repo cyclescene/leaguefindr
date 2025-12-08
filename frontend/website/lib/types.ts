@@ -288,13 +288,6 @@ export function mapDatabaseSportToSport(dbSport: DatabaseSport): SportInfo {
 export function mapDatabaseLeagueToLeague(dbLeague: DatabaseLeagueWithRelations): League | null {
   // Check if all required relationships are present
   if (!dbLeague.organizations || !dbLeague.venues || !dbLeague.sports) {
-    console.error('Missing required relationships in league:', {
-      id: dbLeague.id,
-      hasOrganization: !!dbLeague.organizations,
-      hasVenue: !!dbLeague.venues,
-      hasSport: !!dbLeague.sports,
-      dbLeague
-    })
     return null
   }
 
