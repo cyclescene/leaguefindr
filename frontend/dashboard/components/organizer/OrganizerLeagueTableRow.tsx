@@ -22,7 +22,10 @@ export function OrganizerLeagueTableRow({
       <TableCell title={league.league_name}>{truncate(league.league_name, 20)}</TableCell>
       <TableCell title={league.form_data?.sport_name}>{truncate(league.form_data?.sport_name || 'Unknown', 20)}</TableCell>
       <TableCell>{league.gender}</TableCell>
-      <TableCell>{new Date(league.season_start_date).toLocaleDateString()}</TableCell>
+      <TableCell>{(() => {
+        const [year, month, day] = league.season_start_date.split('-')
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleDateString()
+      })()}</TableCell>
       <TableCell title={league.form_data?.venue_name}>{truncate(league.form_data?.venue_name || 'Unknown', 20)}</TableCell>
       <TableCell>{new Date(league.created_at).toLocaleDateString()}</TableCell>
       <TableCell>

@@ -14,7 +14,10 @@ export function DraftLeagueTableRow({ draft, onView }: DraftLeagueTableRowProps)
       <TableCell>{draft.name}</TableCell>
       <TableCell>{draft.form_data?.sport_name || 'Unknown'}</TableCell>
       <TableCell>{draft.form_data?.gender || 'N/A'}</TableCell>
-      <TableCell>{draft.form_data?.season_start_date ? new Date(draft.form_data.season_start_date).toLocaleDateString() : 'N/A'}</TableCell>
+      <TableCell>{draft.form_data?.season_start_date ? (() => {
+        const [year, month, day] = draft.form_data.season_start_date.split('-')
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleDateString()
+      })() : 'N/A'}</TableCell>
       <TableCell>{draft.form_data?.venue_name || 'N/A'}</TableCell>
       <TableCell>{new Date(draft.created_at).toLocaleDateString()}</TableCell>
       <TableCell>

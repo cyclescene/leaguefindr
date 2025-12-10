@@ -311,9 +311,18 @@ export function mapDatabaseLeagueToLeague(dbLeague: DatabaseLeagueWithRelations)
       venue: mapDatabaseVenueToVenue(dbLeague.venues),
       sport: mapDatabaseSportToSport(dbLeague.sports),
       division: dbLeague.division || undefined,
-      registrationDeadline: new Date(dbLeague.registration_deadline),
-      seasonStartDate: new Date(dbLeague.season_start_date),
-      seasonEndDate: new Date(dbLeague.season_end_date),
+      registrationDeadline: (() => {
+        const [year, month, day] = dbLeague.registration_deadline.split('-')
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+      })(),
+      seasonStartDate: (() => {
+        const [year, month, day] = dbLeague.season_start_date.split('-')
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+      })(),
+      seasonEndDate: (() => {
+        const [year, month, day] = dbLeague.season_end_date.split('-')
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+      })(),
       gameDays,
       gameStartTime: formatTime(gameStartTime),
       gameEndTime: formatTime(gameEndTime),

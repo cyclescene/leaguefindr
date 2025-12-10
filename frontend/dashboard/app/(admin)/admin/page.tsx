@@ -199,20 +199,29 @@ function DashboardContent() {
   const [rejectingLeagueName, setRejectingLeagueName] = useState<string | undefined>(undefined)
 
   // Transform API data to table format
-  const transformLeague = (league: any): League & { [key: string]: any } => ({
-    id: league.id,
-    name: league.league_name,
-    organizationName: league.form_data?.organization_name || league.org_id || 'Unknown',
-    sport: league.form_data?.sport_name || league.sport_id?.toString() || 'Unknown',
-    gender: league.gender || 'N/A',
-    startDate: new Date(league.season_start_date).toLocaleDateString(),
-    venue: league.form_data?.venue_name || league.venue_id?.toString() || 'Unknown',
-    dateSubmitted: new Date(league.created_at).toLocaleDateString(),
-    status: league.status,
-    // Preserve original league data for handlers
-    league_name: league.league_name,
-    form_data: league.form_data,
-  })
+  const transformLeague = (league: any): League & { [key: string]: any } => {
+    // Format date string (YYYY-MM-DD) to local date without timezone conversion
+    const formatDateString = (dateStr: string) => {
+      const [year, month, day] = dateStr.split('-')
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+      return date.toLocaleDateString()
+    }
+
+    return {
+      id: league.id,
+      name: league.league_name,
+      organizationName: league.form_data?.organization_name || league.org_id || 'Unknown',
+      sport: league.form_data?.sport_name || league.sport_id?.toString() || 'Unknown',
+      gender: league.gender || 'N/A',
+      startDate: formatDateString(league.season_start_date),
+      venue: league.form_data?.venue_name || league.venue_id?.toString() || 'Unknown',
+      dateSubmitted: new Date(league.created_at).toLocaleDateString(),
+      status: league.status,
+      // Preserve original league data for handlers
+      league_name: league.league_name,
+      form_data: league.form_data,
+    }
+  }
 
   const pendingLeaguesTransformed: League[] = pendingLeagues.map(transformLeague)
   const allLeaguesTransformed: League[] = allLeagues.map(transformLeague)
