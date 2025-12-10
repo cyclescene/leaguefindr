@@ -20,6 +20,7 @@ interface LeagueFormButtonsProps {
   onRejectionReasonChange?: (reason: string) => void
   onApproveLeague?: () => Promise<void>
   onRejectLeague?: () => Promise<void>
+  leagueStatus?: string
 }
 
 export function LeagueFormButtons({
@@ -37,6 +38,7 @@ export function LeagueFormButtons({
   onRejectionReasonChange,
   onApproveLeague,
   onRejectLeague,
+  leagueStatus,
 }: LeagueFormButtonsProps) {
   const isViewingLeague = mode === 'view'
   const isEditingDraft = mode === 'edit-draft'
@@ -87,60 +89,88 @@ export function LeagueFormButtons({
     const canApprove = isApproving || isRejecting ? false : true
     const canReject = !rejectionReason || isApproving || isRejecting ? false : true
 
+    // For approved leagues: show Save and Reject buttons
+    // For rejected leagues: show Save and Approve buttons
+    // For pending leagues: show Save, Approve, and Reject buttons
+    const isApproved = leagueStatus === 'approved'
+    const isRejected = leagueStatus === 'rejected'
+    const isPending = leagueStatus === 'pending'
+
     return (
       <>
-        {/* Rejection Reason Input */}
-        <div className="space-y-2">
-          <label htmlFor="rejection_reason" className="text-sm font-medium text-gray-700">
-            Rejection Reason (if rejecting)
-          </label>
-          <textarea
-            id="rejection_reason"
-            placeholder="Explain why this league submission is being rejected..."
-            value={rejectionReason || ''}
-            onChange={(e) => onRejectionReasonChange?.(e.target.value)}
-            maxLength={500}
-            rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400"
-          />
-          <p className="text-xs text-gray-500">
-            {rejectionReason?.length || 0}/500 characters
-          </p>
-        </div>
+        {/* Rejection Reason Input - only show for pending and approved leagues */}
+        {(isPending || isApproved) && (
+          <div className="space-y-2">
+            <label htmlFor="rejection_reason" className="text-sm font-medium text-gray-700">
+              Rejection Reason (if rejecting)
+            </label>
+            <textarea
+              id="rejection_reason"
+              placeholder="Explain why this league submission is being rejected..."
+              value={rejectionReason || ''}
+              onChange={(e) => onRejectionReasonChange?.(e.target.value)}
+              maxLength={500}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400"
+            />
+            <p className="text-xs text-gray-500">
+              {rejectionReason?.length || 0}/500 characters
+            </p>
+          </div>
+        )}
 
         {/* Admin Action Buttons */}
         <div className="flex gap-3">
+          {/* Save button - always available */}
           <Button
             type="button"
-            onClick={async () => {
-              setIsApproving(true)
-              try {
-                await onApproveLeague?.()
-              } finally {
-                setIsApproving(false)
-              }
-            }}
-            disabled={!canApprove || isApproving}
-            className="flex-1 bg-green-600 hover:bg-green-700"
-          >
-            {isApproving ? 'Approving...' : 'Approve League'}
-          </Button>
-          <Button
-            type="button"
-            onClick={async () => {
-              setIsRejecting(true)
-              try {
-                await onRejectLeague?.()
-              } finally {
-                setIsRejecting(false)
-              }
-            }}
-            disabled={!canReject || isRejecting}
-            variant="destructive"
+            onClick={onSaveDraft}
+            disabled={isSavingDraft || isSubmitting}
+            variant="outline"
             className="flex-1"
           >
-            {isRejecting ? 'Rejecting...' : 'Reject League'}
+            {isSavingDraft ? 'Saving...' : 'Save'}
           </Button>
+
+          {/* Approve button - show for pending and rejected leagues */}
+          {(isPending || isRejected) && (
+            <Button
+              type="button"
+              onClick={async () => {
+                setIsApproving(true)
+                try {
+                  await onApproveLeague?.()
+                } finally {
+                  setIsApproving(false)
+                }
+              }}
+              disabled={!canApprove || isApproving}
+              className="flex-1 bg-green-600 hover:bg-green-700"
+            >
+              {isApproving ? 'Approving...' : 'Approve League'}
+            </Button>
+          )}
+
+          {/* Reject button - show for pending and approved leagues */}
+          {(isPending || isApproved) && (
+            <Button
+              type="button"
+              onClick={async () => {
+                setIsRejecting(true)
+                try {
+                  await onRejectLeague?.()
+                } finally {
+                  setIsRejecting(false)
+                }
+              }}
+              disabled={!canReject || isRejecting}
+              variant="destructive"
+              className="flex-1"
+            >
+              {isRejecting ? 'Rejecting...' : 'Reject League'}
+            </Button>
+          )}
+
           <Button
             type="button"
             onClick={onClose}
@@ -151,8 +181,8 @@ export function LeagueFormButtons({
           </Button>
         </div>
 
-        {/* Validation Message */}
-        {!rejectionReason && (
+        {/* Validation Message - only show for pending and approved leagues */}
+        {(isPending || isApproved) && !rejectionReason && (
           <div className="flex gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
             <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-amber-700">

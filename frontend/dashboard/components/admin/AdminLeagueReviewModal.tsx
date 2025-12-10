@@ -11,12 +11,14 @@ interface AdminLeagueReviewModalProps {
   leagueId: number | null
   isOpen: boolean
   onClose: () => void
+  leagueStatus?: string
 }
 
 export function AdminLeagueReviewModal({
   leagueId,
   isOpen,
   onClose,
+  leagueStatus,
 }: AdminLeagueReviewModalProps) {
   const { league, isLoading, error } = useLeague(leagueId)
   const [isMapboxDropdownOpen, setIsMapboxDropdownOpen] = useState(false)
@@ -86,6 +88,7 @@ export function AdminLeagueReviewModal({
           <div className="px-6 py-4">
             <AdminAddLeagueForm
               prePopulatedData={league.form_data as any}
+              leagueStatus={leagueStatus}
               onSuccess={() => {
                 onClose()
               }}

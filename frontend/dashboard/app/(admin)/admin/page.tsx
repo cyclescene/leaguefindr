@@ -192,6 +192,7 @@ function DashboardContent() {
   // Review modal state
   const [reviewModalOpen, setReviewModalOpen] = useState(false)
   const [reviewingLeagueId, setReviewingLeagueId] = useState<number | null>(null)
+  const [reviewingLeagueStatus, setReviewingLeagueStatus] = useState<string | undefined>()
 
   // Reject dialog state
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
@@ -230,7 +231,10 @@ function DashboardContent() {
 
 
   const handleViewLeague = (leagueId: number) => {
+    // Find the league to get its status
+    const league = [...pendingLeagues, ...allLeagues].find(l => l.id === leagueId)
     setReviewingLeagueId(leagueId)
+    setReviewingLeagueStatus(league?.status)
     setReviewModalOpen(true)
   }
 
@@ -688,9 +692,11 @@ function DashboardContent() {
       <AdminLeagueReviewModal
         leagueId={reviewingLeagueId}
         isOpen={reviewModalOpen}
+        leagueStatus={reviewingLeagueStatus}
         onClose={() => {
           setReviewModalOpen(false)
           setReviewingLeagueId(null)
+          setReviewingLeagueStatus(undefined)
         }}
       />
 

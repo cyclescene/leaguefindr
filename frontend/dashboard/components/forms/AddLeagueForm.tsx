@@ -645,6 +645,7 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
           onSubmit={handleSubmit(onSubmit)}
           onUpdateTemplate={handleUpdateTemplate}
           onClose={onClose}
+          leagueStatus={leagueStatus}
         />
 
         {/* Save League Modal for new submissions */}

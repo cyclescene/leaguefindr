@@ -19,9 +19,10 @@ interface AdminAddLeagueFormProps {
   prePopulatedData?: AddLeagueFormData
   draftId?: number
   draftType?: string
+  leagueStatus?: string
 }
 
-export function AdminAddLeagueForm({ onSuccess, onClose, prePopulatedData, draftId, draftType }: AdminAddLeagueFormProps) {
+export function AdminAddLeagueForm({ onSuccess, onClose, prePopulatedData, draftId, draftType, leagueStatus }: AdminAddLeagueFormProps) {
   const { organizations } = useAllOrganizations()
   const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null)
   const [organizationName, setOrganizationName] = useState('')
@@ -68,8 +69,9 @@ export function AdminAddLeagueForm({ onSuccess, onClose, prePopulatedData, draft
     )
   }
 
-  // Determine the mode based on whether we're editing a template or creating new
-  const mode = draftType === 'template' ? 'edit-template' : 'new'
+  // Determine the mode based on whether we're editing a template or viewing an existing league
+  // If viewing an existing league (has leagueStatus), use admin-review mode
+  const mode = leagueStatus ? 'admin-review' : (draftType === 'template' ? 'edit-template' : 'new')
 
   // Once organization is selected, render the league form with context
   return (
@@ -82,6 +84,7 @@ export function AdminAddLeagueForm({ onSuccess, onClose, prePopulatedData, draft
         onClose,
         prePopulatedFormData: prePopulatedData,
         templateId: draftType === 'template' ? draftId : undefined,
+        leagueStatus,
       }}
     >
       <div className="space-y-4">
