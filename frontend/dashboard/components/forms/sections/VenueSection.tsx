@@ -108,7 +108,7 @@ export function VenueSection({
           onVenueSearchChange={onVenueSearchChange}
           onVenueAddressChange={onVenueAddressChange}
           onMapboxDropdownStateChange={onMapboxDropdownStateChange}
-          venueError={displayErrors.venue_name?.message}
+          venueError={displayErrors.venue_name?.message || displayErrors.venue_address?.message || displayErrors.venue_lat?.message || displayErrors.venue_lng?.message}
           isViewingLeague={isViewingLeague}
           customVenueAddress={watch('venue_address') || undefined}
           hideAddressInput={true}
@@ -138,7 +138,7 @@ export function VenueSection({
 
           <div className="space-y-2">
             <label htmlFor="new_venue_address" className="text-sm font-medium text-gray-700">
-              Venue Address
+              Venue Address *
             </label>
             <p className="text-sm text-gray-600">Find address or enter custom location</p>
             <MapboxAddressInput
@@ -147,7 +147,13 @@ export function VenueSection({
               placeholder="Search address..."
               onRetrieve={onVenueAddressChange}
               onMapboxDropdownStateChange={onMapboxDropdownStateChange}
+              aria-invalid={displayErrors.venue_address || displayErrors.venue_lat || displayErrors.venue_lng ? 'true' : 'false'}
             />
+            {(displayErrors.venue_address || displayErrors.venue_lat || displayErrors.venue_lng) && (
+              <p className="text-sm text-red-600">
+                {displayErrors.venue_address?.message || displayErrors.venue_lat?.message || displayErrors.venue_lng?.message}
+              </p>
+            )}
           </div>
 
 

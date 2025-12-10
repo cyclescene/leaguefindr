@@ -1,6 +1,5 @@
 import {
   Table,
-  TableCaption,
   TableHead,
   TableHeader,
   TableRow,

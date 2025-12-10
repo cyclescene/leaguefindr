@@ -19,7 +19,7 @@ export function AdditionalInformationSection({ isViewingLeague = false }: Additi
   return (
     <div className="border-t pt-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-1">Additional Information</h3>
-      <p className="text-sm text-gray-600 mb-4">Add anything else players should know</p>
+      <p className="text-sm text-gray-600 mb-4">Important details about this league’s season. Players will see this on your league page.</p>
 
       <div className="space-y-2">
         <Label htmlFor="season_details">Season Details (Optional)</Label>

@@ -46,9 +46,8 @@ export const addLeagueSchema = z.object({
     .min(1, "Venue is required")
     .max(255, "Venue name must be at most 255 characters"),
   venue_address: z.string()
-    .max(500, "Venue address must be at most 500 characters")
-    .optional()
-    .nullable(),
+    .min(1, "Venue address is required")
+    .max(500, "Venue address must be at most 500 characters"),
   venue_lat: z.any()
     .transform((val) => {
       if (val === undefined || val === null || val === '' || Object.is(val, NaN)) return null
@@ -60,7 +59,8 @@ export const addLeagueSchema = z.object({
         return isNaN(val) ? null : val
       }
       return null
-    }),
+    })
+    .refine(val => val !== null, "Venue location is required. Please select a suggestion from the address dropdown."),
   venue_lng: z.any()
     .transform((val) => {
       if (val === undefined || val === null || val === '' || Object.is(val, NaN)) return null
@@ -72,7 +72,8 @@ export const addLeagueSchema = z.object({
         return isNaN(val) ? null : val
       }
       return null
-    }),
+    })
+    .refine(val => val !== null, "Venue location is required. Please select a suggestion from the address dropdown."),
   league_name: z.string()
     .min(1, "League name is required")
     .max(255, "League name must be at most 255 characters"),

@@ -145,10 +145,10 @@ export function VenueAutocomplete({
   const filteredVenueSuggestions =
     showVenueAutocomplete && debouncedVenueName && !hasExactVenueMatch
       ? approvedVenues.filter(
-          venue =>
-            venue.name.toLowerCase().includes(debouncedVenueName.toLowerCase()) ||
-            venue.address.toLowerCase().includes(debouncedVenueName.toLowerCase())
-        )
+        venue =>
+          venue.name.toLowerCase().includes(debouncedVenueName.toLowerCase()) ||
+          venue.address.toLowerCase().includes(debouncedVenueName.toLowerCase())
+      )
       : []
 
   // Track when autocomplete dropdown is shown to prevent modal from closing
@@ -180,8 +180,8 @@ export function VenueAutocomplete({
       {/* Venue Search with Autocomplete - hidden in view mode */}
       {!isViewingLeague && (
         <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-          <Label htmlFor="venue_search">Venue (Optional)</Label>
-          <p className="text-sm text-gray-600">Select from popular venues or add a new one</p>
+          <Label htmlFor="venue_search">Venue *</Label>
+          <p className="text-sm text-gray-600">Search for popular venues, or add a new one.</p>
           <div className="relative">
             <div className="relative">
               <Input

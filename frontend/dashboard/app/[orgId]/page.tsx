@@ -39,11 +39,6 @@ function LeaguesSection({
   onCreateTemplate,
   onSubmitLeague,
   onViewLeague,
-  onEditTemplate,
-  onUseTemplate,
-  onDeleteTemplate,
-  onEditDraft,
-  onDeleteDraft,
   onSaveAsDraft,
   onSaveAsTemplate,
   setPrePopulatedFormData,
@@ -164,11 +159,11 @@ function LeaguesSection({
         draftsLoading={draftsAndTemplatesLoading}
         templatesLoading={draftsAndTemplatesLoading}
         onViewLeague={onViewLeague}
-        onEditTemplate={onEditTemplate}
-        onUseTemplate={onUseTemplate}
-        onDeleteTemplate={onDeleteTemplate}
-        onEditDraft={onEditDraft}
-        onDeleteDraft={onDeleteDraft}
+        onEditTemplate={handleEditTemplate}
+        onUseTemplate={handleUseTemplate}
+        onDeleteTemplate={handleDeleteTemplate}
+        onEditDraft={handleEditDraft}
+        onDeleteDraft={handleDeleteDraft}
         onSaveAsDraft={onSaveAsDraft}
         onSaveAsTemplate={onSaveAsTemplate}
       />
@@ -287,14 +282,6 @@ function OrganizationDashboardContent() {
     setViewingLeagueRejectionReason(league.rejection_reason);
     setOpenDialog("league");
   };
-
-  // These handlers are now defined in LeaguesSection component
-  // where they have access to draftsAndTemplates data
-  const handleDeleteDraft = (draftId: number) => { }; // Placeholder
-  const handleEditDraft = (draftId: number) => { }; // Placeholder
-  const handleDeleteTemplate = (templateId: number) => { }; // Placeholder
-  const handleEditTemplate = (templateId: number) => { }; // Placeholder
-  const handleUseTemplate = (templateId: number) => { }; // Placeholder
 
   const handleSaveAsDraft = async (leagueData: any, name?: string) => {
     try {
@@ -471,11 +458,6 @@ function OrganizationDashboardContent() {
             onCreateTemplate={() => setOpenDialog("template")}
             onSubmitLeague={() => setOpenDialog("league")}
             onViewLeague={handleViewLeague}
-            onEditTemplate={handleEditTemplate}
-            onUseTemplate={handleUseTemplate}
-            onDeleteTemplate={handleDeleteTemplate}
-            onEditDraft={handleEditDraft}
-            onDeleteDraft={handleDeleteDraft}
             onSaveAsDraft={handleSaveAsDraft}
             onSaveAsTemplate={handleSaveAsTemplate}
             setPrePopulatedFormData={setPrePopulatedFormData}
