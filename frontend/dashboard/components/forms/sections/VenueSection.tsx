@@ -63,6 +63,7 @@ export function VenueSection({
             onClick={() => {
               // Clear any previously selected venue
               onVenueChange(null)
+              onVenueSearchChange('')
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               setValue('venue_id', null as any)
               setValue('venue_name', '')
