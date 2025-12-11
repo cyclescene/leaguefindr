@@ -21,6 +21,7 @@ interface MapboxAddressInputProps {
   disabled?: boolean
   className?: string
   onMapboxDropdownStateChange?: (isOpen: boolean) => void
+  hasError?: boolean
 }
 
 /**
@@ -54,6 +55,7 @@ export const MapboxAddressInput = forwardRef(
       disabled = false,
       className,
       onMapboxDropdownStateChange,
+      hasError = false,
     }: MapboxAddressInputProps,
     ref: ForwardedRef<HTMLInputElement>
   ) => {
@@ -150,7 +152,11 @@ export const MapboxAddressInput = forwardRef(
           onChange={handleChange}
           onClick={(e) => e.stopPropagation()}
           disabled={disabled}
-          className={`w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${className || ''}`}
+          className={`w-full px-3 py-2 border rounded-md text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed outline-none focus:ring-1 ${
+            hasError
+              ? 'border-red-500 border-2 focus:border-red-500 focus:ring-red-500'
+              : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+          } ${className || ''}`}
         />
       </AddressAutofill>
     ) : (
@@ -163,7 +169,11 @@ export const MapboxAddressInput = forwardRef(
         onChange={handleChange}
         onClick={(e) => e.stopPropagation()}
         disabled={disabled}
-        className={`w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${className || ''}`}
+        className={`w-full px-3 py-2 border rounded-md text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed outline-none focus:ring-1 ${
+          hasError
+            ? 'border-red-500 border-2 focus:border-red-500 focus:ring-red-500'
+            : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+        } ${className || ''}`}
       />
     )
   }

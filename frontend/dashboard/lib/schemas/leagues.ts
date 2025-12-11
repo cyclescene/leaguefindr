@@ -80,8 +80,9 @@ export const addLeagueSchema = z.object({
   division: z.string()
     .min(1, "Skill level is required")
     .max(255, "Skill level must be at most 255 characters"),
-  gender: z.enum(["male", "female", "co-ed"])
-    .refine(val => val, "Please select a gender"),
+  gender: z.enum(["male", "female", "co-ed"], {
+    errorMap: () => ({ message: "Please select a gender" })
+  }),
   registration_deadline: z.string()
     .min(1, "Registration deadline is required")
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
@@ -129,8 +130,7 @@ export const addLeagueSchema = z.object({
       "Registration URL must be a valid website (e.g., example.com or https://example.com)"
     ),
   duration: z.number()
-    .min(1, "Duration must be at least 1 week")
-    .max(52, "Duration must be at most 52 weeks"),
+    .min(1, "Number of games must be at least 1"),
   minimum_team_players: z.number()
     .min(1, "Minimum team players must be at least 1")
     .max(100, "Minimum team players must be at most 100"),

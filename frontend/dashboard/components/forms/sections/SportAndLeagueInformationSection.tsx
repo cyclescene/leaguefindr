@@ -90,7 +90,9 @@ export function SportAndLeagueInformationSection({
             {...register('gender')}
             id="gender"
             disabled={isViewingLeague}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+            className={`w-full px-3 py-2 border rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500 ${
+              displayErrors.gender ? 'border-red-500 border-2' : 'border-gray-300'
+            }`}
             aria-invalid={displayErrors.gender ? 'true' : 'false'}
           >
             <option value="">Select a gender</option>
@@ -112,7 +114,9 @@ export function SportAndLeagueInformationSection({
             type="text"
             placeholder="e.g., Beginner, Intermediate, Expert"
             disabled={isViewingLeague}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+            className={`w-full px-3 py-2 border rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500 ${
+              displayErrors.division ? 'border-red-500 border-2' : 'border-gray-300'
+            }`}
             aria-invalid={displayErrors.division ? 'true' : 'false'}
           />
           {displayErrors.division && (

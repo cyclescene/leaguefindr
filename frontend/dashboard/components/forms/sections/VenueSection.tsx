@@ -128,7 +128,9 @@ export function VenueSection({
               aria-invalid={displayErrors.venue_name ? 'true' : 'false'}
               value={watch('venue_name') || ''}
               onChange={(e) => setValue('venue_name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className={`w-full px-3 py-2 border rounded-md text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed ${
+                displayErrors.venue_name ? 'border-red-500 border-2' : 'border-gray-300'
+              }`}
             />
             {displayErrors.venue_name && (
               <p className="text-sm text-red-600">{displayErrors.venue_name.message}</p>
@@ -147,7 +149,7 @@ export function VenueSection({
               placeholder="Search address..."
               onRetrieve={onVenueAddressChange}
               onMapboxDropdownStateChange={onMapboxDropdownStateChange}
-              aria-invalid={displayErrors.venue_address || displayErrors.venue_lat || displayErrors.venue_lng ? 'true' : 'false'}
+              hasError={!!(displayErrors.venue_address || displayErrors.venue_lat || displayErrors.venue_lng)}
             />
             {(displayErrors.venue_address || displayErrors.venue_lat || displayErrors.venue_lng) && (
               <p className="text-sm text-red-600">

@@ -46,6 +46,7 @@ export function SeasonDatesSection({
             onDateChange={onRegistrationDeadlineChange}
             placeholder="Select deadline"
             disabled={isViewingLeague}
+            hasError={!!displayErrors.registration_deadline}
           />
           {displayErrors.registration_deadline && (
             <p className="text-sm text-red-600">{displayErrors.registration_deadline.message}</p>
@@ -60,6 +61,7 @@ export function SeasonDatesSection({
             onDateChange={onSeasonStartDateChange}
             placeholder="Select start date"
             disabled={isViewingLeague}
+            hasError={!!displayErrors.season_start_date}
           />
           {displayErrors.season_start_date && (
             <p className="text-sm text-red-600">{displayErrors.season_start_date.message}</p>
@@ -74,6 +76,7 @@ export function SeasonDatesSection({
             onDateChange={onSeasonEndDateChange}
             placeholder="Select end date"
             disabled={isViewingLeague}
+            hasError={!!displayErrors.season_end_date}
           />
           {displayErrors.season_end_date && (
             <p className="text-sm text-red-600">{displayErrors.season_end_date.message}</p>

@@ -80,7 +80,8 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
   const methods = useForm<AddLeagueFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(addLeagueSchema) as any,
-    mode: 'onBlur',
+    mode: 'onChange',
+    shouldFocusError: false,
     defaultValues: {
       sport_id: undefined,
       sport_name: '',
@@ -116,6 +117,7 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
     watch,
     reset,
     getValues,
+    trigger,
   } = methods
 
   // State management
@@ -136,6 +138,121 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
   const [showNewVenueForm, setShowNewVenueForm] = useState(false)
   const [isMapboxDropdownOpen, setIsMapboxDropdownOpen] = useState(false)
   const newVenueAddressInputRef = useRef<HTMLInputElement>(null)
+  const buttonsRef = useRef<HTMLDivElement>(null)
+
+  // Map of field names to friendly display names
+  const fieldLabels: Record<string, string> = {
+    sport_name: 'Sport name',
+    league_name: 'League name',
+    division: 'Skill level',
+    gender: 'Gender',
+    registration_deadline: 'Registration deadline',
+    season_start_date: 'Season start date',
+    game_occurrences: 'Game occurrences',
+    venue_name: 'Venue name',
+    venue_address: 'Venue address',
+    venue_lat: 'Venue location',
+    venue_lng: 'Venue location',
+    pricing_strategy: 'Pricing strategy',
+    pricing_amount: 'Pricing amount',
+    registration_url: 'Registration URL',
+  }
+
+  // Map of fields to their sections
+  const fieldSections: Record<string, string> = {
+    sport_name: 'Sport & League Information',
+    league_name: 'Sport & League Information',
+    division: 'Sport & League Information',
+    gender: 'Sport & League Information',
+    registration_url: 'Sport & League Information',
+    registration_deadline: 'Season Dates',
+    season_start_date: 'Season Dates',
+    game_occurrences: 'Game Schedule',
+    venue_name: 'Venue',
+    venue_address: 'Venue',
+    venue_lat: 'Venue',
+    venue_lng: 'Venue',
+    pricing_strategy: 'Pricing',
+    pricing_amount: 'Pricing',
+  }
+
+  // Map of fields to their input element IDs for scrolling
+  const fieldIds: Record<string, string> = {
+    sport_name: 'sport_name',
+    league_name: 'league_name',
+    division: 'division',
+    gender: 'gender',
+    registration_deadline: 'registration_deadline',
+    season_start_date: 'season_start_date',
+    game_occurrences: 'game_occurrences',
+    venue_name: 'venue_name_new',
+    venue_address: 'new_venue_address',
+    venue_lat: 'new_venue_address',
+    venue_lng: 'new_venue_address',
+    pricing_strategy: 'pricing_strategy',
+    pricing_amount: 'pricing_amount',
+    registration_url: 'registration_url',
+  }
+
+  // Get all validation errors organized by section
+  const getValidationErrorsBySection = () => {
+    const sections: Record<string, Array<{ label: string; fieldId: string; fieldName: string }>> = {}
+
+    // Collect all field errors organized by section
+    Object.entries(errors).forEach(([field, error]) => {
+      if (error && field !== 'org_id' && field !== 'organization_name') {
+        // Avoid duplicating venue location error
+        if (field === 'venue_lng' && errors.venue_lat) {
+          return
+        }
+
+        const label = fieldLabels[field] || field
+        const section = fieldSections[field] || 'Other'
+        const fieldId = fieldIds[field] || field
+
+        if (!sections[section]) {
+          sections[section] = []
+        }
+        sections[section].push({ label, fieldId, fieldName: field })
+      }
+    })
+
+    return sections
+  }
+
+  // Handle clicking on an error to scroll to the section
+  const handleErrorClick = (_fieldId: string, fieldName: string) => {
+    // Map field names to section titles
+    const getSectionTitle = (field: string) => {
+      if (field.startsWith('sport_') || field === 'league_name' || field === 'division' || field === 'gender') {
+        return 'Sport & League Information'
+      }
+      if (field === 'registration_deadline' || field === 'season_start_date' || field === 'season_end_date') {
+        return 'Season Dates'
+      }
+      if (field === 'game_occurrences') {
+        return 'Game Schedule'
+      }
+      if (field.startsWith('venue_')) {
+        return 'Venue'
+      }
+      if (field === 'pricing_strategy' || field === 'pricing_amount') {
+        return 'Pricing'
+      }
+      if (field === 'registration_url') {
+        return 'Sport & League Information'
+      }
+      return ''
+    }
+
+    const sectionTitle = getSectionTitle(fieldName)
+    if (sectionTitle) {
+      const headings = Array.from(document.querySelectorAll('h3')).filter(h => h.textContent?.includes(sectionTitle))
+      if (headings.length > 0) {
+        headings[0].scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }
+  }
 
   // Notify parent about Mapbox dropdown state changes
   useEffect(() => {
@@ -271,6 +388,17 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
       newVenueAddressInputRef.current.value = currentAddress
     }
   }, [showNewVenueForm, watch('venue_address')])
+
+  // Scroll buttons into view when validation errors appear
+  const validationErrorsBySection = getValidationErrorsBySection()
+  const hasValidationErrors = Object.keys(validationErrorsBySection).length > 0
+
+  useEffect(() => {
+    if (hasValidationErrors && buttonsRef.current) {
+      // Use scrollIntoView with smooth behavior and align to end so buttons stay visible
+      buttonsRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [hasValidationErrors])
 
   // Handle venue search input change - update both state and form value
   const handleVenueSearchChange = (input: string) => {
@@ -530,7 +658,7 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
     )
   }
 
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     // For template creation, bypass validation and get current values
@@ -538,8 +666,13 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
       const data = getValues()
       onSubmit(data)
     } else {
-      // For other modes, use normal validation flow
-      handleSubmit(onSubmit)(e)
+      // Trigger validation on all fields to show all errors
+      const isValid = await trigger()
+
+      // If validation passes, submit the form
+      if (isValid) {
+        handleSubmit(onSubmit)(e)
+      }
     }
   }
 
@@ -635,18 +768,46 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
           </div>
         )}
 
-        <LeagueFormButtons
-          mode={mode}
-          isSubmitting={isSubmitting}
-          isSavingDraft={isDraftOperationLoading}
-          draftName={draftName}
-          onDraftNameChange={setDraftName}
-          onSaveDraft={handleSaveDraft}
-          onSubmit={handleSubmit(onSubmit)}
-          onUpdateTemplate={handleUpdateTemplate}
-          onClose={onClose}
-          leagueStatus={leagueStatus}
-        />
+        {/* Validation Summary Banner */}
+        {hasValidationErrors && (
+          <div className="bg-red-50 border border-red-300 rounded-md p-4">
+            <p className="text-red-900 font-semibold mb-3">Please fill in the following required fields:</p>
+            <div className="space-y-3">
+              {Object.entries(validationErrorsBySection).map(([section, fields]) => (
+                <div key={section}>
+                  <p className="text-red-800 font-medium text-sm mb-1">{section}</p>
+                  <ul className="text-red-700 text-sm space-y-1 ml-4">
+                    {fields.map((field) => (
+                      <li
+                        key={`${section}-${field.label}`}
+                        className="flex items-start gap-2 cursor-pointer hover:text-red-900 hover:font-medium transition-all"
+                        onClick={() => handleErrorClick(field.fieldId, field.fieldName)}
+                      >
+                        <span className="text-red-600 font-bold">•</span>
+                        <span>{field.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div ref={buttonsRef}>
+          <LeagueFormButtons
+            mode={mode}
+            isSubmitting={isSubmitting}
+            isSavingDraft={isDraftOperationLoading}
+            draftName={draftName}
+            onDraftNameChange={setDraftName}
+            onSaveDraft={handleSaveDraft}
+            onSubmit={handleSubmit(onSubmit)}
+            onUpdateTemplate={handleUpdateTemplate}
+            onClose={onClose}
+            leagueStatus={leagueStatus}
+          />
+        </div>
 
         {/* Save League Modal for new submissions */}
         <SaveLeagueModal

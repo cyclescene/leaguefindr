@@ -14,6 +14,7 @@ interface DatePickerProps {
   placeholder?: string
   disabled?: boolean
   className?: string
+  hasError?: boolean
 }
 
 export function DatePicker({
@@ -22,6 +23,7 @@ export function DatePicker({
   placeholder = "Pick a date",
   disabled = false,
   className,
+  hasError = false,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement>(null)
@@ -48,6 +50,7 @@ export function DatePicker({
         className={cn(
           "w-full justify-start text-left font-normal",
           !date && "text-muted-foreground",
+          hasError && "border-red-500 border-2",
           className
         )}
         disabled={disabled}

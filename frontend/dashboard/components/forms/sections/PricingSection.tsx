@@ -46,7 +46,9 @@ export function PricingSection({ isViewingLeague = false }: PricingSectionProps)
             {...register('pricing_strategy')}
             id="pricing_strategy"
             disabled={isViewingLeague}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+            className={`w-full px-3 py-2 border rounded-md text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500 ${
+              displayErrors.pricing_strategy ? 'border-red-500 border-2' : 'border-gray-300'
+            }`}
             aria-invalid={displayErrors.pricing_strategy ? 'true' : 'false'}
           >
             <option value="per_person">Per Person</option>
