@@ -1,6 +1,6 @@
 "use client";
 
-import { useSignUp, useAuth, useSignIn } from "@clerk/nextjs";
+import { useSignUp, useSignIn } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";

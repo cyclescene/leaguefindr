@@ -1,6 +1,6 @@
 "use client";
 
-import { useSignIn, useAuth, useSession } from "@clerk/nextjs";
+import { useSignIn, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
@@ -21,7 +21,7 @@ import { signInSchema, type SignInFormData } from "@/lib/schemas";
 export function SignInForm() {
   const { signIn, isLoaded, setActive
   } = useSignIn();
-  const { userId, isLoaded: isUserLoaded, getToken, } = useAuth();
+  const { userId, isLoaded: isUserLoaded } = useAuth();
   const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);

@@ -156,8 +156,8 @@ function DashboardContent() {
 
   // Admin operations
   const { approveLeague, rejectLeague } = useAdminLeagueOperations()
-  const [isApproving, setIsApproving] = useState<number | null>(null)
-  const [isRejecting, setIsRejecting] = useState<number | null>(null)
+  const [_isApproving, setIsApproving] = useState<number | null>(null)
+  const [_isRejecting, setIsRejecting] = useState<number | null>(null)
 
   const { data: organizations, total: totalOrganizations, isLoading: isLoadingOrganizations, refetch: refetchOrganizations } = useAdminOrganizations(
     ITEMS_PER_PAGE,

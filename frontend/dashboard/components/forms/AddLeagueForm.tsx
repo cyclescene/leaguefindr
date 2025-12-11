@@ -56,7 +56,6 @@ export function AddLeagueForm({ onSaveAsTemplate, onMapboxDropdownStateChange }:
     mode,
     draftId: editingDraftId,
     templateId: editingTemplateId,
-    leagueId: viewingLeagueId,
     leagueStatus,
     leagueRejectionReason,
     prePopulatedFormData,
