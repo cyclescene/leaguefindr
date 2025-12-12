@@ -134,7 +134,7 @@ export interface League {
   division?: string
   registrationDeadline: Date
   seasonStartDate: Date
-  seasonEndDate: Date
+  seasonEndDate?: Date
   gameDays: GameDay[]
   gameStartTime: string      // Formatted time "6:00 PM"
   gameEndTime: string        // Formatted time "10:00 PM"
