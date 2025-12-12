@@ -108,10 +108,10 @@ export class LeaguesApi {
         query = query.or(`organization.org_name.ilike.%${q}%,division.ilike.%${q}%,sport.name.ilike.%${q}%,venue.name.ilike.%${q}%`)
       }
 
-      // Always filter for active leagues (registration deadline in the future, not including today if already past)
+      // Always filter for active leagues (registration deadline today or in the future)
       const now = new Date()
       const todayISO = now.toISOString().split('T')[0] // YYYY-MM-DD format
-      query = query.gt('registration_deadline', todayISO)
+      query = query.gte('registration_deadline', todayISO)
 
       // Determine pagination strategy based on search type
       const hasLocationFilter = !!request.userLocation
@@ -191,7 +191,9 @@ export class LeaguesApi {
       // Filter by distance radius if user location provided
       if (request.userLocation) {
         const radius = request.userLocation.radius || 35 // Default 35 miles
-        
+
+        const leaguesBeforeDistanceFilter = leagues.length
+
         // Filter by distance radius - leagues should already have distance calculated
         leagues = leagues.filter(league => {
           if (league.distance === undefined) {
@@ -200,6 +202,8 @@ export class LeaguesApi {
           }
           return league.distance <= radius
         })
+
+        const leaguesFilteredOutByDistance = leaguesBeforeDistanceFilter - leagues.length
         
         // IMPORTANT: Sort by distance so closest leagues appear first
         leagues.sort((a, b) => {

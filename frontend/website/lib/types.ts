@@ -316,10 +316,12 @@ export function mapDatabaseLeagueToLeague(dbLeague: DatabaseLeagueWithRelations)
         return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
       })(),
       seasonStartDate: (() => {
+        if (!dbLeague.season_start_date) return new Date()
         const [year, month, day] = dbLeague.season_start_date.split('-')
         return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
       })(),
       seasonEndDate: (() => {
+        if (!dbLeague.season_end_date) return undefined
         const [year, month, day] = dbLeague.season_end_date.split('-')
         return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
       })(),
